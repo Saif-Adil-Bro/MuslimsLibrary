@@ -1,0 +1,6 @@
+{
+  "name": "MuslimsLibrary",
+  "description": "A digital library app including Firebase, Supabase Database & Storage, and interactive readers for Muslims.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
