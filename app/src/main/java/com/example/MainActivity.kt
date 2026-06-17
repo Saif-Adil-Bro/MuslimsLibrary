@@ -104,7 +104,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onBookClick = { book ->
-                                    navController.navigate("reader/${book.id}/${book.title}")
+                                    val encodedTitle = java.net.URLEncoder.encode(book.title, "UTF-8")
+                                    val encodedUrl = java.net.URLEncoder.encode(book.fileUrl ?: "", "UTF-8")
+                                    navController.navigate("reader/${book.id}/$encodedTitle/$encodedUrl/${book.fileType}")
                                 },
                                 onNavigateToAddBook = {
                                     navController.navigate("add_book")
@@ -128,6 +130,31 @@ class MainActivity : ComponentActivity() {
                             ReaderScreen(
                                 bookId = bookId,
                                 bookTitle = bookTitle,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // Updated reader route with document URL and file type
+                        composable(
+                            route = "reader/{bookId}/{bookTitle}/{fileUrl}/{fileType}",
+                            arguments = listOf(
+                                navArgument("bookId") { type = NavType.StringType },
+                                navArgument("bookTitle") { type = NavType.StringType },
+                                navArgument("fileUrl") { type = NavType.StringType },
+                                navArgument("fileType") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+                            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+                            val fileUrl = backStackEntry.arguments?.getString("fileUrl") ?: ""
+                            val fileType = backStackEntry.arguments?.getString("fileType") ?: ""
+                            ReaderScreen(
+                                bookId = bookId,
+                                bookTitle = bookTitle,
+                                fileUrl = fileUrl,
+                                fileType = fileType,
                                 onBackClick = {
                                     navController.popBackStack()
                                 }

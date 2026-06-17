@@ -56,6 +56,23 @@ class SupabaseService(
     }
 
     /**
+     * Searches for books matching query by title or author that are marked public.
+     */
+    suspend fun searchBooks(query: String): List<SupabaseBook> = withContext(Dispatchers.IO) {
+        supabaseClient.postgrest["books"]
+            .select {
+                filter {
+                    eq("is_public", true)
+                    or {
+                        ilike("title", "%$query%")
+                        ilike("author", "%$query%")
+                    }
+                }
+            }
+            .decodeList<SupabaseBook>()
+    }
+
+    /**
      * Fetches current user profile data details from the custom users table in Supabase.
      */
     suspend fun getCurrentUserProfile(userId: String): SupabaseUser? = withContext(Dispatchers.IO) {

@@ -87,7 +87,17 @@ fun AddBookScreen(
     // Listen to outcome states
     LaunchedEffect(uiState) {
         if (uiState is UploadState.Success) {
-            Toast.makeText(context, "Manuscript published successfully!", Toast.LENGTH_LONG).show()
+            val isCoverProvided = if (coverSourceType == SourceType.FILE) {
+                coverImageUri != null
+            } else {
+                coverImageUrl.isNotBlank()
+            }
+            val message = if (isCoverProvided) {
+                "বইটি কভার ইমেজসহ সফলভাবে যুক্ত করা হয়েছে!"
+            } else {
+                "বইটি কভার ইমেজ ছাড়াই সফলভাবে যুক্ত করা হয়েছে! (ডিফল্ট কভার ব্যবহার করা হবে)"
+            }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             adminViewModel.resetState()
             onBackClick()
         }
@@ -305,11 +315,18 @@ fun AddBookScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Cover Image Selection",
+                            text = "Cover Image Selection (ঐচ্ছিক)",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF043B2B),
                             fontFamily = FontFamily.Serif
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "(Optional)",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Normal
                         )
                     }
 
@@ -378,31 +395,45 @@ fun AddBookScreen(
                                 }
                             }
                         } else {
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(120.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(Color(0xFFF1F4F2))
                                     .clickable { imagePickerLauncher.launch("image/*") }
-                                    .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
+                                    .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.AddPhotoAlternate,
-                                        contentDescription = null,
-                                        tint = Color(0xFF0A4E38),
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                AsyncImage(
+                                    model = com.example.R.drawable.ic_book_placeholder,
+                                    contentDescription = "Default cover placeholder",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(70.dp, 95.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Tap to select Cover Illustration",
+                                        text = "ডিফল্ট কভার সেট করা আছে",
                                         fontSize = 13.sp,
-                                        color = Color.Gray,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF043B2B)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "কাস্টম কভার ইমেজ আপলোড করতে ট্যাপ করুন",
+                                        fontSize = 11.sp,
+                                        color = Color.Gray
                                     )
                                 }
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0A4E38),
+                                    modifier = Modifier.size(28.dp)
+                                )
                             }
                         }
                     } else {
@@ -480,6 +511,40 @@ fun AddBookScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFF1F4F2))
+                                        .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp))
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = com.example.R.drawable.ic_book_placeholder,
+                                        contentDescription = "Default cover placeholder",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(70.dp, 95.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "ডিফল্ট কভার সেট করা আছে",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF043B2B)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "উপরে কভার ইমেজের লিংক দিলে এখানে কাস্টম কভারের প্রিভিউ দেখাবে।",
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -850,9 +915,9 @@ fun AddBookScreen(
                 }
                 else -> {
                     val hasCover = if (coverSourceType == SourceType.FILE) {
-                        coverImageUri != null
+                        true // Optional
                     } else {
-                        coverImageUrl.isNotBlank() && adminViewModel.supabaseService.isValidImageUrl(coverImageUrl)
+                        coverImageUrl.isBlank() || adminViewModel.supabaseService.isValidImageUrl(coverImageUrl)
                     }
 
                     val hasBook = when (bookSourceType) {

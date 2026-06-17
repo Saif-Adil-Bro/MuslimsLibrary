@@ -1,0 +1,38 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="180dp"
+    android:viewportWidth="120"
+    android:viewportHeight="180">
+
+    <!-- Gradient Background -->
+    <path
+        android:pathData="M8,0h104c4.4,0 8,3.6 8,8v164c0,4.4 -3.6,8 -8,8H8c-4.4,0 -8,-3.6 -8,-8V8C0,3.6 3.6,0 8,0z">
+        <gradient
+            android:startColor="#043B2B"
+            android:endColor="#0A4E38"
+            android:type="linear"
+            android:startX="0"
+            android:startY="0"
+            android:endX="120"
+            android:endY="180" />
+    </path>
+
+    <!-- Decorative inner border -->
+    <path
+        android:pathData="M12,12h96c2.2,0 4,1.8 4,4v148c0,2.2 -1.8,4 -4,4H12c-2.2,0 -4,-1.8 -4,-4V16C8,13.8 9.8,12 12,12z"
+        android:fillColor="#00000000"
+        android:strokeColor="#10B981"
+        android:strokeWidth="1.5" />
+
+    <!-- Elegant background glow ring -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,50 A20,20 0 0,0 40,70 A20,20 0 0,0 60,90 A20,20 0 0,0 80,70 A20,20 0 0,0 60,50 Z"
+        android:fillAlpha="0.08" />
+
+    <!-- Center Book icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,54 H46C43.8,54 42,55.8 42,58V90C42,92.2 43.8,94 46,94H74C76.2,94 78,92.2 78,90V58C78,55.8 76.2,54 74,54ZM70,88H50V60H70V88ZM54,66H66V70H54V66ZM54,74H66V78H54V74ZM54,82H62V86H54V82Z" />
+
+</vector>

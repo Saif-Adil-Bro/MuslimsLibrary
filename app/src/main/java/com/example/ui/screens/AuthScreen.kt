@@ -357,9 +357,9 @@ fun AuthScreen(
                                 onClick = {
                                     if (validateInputs()) {
                                         if (isSignUp) {
-                                            viewModel.signUp(email, password)
+                                            viewModel.signUp(email, password, context)
                                         } else {
-                                            viewModel.login(email, password)
+                                            viewModel.login(email, password, context)
                                         }
                                     }
                                 },
@@ -405,7 +405,7 @@ fun AuthScreen(
                                 viewModel.signInWithGoogle(context, activity)
                             } else {
                                 // Fallback safe mock login for preview environment
-                                viewModel.login("developer@muslimslibrary.com", "developer123")
+                                viewModel.login("developer@muslimslibrary.com", "developer123", context)
                             }
                         },
                         colors = ButtonDefaults.outlinedButtonColors(

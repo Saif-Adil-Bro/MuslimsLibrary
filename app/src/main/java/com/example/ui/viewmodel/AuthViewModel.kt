@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.content.Context
+import android.net.ConnectivityManager
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -206,8 +207,26 @@ class AuthViewModel(
         _isLoggedIn.value = true
     }
 
-    fun login(email: String, passwordState: String) {
+    private fun isNetworkAvailable(context: Context?): Boolean {
+        if (context == null) return true // assume true if not supplied to prevent blocking
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            @Suppress("DEPRECATION")
+            val activeNetwork = connectivityManager.activeNetworkInfo
+            @Suppress("DEPRECATION")
+            activeNetwork != null && activeNetwork.isConnected
+        } catch (e: Exception) {
+            true // fallback to true to prevent locking users out if permission checks etc. fail
+        }
+    }
+
+    fun login(email: String, passwordState: String, context: Context? = null) {
         android.util.Log.d("AuthViewModel", "Login started for: $email")
+        if (!isNetworkAvailable(context)) {
+            _uiState.value = AuthState.Error("No internet connection. Please check your network status and try again.")
+            _toastMessage.value = "No internet connection."
+            return
+        }
         if (email.isBlank() || passwordState.length < 6) {
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return
@@ -232,8 +251,13 @@ class AuthViewModel(
         }
     }
 
-    fun signUp(email: String, passwordState: String) {
+    fun signUp(email: String, passwordState: String, context: Context? = null) {
         android.util.Log.d("AuthViewModel", "Sign up started for: $email")
+        if (!isNetworkAvailable(context)) {
+            _uiState.value = AuthState.Error("No internet connection. Please check your network status and try again.")
+            _toastMessage.value = "No internet connection."
+            return
+        }
         if (email.isBlank() || passwordState.length < 6) {
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return

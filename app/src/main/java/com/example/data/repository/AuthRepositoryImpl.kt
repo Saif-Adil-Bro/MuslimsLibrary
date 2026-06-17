@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.FirebaseNetworkException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -170,16 +174,54 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun login(email: String, password: String): Result<Unit> {
-        return try {
-            withTimeout(30_000) { // 30 second timeout
-                firebaseAuth.signInWithEmailAndPassword(email, password).awaitTask()
+        var lastException: Exception? = null
+        for (attempt in 1..3) {
+            try {
+                withTimeout(60_000) { // 60 seconds for slow networks
+                    firebaseAuth.signInWithEmailAndPassword(email, password).awaitTask()
+                }
+                return Result.success(Unit)
+            } catch (e: TimeoutCancellationException) {
+                lastException = Exception("Connection timeout. Your internet seems slow. Please try again or switch to WiFi.")
+                if (attempt < 3) {
+                    delay(2000) // Wait 2 seconds before retry
+                }
+            } catch (e: FirebaseAuthInvalidCredentialsException) {
+                return Result.failure(Exception("Invalid email or password"))
+            } catch (e: FirebaseAuthInvalidUserException) {
+                return Result.failure(Exception("No account found with this email"))
+            } catch (e: FirebaseNetworkException) {
+                lastException = Exception("Network error. Please check your internet connection and try again.")
+                if (attempt < 3) {
+                    delay(2000)
+                }
+            } catch (e: Exception) {
+                var cause: Throwable? = e
+                var matched = false
+                while (cause != null) {
+                    if (cause is FirebaseAuthInvalidCredentialsException) {
+                        return Result.failure(Exception("Invalid email or password"))
+                    }
+                    if (cause is FirebaseAuthInvalidUserException) {
+                        return Result.failure(Exception("No account found with this email"))
+                    }
+                    if (cause is FirebaseNetworkException) {
+                        lastException = Exception("Network error. Please check your internet connection and try again.")
+                        matched = true
+                        break
+                    }
+                    cause = cause.cause
+                }
+                if (!matched) {
+                    return Result.failure(Exception("Login failed: ${e.localizedMessage}"))
+                } else {
+                    if (attempt < 3) {
+                        delay(2000)
+                    }
+                }
             }
-            Result.success(Unit)
-        } catch (e: TimeoutCancellationException) {
-            Result.failure(Exception("Login timeout. Please check your internet connection."))
-        } catch (e: Exception) {
-            Result.failure(Exception("Login failed: ${e.localizedMessage}"))
         }
+        return Result.failure(lastException ?: Exception("Login failed after 3 attempts"))
     }
 
     override suspend fun signUp(email: String, password: String): Result<Unit> {

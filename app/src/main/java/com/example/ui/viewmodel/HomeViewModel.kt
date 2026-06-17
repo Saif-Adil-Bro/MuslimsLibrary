@@ -27,13 +27,22 @@ class HomeViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _selectedCategory = MutableStateFlow("সব")
+    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+
     private val allBooks = mutableListOf<SupabaseBook>()
+
+    val categories = listOf("সব", "কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
 
     init {
         loadBooks()
     }
 
     fun loadBooks() {
+        fetchBooks()
+    }
+
+    fun fetchBooks() {
         _uiState.value = HomeUiState.Loading
         viewModelScope.launch {
             try {
@@ -42,15 +51,13 @@ class HomeViewModel(
                 allBooks.addAll(books)
                 filterAndPublish()
             } catch (e: Exception) {
-                // If it fails (e.g. database schema has no books yet or network offline), return Error state
-                // We also handle empty state cleanly if fetch succeeded but returned no entries.
                 _uiState.value = HomeUiState.Error(e.localizedMessage ?: "Failed to fetch books from Supabase")
             }
         }
     }
 
     fun refreshBooks() {
-        loadBooks()
+        fetchBooks()
     }
 
     fun onSearchQueryChanged(query: String) {
@@ -58,17 +65,33 @@ class HomeViewModel(
         filterAndPublish()
     }
 
-    private fun filterAndPublish() {
-        val query = _searchQuery.value
-        val filtered = if (query.isBlank()) {
-            allBooks.toList()
-        } else {
-            allBooks.filter {
-                it.title.contains(query, ignoreCase = true) ||
-                it.author.contains(query, ignoreCase = true)
-            }
-        }
+    fun onCategorySelected(category: String) {
+        _selectedCategory.value = category
+        filterAndPublish()
+    }
 
+    // Exposed function to allow filtering custom input lists or querying filtered result programmatically
+    fun filteredBooks(query: String, category: String): List<SupabaseBook> {
+        return allBooks.filter { book ->
+            val matchesQuery = if (query.isBlank()) {
+                true
+            } else {
+                book.title.contains(query, ignoreCase = true) ||
+                book.author.contains(query, ignoreCase = true)
+            }
+            
+            val matchesCategory = if (category == "সব") {
+                true
+            } else {
+                book.category.equals(category, ignoreCase = true)
+            }
+            
+            matchesQuery && matchesCategory
+        }
+    }
+
+    private fun filterAndPublish() {
+        val filtered = filteredBooks(_searchQuery.value, _selectedCategory.value)
         if (filtered.isEmpty()) {
             _uiState.value = HomeUiState.Empty
         } else {

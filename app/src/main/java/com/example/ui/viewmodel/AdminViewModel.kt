@@ -92,11 +92,15 @@ class AdminViewModel(
                         val coverPath = "covers/${timestamp}_$uuid.jpg"
                         supabaseService.uploadToStorage("books", coverPath, data.coverImageUri)
                     } else {
-                        "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400"
+                        null
                     }
                 } else {
-                    android.util.Log.d("AdminViewModel", "Using cover image URL direct: ${data.coverImageUrl}")
-                    data.coverImageUrl ?: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400"
+                    if (!data.coverImageUrl.isNullOrBlank()) {
+                        android.util.Log.d("AdminViewModel", "Using cover image URL direct: ${data.coverImageUrl}")
+                        data.coverImageUrl
+                    } else {
+                        null
+                    }
                 }
 
                 // 2. Resolve Book File URL

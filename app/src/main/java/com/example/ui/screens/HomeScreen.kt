@@ -13,8 +13,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,16 +23,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.data.SupabaseBook
+import com.example.ui.components.BookCard
+import com.example.ui.components.CategoryFilter
+import com.example.ui.components.SearchBar
 import com.example.ui.viewmodel.HomeUiState
 import com.example.ui.viewmodel.HomeViewModel
 
@@ -49,6 +50,9 @@ fun HomeScreen(
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
     val searchQuery by homeViewModel.searchQuery.collectAsState()
+    val selectedCategory by homeViewModel.selectedCategory.collectAsState()
+
+    var headerTapCount by remember { mutableStateOf(0) }
 
     Column(
         modifier = modifier
@@ -56,8 +60,7 @@ fun HomeScreen(
             .background(Color(0xFFFCFDF9)) // Warm organic bone-white base
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
-        // App bar & Profile Header with Emerald/Teal gradient backing or visual accents
-        var headerTapCount by remember { mutableStateOf(0) }
+        // App Bar & Profile Header with Emerald/Teal gradient background
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -95,8 +98,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 color = Color(0xFFD4AF37), // Golden accent
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.padding(vertical = 2.dp)
+                                shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
                                     text = "ADMIN",
@@ -135,7 +137,7 @@ fun HomeScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Manual Refresh indicator
+                    // Manual Refresh trigger
                     IconButton(
                         onClick = { homeViewModel.refreshBooks() },
                         modifier = Modifier
@@ -144,7 +146,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh",
+                            contentDescription = "Refresh books listing",
                             tint = Color.White
                         )
                     }
@@ -159,7 +161,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Logout,
-                            contentDescription = "Logout",
+                            contentDescription = "Logout account",
                             tint = Color.White
                         )
                     }
@@ -167,49 +169,34 @@ fun HomeScreen(
             }
         }
 
-        // Search Bar (Rounded & styled)
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { homeViewModel.onSearchQueryChanged(it) },
-            placeholder = { Text("Search Books, Authors...", color = Color(0xFF6B7280)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "SearchIcon") },
-            shape = RoundedCornerShape(24.dp),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color(0xFF1F2937),
-                unfocusedTextColor = Color(0xFF1F2937),
-                focusedBorderColor = Color(0xFF0A4E38),
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedLabelColor = Color(0xFF0A4E38),
-                focusedLeadingIconColor = Color(0xFF0A4E38),
-                unfocusedLeadingIconColor = Color(0xFF4B5563)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .testTag("book_search_input")
+        // Animated Search & Title Row
+        SearchBar(
+            query = searchQuery,
+            onQueryChanged = { homeViewModel.onSearchQueryChanged(it) },
+            placeholderHint = "বই বা লেখক খুঁজুন...",
+            modifier = Modifier.padding(vertical = 12.dp)
         )
 
-        // Title
-        Text(
-            text = "E-Books & Manuscripts",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF032B1D),
-            fontFamily = FontFamily.Serif,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        // Category Filter scrollable row
+        CategoryFilter(
+            categories = homeViewModel.categories,
+            selectedCategory = selectedCategory,
+            onCategorySelected = { homeViewModel.onCategorySelected(it) },
+            modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        // Swipe / Pull-to-refresh container
-        Box(
+        // Pull to Refresh container encompassing the states
+        PullToRefreshBox(
+            isRefreshing = uiState is HomeUiState.Loading,
+            onRefresh = { homeViewModel.refreshBooks() },
+            state = rememberPullToRefreshState(),
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
         ) {
             when (val state = uiState) {
                 is HomeUiState.Loading -> {
-                    // Modern Shimmer Loading Grid
+                    // Shimmer loading card grid list
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier
@@ -225,7 +212,7 @@ fun HomeScreen(
                     }
                 }
                 is HomeUiState.Empty -> {
-                    // Beautiful Empty state illustration/placeholder
+                    // Beautiful empty state illustration/placeholder using custom Bengali string
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -242,7 +229,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "No books found",
+                                text = "কোনো বই পাওয়া যায়নি",
                                 color = Color(0xFF032B1D),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -250,16 +237,17 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "There are no public manuscripts matching your selection.",
+                                text = "দুঃখিত, আপনার ফিল্টার বা অনুসন্ধানের জন্য কোনো ইসলামিক বই খুঁজে পাওয়া যায়নি।",
                                 color = Color.Gray,
                                 fontSize = 14.sp,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
                     }
                 }
                 is HomeUiState.Error -> {
-                    // Robust retry on error state
+                    // Connection error / retry screen
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -276,7 +264,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Connection Failure",
+                                text = "সংযোগ ব্যাহত হয়েছে",
                                 color = Color(0xFF032B1D),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -298,12 +286,13 @@ fun HomeScreen(
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Retry", color = Color.White)
+                                Text("Retry (পুনরায় চেষ্টা করুন)", color = Color.White)
                             }
                         }
                     }
                 }
                 is HomeUiState.Success -> {
+                    // Books listing grid
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier
@@ -314,7 +303,7 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(state.books) { book ->
-                            SupabaseBookItem(book = book, onClick = { onBookClick(book) })
+                            BookCard(book = book, onClick = { onBookClick(book) })
                         }
                     }
                 }
@@ -387,92 +376,4 @@ fun ShimmerCustomPlaceholder(modifier: Modifier = Modifier) {
         modifier = modifier
             .background(brush)
     )
-}
-
-@Composable
-fun SupabaseBookItem(
-    book: SupabaseBook,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .testTag("book_card_${book.id}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(Color(0xFFE6EAE7))
-            ) {
-                if (!book.coverImageUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = book.coverImageUrl,
-                        contentDescription = book.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("📓", fontSize = 32.sp)
-                    }
-                }
-
-                // Category overlay
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .background(
-                            Color(0xFF032B1D).copy(alpha = 0.85f),
-                            shape = RoundedCornerShape(6.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                        .align(Alignment.TopStart)
-                ) {
-                    Text(
-                        text = book.category,
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = book.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = Color(0xFF032B1D),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = book.author,
-                    fontSize = 11.sp,
-                    color = Color.Gray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
 }
