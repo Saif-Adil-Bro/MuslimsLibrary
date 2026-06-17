@@ -24,6 +24,9 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _readingProgress = MutableStateFlow<List<com.example.data.BookProgress>>(emptyList())
+    val readingProgress: StateFlow<List<com.example.data.BookProgress>> = _readingProgress.asStateFlow()
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -31,6 +34,7 @@ class HomeViewModel(
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
     private val allBooks = mutableListOf<SupabaseBook>()
+    val allPublicBooks: List<SupabaseBook> get() = allBooks.toList()
 
     val categories = listOf("সব", "কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
 
@@ -58,6 +62,17 @@ class HomeViewModel(
 
     fun refreshBooks() {
         fetchBooks()
+    }
+
+    fun loadReadingProgress(userId: String) {
+        viewModelScope.launch {
+            try {
+                val list = supabaseService.getUserBookProgress(userId)
+                _readingProgress.value = list
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error loading user book progress: ${e.message}")
+            }
+        }
     }
 
     fun onSearchQueryChanged(query: String) {

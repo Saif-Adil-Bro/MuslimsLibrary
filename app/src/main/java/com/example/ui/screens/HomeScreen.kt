@@ -7,12 +7,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -44,6 +51,7 @@ fun HomeScreen(
     role: String,
     onLogoutClick: () -> Unit,
     onBookClick: (SupabaseBook) -> Unit,
+    onNavigateToProfile: () -> Unit,
     onSwitchToAdminClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onHeaderClick: () -> Unit = {}
@@ -51,6 +59,13 @@ fun HomeScreen(
     val uiState by homeViewModel.uiState.collectAsState()
     val searchQuery by homeViewModel.searchQuery.collectAsState()
     val selectedCategory by homeViewModel.selectedCategory.collectAsState()
+    val readingProgress by homeViewModel.readingProgress.collectAsState()
+
+    LaunchedEffect(userEmail) {
+        if (userEmail.isNotBlank()) {
+            homeViewModel.loadReadingProgress(userEmail)
+        }
+    }
 
     var headerTapCount by remember { mutableStateOf(0) }
 
@@ -151,6 +166,21 @@ fun HomeScreen(
                         )
                     }
 
+                    // Profile Button
+                    IconButton(
+                        onClick = onNavigateToProfile,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.15f))
+                            .testTag("profile_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "My Profile",
+                            tint = Color.White
+                        )
+                    }
+
                     // Logout Button
                     IconButton(
                         onClick = onLogoutClick,
@@ -175,6 +205,13 @@ fun HomeScreen(
             onQueryChanged = { homeViewModel.onSearchQueryChanged(it) },
             placeholderHint = "বই বা লেখক খুঁজুন...",
             modifier = Modifier.padding(vertical = 12.dp)
+        )
+
+        // Continue Reading List Section
+        ContinueReadingSection(
+            progressList = readingProgress,
+            allBooks = homeViewModel.allPublicBooks,
+            onResumeClick = onBookClick
         )
 
         // Category Filter scrollable row
@@ -376,4 +413,199 @@ fun ShimmerCustomPlaceholder(modifier: Modifier = Modifier) {
         modifier = modifier
             .background(brush)
     )
+}
+
+@Composable
+fun ContinueReadingSection(
+    progressList: List<com.example.data.BookProgress>,
+    allBooks: List<SupabaseBook>,
+    onResumeClick: (SupabaseBook) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val readingBooks = progressList.filter { it.status == "reading" }
+
+    if (readingBooks.isEmpty()) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.05f)),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.15f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("📖", fontSize = 28.sp)
+                Column {
+                    Text(
+                        text = "পঠন অভ্যাস শুরু করুন!",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF043B2B)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "সহিহ দ্বীনি জ্ঞানার্জনে আপনার প্রথম বইটি পড়া শুরু করুন।",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+        return
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Book,
+                contentDescription = null,
+                tint = Color(0xFF059669),
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "আপনার বইসমূহ (Continue Reading)",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF043B2B),
+                fontFamily = FontFamily.Serif
+            )
+        }
+
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            items(readingBooks) { progress ->
+                val book = allBooks.find { it.id == progress.bookId }
+                if (book != null) {
+                    Card(
+                        modifier = Modifier
+                            .width(280.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        border = BorderStroke(1.dp, Color(0xFFECEFF0))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Book Emblem Thumbnail
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 54.dp, height = 76.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(Color(0xFF059669), Color(0xFF14B8A6))
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = book.title.take(1),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                            }
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = book.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1F2937),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = book.author,
+                                    fontSize = 11.sp,
+                                    color = Color.Gray,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                
+                                val percent = progress.progressPercentage?.toInt() ?: 0
+                                LinearProgressIndicator(
+                                    progress = { (progress.currentPage.toFloat() / progress.totalPages.toFloat().coerceAtLeast(1f)).coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(CircleShape),
+                                    color = Color(0xFF059669),
+                                    trackColor = Color(0xFFE5E7EB)
+                                )
+                                
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "$percent% (${progress.currentPage}/${progress.totalPages} পৃষ্ঠা)",
+                                        fontSize = 9.sp,
+                                        color = Color.Gray,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    
+                                    Surface(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable { onResumeClick(book) },
+                                        color = Color(0xFF059669),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                            Text(
+                                                text = "Resume",
+                                                color = Color.White,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

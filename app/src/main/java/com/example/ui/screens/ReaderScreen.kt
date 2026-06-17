@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import java.net.URLDecoder
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
 
 enum class ReadTheme {
     LIGHT, SEPIA, DARK
@@ -104,10 +106,49 @@ fun ReaderScreen(
     bookTitle: String,
     fileUrl: String = "",
     fileType: String = "pdf",
+    userId: String = "User@muslimslibrary.org",
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val supabaseService = remember {
+        (context.applicationContext as com.example.MuslimsLibraryApplication).container.supabaseService
+    }
+
+    var manualCurrentPage by remember { mutableStateOf(1) }
+    var manualTotalPages by remember { mutableStateOf(100) }
+    var progressStatus by remember { mutableStateOf("reading") }
+
+    LaunchedEffect(userId, bookId) {
+        try {
+            val progress = supabaseService.getBookProgress(userId, bookId)
+            if (progress != null) {
+                manualCurrentPage = progress.currentPage
+                manualTotalPages = progress.totalPages
+                progressStatus = progress.status
+                Toast.makeText(
+                    context,
+                    "📖 পূর্ববর্তী পঠন স্থিতি থেকে শুরু হয়েছে: পৃষ্ঠা $manualCurrentPage",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                manualTotalPages = 150
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ReaderScreen", "Error fetching book progress: ${e.message}")
+        }
+    }
+
+    fun savePdfProgress(page: Int, total: Int, status: String = "reading") {
+        coroutineScope.launch {
+            try {
+                supabaseService.updateBookProgress(userId, bookId, page, total, status)
+            } catch (e: Exception) {
+                android.util.Log.e("ReaderScreen", "Error saving progress: ${e.message}")
+            }
+        }
+    }
     
     // Safely Decode URL & Title (Handle Bengali and special characters)
     val decodedTitle = remember(bookTitle) {
@@ -240,7 +281,26 @@ fun ReaderScreen(
                 SimulatedBookReadingView(
                     title = decodedTitle,
                     themeColor = contentColor,
-                    backgroundColor = backgroundColor
+                    backgroundColor = backgroundColor,
+                    currentPage = manualCurrentPage - 1,
+                    totalSimulatedPages = 6,
+                    onPageChanged = { pageIndex ->
+                        val newPage = pageIndex + 1
+                        manualCurrentPage = newPage
+                        coroutineScope.launch {
+                            try {
+                                supabaseService.updateBookProgress(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    currentPage = newPage,
+                                    totalPages = 6,
+                                    status = if (newPage >= 6) "completed" else "reading"
+                                )
+                            } catch (e: java.lang.Exception) {
+                                android.util.Log.e("ReaderScreen", "Simulated auto-save failed: ${e.message}")
+                            }
+                        }
+                    }
                 )
             } else if (fileType.lowercase() == "epub") {
                 // Handle unsupported EPUB directly within the UI gracefully
@@ -443,47 +503,171 @@ fun ReaderScreen(
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF10B981))
                                 ) {
                                     Text("লোড না হলে ড্রাইভে দেখুন (External Web View)")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
 
-            // Floating Full Screen toggle control overlay (bottom-right corner)
-            IconButton(
-                onClick = { isFullScreen = !isFullScreen },
-                modifier = Modifier
-                    .padding(24.dp)
-                    .size(48.dp)
-                    .align(Alignment.BottomEnd)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(Color(0xFF10B981), Color(0xFF043B2B))
-                        ),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                    contentDescription = "Toggle full screen read layout",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
+             // Custom Reader Bottom control panel for PDFs
+             if (decodedFileUrl.isNotEmpty()) {
+                 AnimatedVisibility(
+                     visible = !isFullScreen,
+                     enter = fadeIn(),
+                     exit = fadeOut(),
+                     modifier = Modifier
+                         .align(Alignment.BottomCenter)
+                         .padding(bottom = 80.dp)
+                         .padding(horizontal = 16.dp)
+                 ) {
+                     Card(
+                         colors = CardDefaults.cardColors(
+                             containerColor = if (isDark) Color(0xFF1E2623) else Color.White
+                         ),
+                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                         shape = RoundedCornerShape(16.dp),
+                         border = BorderStroke(1.dp, if (isDark) Color(0xFF2C3531) else Color(0xFFE5E7EB)),
+                         modifier = Modifier.fillMaxWidth()
+                     ) {
+                         Column(
+                             modifier = Modifier.padding(14.dp),
+                             verticalArrangement = Arrangement.spacedBy(8.dp)
+                         ) {
+                             Row(
+                                 modifier = Modifier.fillMaxWidth(),
+                                 horizontalArrangement = Arrangement.SpaceBetween,
+                                 verticalAlignment = Alignment.CenterVertically
+                             ) {
+                                 Text(
+                                     text = if (progressStatus == "completed") "পঠন সম্পন্ন! 🎉" else "পড়া হচ্ছে... 📖",
+                                     fontSize = 12.sp,
+                                     fontWeight = FontWeight.Bold,
+                                     color = if (progressStatus == "completed") Color(0xFF10B981) else contentColor
+                                 )
+                                 val percent = if (manualTotalPages > 0) (manualCurrentPage.toFloat() / manualTotalPages.toFloat() * 100).toInt() else 0
+                                 Text(
+                                     text = "অগ্রগতি: $percent%",
+                                     fontSize = 12.sp,
+                                     fontWeight = FontWeight.Bold,
+                                     color = contentColor.copy(alpha = 0.8f)
+                                 )
+                             }
+
+                             LinearProgressIndicator(
+                                 progress = { (manualCurrentPage.toFloat() / manualTotalPages.toFloat().coerceAtLeast(1f)).coerceIn(0f, 1f) },
+                                 modifier = Modifier
+                                     .fillMaxWidth()
+                                     .height(6.dp)
+                                     .clip(CircleShape),
+                                 color = Color(0xFF10B981),
+                                 trackColor = if (isDark) Color(0xFF2C3531) else Color(0xFFE5E7EB)
+                             )
+
+                             Row(
+                                 modifier = Modifier.fillMaxWidth(),
+                                 horizontalArrangement = Arrangement.SpaceBetween,
+                                 verticalAlignment = Alignment.CenterVertically
+                             ) {
+                                 Row(
+                                     verticalAlignment = Alignment.CenterVertically,
+                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                 ) {
+                                     IconButton(
+                                         onClick = {
+                                             if (manualCurrentPage > 1) {
+                                                 manualCurrentPage--
+                                                 savePdfProgress(manualCurrentPage, manualTotalPages, "reading")
+                                             }
+                                         },
+                                         modifier = Modifier.size(36.dp).background(if (isDark) Color(0xFF2C3531) else Color(0xFFF3F4F6), CircleShape)
+                                     ) {
+                                         Icon(Icons.Default.Remove, contentDescription = "Decrement page", tint = contentColor, modifier = Modifier.size(16.dp))
+                                     }
+
+                                     Text(
+                                         text = "পৃষ্ঠা $manualCurrentPage / $manualTotalPages",
+                                         fontSize = 13.sp,
+                                         fontWeight = FontWeight.Bold,
+                                         color = contentColor
+                                     )
+
+                                     IconButton(
+                                         onClick = {
+                                             if (manualCurrentPage < manualTotalPages) {
+                                                 manualCurrentPage++
+                                                 savePdfProgress(manualCurrentPage, manualTotalPages, "reading")
+                                             }
+                                         },
+                                         modifier = Modifier.size(36.dp).background(if (isDark) Color(0xFF2C3531) else Color(0xFFF3F4F6), CircleShape)
+                                     ) {
+                                         Icon(Icons.Default.Add, contentDescription = "Increment page", tint = contentColor, modifier = Modifier.size(16.dp))
+                                     }
+                                 }
+
+                                 Button(
+                                     onClick = {
+                                         manualCurrentPage = manualTotalPages
+                                         progressStatus = "completed"
+                                         savePdfProgress(manualTotalPages, manualTotalPages, "completed")
+                                         Toast.makeText(context, "🎉 মা-শা-আল্লাহ! সফলভাবে পড়া সম্পন্ন হয়েছে!", Toast.LENGTH_LONG).show()
+                                     },
+                                     colors = ButtonDefaults.buttonColors(
+                                         containerColor = if (progressStatus == "completed") Color.Gray else Color(0xFF10B981)
+                                     ),
+                                     enabled = progressStatus != "completed",
+                                     shape = RoundedCornerShape(8.dp),
+                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                     modifier = Modifier.height(36.dp)
+                                 ) {
+                                     Row(
+                                         verticalAlignment = Alignment.CenterVertically,
+                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                     ) {
+                                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                         Text("পড়া শেষ", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
+
+             // Floating Full Screen toggle control overlay (bottom-right corner)
+             IconButton(
+                 onClick = { isFullScreen = !isFullScreen },
+                 modifier = Modifier
+                     .padding(24.dp)
+                     .size(48.dp)
+                     .align(Alignment.BottomEnd)
+                     .background(
+                         Brush.horizontalGradient(
+                             colors = listOf(Color(0xFF10B981), Color(0xFF043B2B))
+                         ),
+                         shape = CircleShape
+                     )
+             ) {
+                 Icon(
+                     imageVector = if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                     contentDescription = "Toggle full screen read layout",
+                     tint = Color.White,
+                     modifier = Modifier.size(24.dp)
+                 )
+             }
+         }
+     }
 }
 
 @Composable
 fun SimulatedBookReadingView(
     title: String,
     themeColor: Color,
-    backgroundColor: Color
+    backgroundColor: Color,
+    currentPage: Int,
+    totalSimulatedPages: Int = 6,
+    onPageChanged: (Int) -> Unit
 ) {
-    var currentPage by remember { mutableStateOf(0) }
-    val totalSimulatedPages = 6
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -513,7 +697,7 @@ fun SimulatedBookReadingView(
             HorizontalDivider(color = themeColor.copy(alpha = 0.15f))
 
             Text(
-                text = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                text = "بِسْمِ اللَّهِ الرَّحْمَٰনِ الرَّحِيمِ",
                 fontSize = 22.sp,
                 color = themeColor,
                 fontWeight = FontWeight.ExtraBold,
@@ -538,7 +722,7 @@ fun SimulatedBookReadingView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = { if (currentPage > 0) currentPage-- },
+                onClick = { if (currentPage > 0) onPageChanged(currentPage - 1) },
                 enabled = currentPage > 0,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = themeColor.copy(alpha = 0.1f),
@@ -556,7 +740,7 @@ fun SimulatedBookReadingView(
             )
 
             Button(
-                onClick = { if (currentPage < totalSimulatedPages - 1) currentPage++ },
+                onClick = { if (currentPage < totalSimulatedPages - 1) onPageChanged(currentPage + 1) },
                 enabled = currentPage < totalSimulatedPages - 1,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = themeColor.copy(alpha = 0.1f),

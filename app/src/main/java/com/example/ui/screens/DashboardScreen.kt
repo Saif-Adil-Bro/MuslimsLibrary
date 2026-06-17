@@ -18,6 +18,7 @@ import com.example.data.SupabaseService
 import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.viewmodel.HomeViewModel
 import com.example.ui.viewmodel.LibraryViewModel
+import com.example.ui.viewmodel.ForumViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,11 +26,15 @@ fun DashboardScreen(
     libraryViewModel: LibraryViewModel,
     homeViewModel: HomeViewModel,
     adminViewModel: AdminViewModel,
+    forumViewModel: ForumViewModel,
     userEmail: String,
     userRole: String,
     onLogoutClick: () -> Unit,
     onBookClick: (SupabaseBook) -> Unit,
     onNavigateToAddBook: () -> Unit,
+    onNavigateToCreatePost: () -> Unit,
+    onNavigateToPostDetail: (String) -> Unit,
+    onNavigateToProfile: () -> Unit,
     modifier: Modifier = Modifier,
     debugInfo: String = "",
     isDebugMode: Boolean = false,
@@ -111,14 +116,18 @@ fun DashboardScreen(
                         role = userRole,
                         onLogoutClick = onLogoutClick,
                         onBookClick = onBookClick,
+                        onNavigateToProfile = onNavigateToProfile,
                         onSwitchToAdminClick = { if (isAdmin) selectedTab = 2 },
                         onHeaderClick = onToggleDebug
                     )
                 }
                 1 -> {
-                    ProfileForumScreen(
+                    ForumScreen(
+                        forumViewModel = forumViewModel,
                         userEmail = userEmail,
-                        role = userRole
+                        userRole = userRole,
+                        onNavigateToCreatePost = onNavigateToCreatePost,
+                        onNavigateToPostDetail = onNavigateToPostDetail
                     )
                 }
                 2 -> {
