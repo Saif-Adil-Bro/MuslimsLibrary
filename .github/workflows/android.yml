@@ -1,4 +1,4 @@
-name: Android CI
+'name: Android CI
 
 # Trigger build on pushes and PRs to main branch
 on:
@@ -56,3 +56,4 @@ jobs:
         FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
         GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
       run: ./gradlew assembleDebug -Pkotlin.compiler.execution.strategy=daemon
+'
