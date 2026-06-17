@@ -1,125 +1,150 @@
 package com.example.ui.viewmodel
 
-import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.BuildConfig
-import com.example.data.SupabaseBook
 import com.example.data.SupabaseService
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.storage.storage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.UUID
 
-sealed interface AdminUiState {
-    object Idle : AdminUiState
-    data class Uploading(val progress: Int) : AdminUiState
-    object Success : AdminUiState
-    data class Error(val message: String) : AdminUiState
+sealed interface UploadState {
+    object Idle : UploadState
+    data class Uploading(val progress: Int) : UploadState
+    object Success : UploadState
+    data class Error(val message: String) : UploadState
 }
+
+enum class SourceType {
+    FILE, URL, GDRIVE, CDN
+}
+
+data class BookUploadData(
+    val title: String,
+    val author: String,
+    val category: String,
+    val fileType: String,
+    val coverSourceType: SourceType, // FILE or URL
+    val coverImageUri: Uri? = null,
+    val coverImageUrl: String? = null,
+    val bookSourceType: SourceType, // FILE, GDRIVE, or CDN
+    val bookFileUri: Uri? = null,
+    val bookFileUrl: String? = null
+)
 
 class AdminViewModel(
     private val supabaseClient: SupabaseClient,
-    private val supabaseService: SupabaseService
+    val supabaseService: SupabaseService
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<AdminUiState>(AdminUiState.Idle)
-    val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<UploadState>(UploadState.Idle)
+    val uiState: StateFlow<UploadState> = _uiState.asStateFlow()
 
     private val _totalBooksCount = MutableStateFlow(0)
     val totalBooksCount: StateFlow<Int> = _totalBooksCount.asStateFlow()
 
     init {
-        fetchTotalBooksCount()
+        getTotalBooksCount()
     }
 
-    fun fetchTotalBooksCount() {
+    fun getTotalBooksCount() {
         viewModelScope.launch {
             try {
-                val books = supabaseService.fetchPublicBooks()
-                _totalBooksCount.value = books.size
+                val count = supabaseService.getBooksCount()
+                _totalBooksCount.value = count
             } catch (e: Exception) {
                 _totalBooksCount.value = 0
             }
         }
     }
 
-    fun resetState() {
-        _uiState.value = AdminUiState.Idle
+    suspend fun getUserRole(uid: String): String {
+        return try {
+            val userProfile = supabaseService.getCurrentUserProfile(uid)
+            userProfile?.role ?: "user"
+        } catch (e: Exception) {
+            "user"
+        }
     }
 
-    fun uploadBook(
-        contentResolver: ContentResolver,
-        title: String,
-        author: String,
-        category: String,
-        coverImageUri: Uri?,
-        bookFileUri: Uri,
-        fileType: String
-    ) {
-        _uiState.value = AdminUiState.Uploading(10)
+    fun resetState() {
+        _uiState.value = UploadState.Idle
+    }
+
+    fun uploadBook(data: BookUploadData) {
+        _uiState.value = UploadState.Uploading(10)
+        android.util.Log.d("AdminViewModel", "Starting upload with data: $data")
         viewModelScope.launch {
             try {
+                val timestamp = System.currentTimeMillis()
                 val uuid = UUID.randomUUID().toString()
+                val ext = data.fileType.lowercase()
 
-                // Step 1: Upload the cover image to Supabase Storage bucket 'books' with path 'covers/{uuid}.jpg'
-                var generatedCoverUrl: String? = null
-                if (coverImageUri != null) {
-                    val coverBytes = withContext(Dispatchers.IO) {
-                        contentResolver.openInputStream(coverImageUri)?.use { it.readBytes() }
+                // 1. Resolve Cover Image URL
+                _uiState.value = UploadState.Uploading(30)
+                val coverUrl = if (data.coverSourceType == SourceType.FILE) {
+                    if (data.coverImageUri != null) {
+                        android.util.Log.d("AdminViewModel", "Uploading cover image file...")
+                        val coverPath = "covers/${timestamp}_$uuid.jpg"
+                        supabaseService.uploadToStorage("books", coverPath, data.coverImageUri)
+                    } else {
+                        "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400"
                     }
-                    if (coverBytes != null && coverBytes.isNotEmpty()) {
-                        val coverPath = "covers/$uuid.jpg"
-                        _uiState.value = AdminUiState.Uploading(30)
-                        supabaseClient.storage.from("books").upload(coverPath, coverBytes)
-                        generatedCoverUrl = "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/books/$coverPath"
+                } else {
+                    android.util.Log.d("AdminViewModel", "Using cover image URL direct: ${data.coverImageUrl}")
+                    data.coverImageUrl ?: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400"
+                }
+
+                // 2. Resolve Book File URL
+                _uiState.value = UploadState.Uploading(60)
+                val bookUrl = when (data.bookSourceType) {
+                    SourceType.FILE -> {
+                        if (data.bookFileUri != null) {
+                            android.util.Log.d("AdminViewModel", "Uploading book file to Supabase storage...")
+                            val bookPath = "files/${timestamp}_$uuid.$ext"
+                            supabaseService.uploadToStorage("books", bookPath, data.bookFileUri)
+                        } else {
+                            throw Exception("Missing file for direct device upload")
+                        }
                     }
+                    SourceType.GDRIVE -> {
+                        val rawUrl = data.bookFileUrl ?: throw Exception("Google Drive link is empty")
+                        val converted = supabaseService.convertGoogleDriveLink(rawUrl)
+                        android.util.Log.d("AdminViewModel", "Converting GDrive link: $rawUrl -> $converted")
+                        converted
+                    }
+                    SourceType.CDN -> {
+                        val rawUrl = data.bookFileUrl ?: throw Exception("CDN file URL is empty")
+                        android.util.Log.d("AdminViewModel", "Using CDN URL direct: $rawUrl")
+                        rawUrl
+                    }
+                    else -> throw Exception("Unknown source type")
                 }
 
-                if (generatedCoverUrl == null) {
-                    generatedCoverUrl = "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=400"
-                }
-
-                // Step 2: Upload the book file (PDF/EPUB) to Supabase Storage bucket 'books' with path 'files/{uuid}.{ext}'
-                _uiState.value = AdminUiState.Uploading(50)
-                val ext = fileType.lowercase()
-                val fileBytes = withContext(Dispatchers.IO) {
-                    contentResolver.openInputStream(bookFileUri)?.use { it.readBytes() }
-                }
-                if (fileBytes == null || fileBytes.isEmpty()) {
-                    throw Exception("Could not retrieve book file contents.")
-                }
-
-                val bookPath = "files/$uuid.$ext"
-                _uiState.value = AdminUiState.Uploading(75)
-                supabaseClient.storage.from("books").upload(bookPath, fileBytes)
-                val generatedBookUrl = "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/books/$bookPath"
-
-                // Step 3: Insert metadata to supabase public.books table
-                _uiState.value = AdminUiState.Uploading(90)
-                val newBook = SupabaseBook(
-                    id = uuid,
-                    title = title,
-                    author = author,
-                    category = category,
-                    coverImageUrl = generatedCoverUrl,
-                    fileUrl = generatedBookUrl,
-                    fileType = ext,
-                    isPublic = true
+                // 3. Insert metadata into public.books table
+                _uiState.value = UploadState.Uploading(90)
+                android.util.Log.d("AdminViewModel", "Inserting book into database: $bookUrl")
+                val bookData = mapOf(
+                    "id" to uuid,
+                    "title" to data.title,
+                    "author" to data.author,
+                    "category" to data.category,
+                    "cover_image_url" to coverUrl,
+                    "file_url" to bookUrl,
+                    "file_type" to ext,
+                    "is_public" to true
                 )
-                supabaseService.publishBook(newBook)
+                supabaseService.insertBook(bookData)
 
-                _uiState.value = AdminUiState.Success
-                fetchTotalBooksCount()
+                _uiState.value = UploadState.Success
+                getTotalBooksCount()
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error(e.localizedMessage ?: "Publication failed")
+                android.util.Log.e("AdminViewModel", "Upload failed", e)
+                _uiState.value = UploadState.Error(e.localizedMessage ?: "Publication failed")
             }
         }
     }

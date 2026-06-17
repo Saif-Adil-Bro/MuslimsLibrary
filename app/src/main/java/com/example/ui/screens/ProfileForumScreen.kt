@@ -139,10 +139,13 @@ fun ProfileForumScreen(
                         OutlinedTextField(
                             value = newPostText,
                             onValueChange = { newPostText = it },
-                            placeholder = { Text("What are you studying today?", color = Color.Gray) },
+                            placeholder = { Text("What are you studying today?", color = Color(0xFF6B7280)) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF0A4E38)
+                                focusedTextColor = Color(0xFF1E293B),
+                                unfocusedTextColor = Color(0xFF1E293B),
+                                focusedBorderColor = Color(0xFF0A4E38),
+                                unfocusedBorderColor = Color(0xFFD1D5DB)
                             ),
                             shape = RoundedCornerShape(8.dp)
                         )

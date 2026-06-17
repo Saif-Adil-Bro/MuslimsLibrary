@@ -9,6 +9,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -43,6 +45,17 @@ fun AuthScreen(
     val context = LocalContext.current
     val activity = context as? ComponentActivity
 
+    val debugInfo by viewModel.debugInfo.collectAsState()
+    val isDebugMode by viewModel.isDebugMode.collectAsState()
+    val toastMessage by viewModel.toastMessage.collectAsState()
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearToastMessage()
+        }
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isSignUp by remember { mutableStateOf(false) }
@@ -73,9 +86,18 @@ fun AuthScreen(
         return isValid
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(uiState) {
         if (uiState is AuthState.Success) {
             onAuthSuccess()
+        } else if (uiState is AuthState.Error) {
+            // Display auth / sync failures clearly as a visible popup snackbar on the screen
+            snackbarHostState.showSnackbar(
+                message = (uiState as AuthState.Error).message,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long
+            )
         }
     }
 
@@ -104,10 +126,22 @@ fun AuthScreen(
         ) {
             
             // Atmospheric Header Icon & Brand Title
+            var brandTapCount by remember { mutableStateOf(0) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier
+                    .padding(bottom = 24.dp)
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        brandTapCount++
+                        if (brandTapCount >= 5) {
+                            viewModel.toggleDebugMode(context)
+                            brandTapCount = 0
+                        }
+                    }
             ) {
                 Box(
                     modifier = Modifier
@@ -235,10 +269,16 @@ fun AuthScreen(
                         supportingText = emailError?.let { { Text(it) } },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF0A4E38),
+                            focusedTextColor = Color(0xFF1C1917),
+                            unfocusedTextColor = Color(0xFF1C1917),
                             focusedLabelColor = Color(0xFF0A4E38),
+                            unfocusedLabelColor = Color(0xFF57534E),
+                            focusedBorderColor = Color(0xFF0A4E38),
+                            unfocusedBorderColor = Color(0xFFD6D3D1),
                             cursorColor = Color(0xFF0A4E38),
-                            errorBorderColor = Color.Red
+                            errorBorderColor = Color.Red,
+                            focusedLeadingIconColor = Color(0xFF0A4E38),
+                            unfocusedLeadingIconColor = Color(0xFF78716C)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -272,10 +312,16 @@ fun AuthScreen(
                         supportingText = passwordError?.let { { Text(it) } },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF0A4E38),
+                            focusedTextColor = Color(0xFF1C1917),
+                            unfocusedTextColor = Color(0xFF1C1917),
                             focusedLabelColor = Color(0xFF0A4E38),
+                            unfocusedLabelColor = Color(0xFF57534E),
+                            focusedBorderColor = Color(0xFF0A4E38),
+                            unfocusedBorderColor = Color(0xFFD6D3D1),
                             cursorColor = Color(0xFF0A4E38),
-                            errorBorderColor = Color.Red
+                            errorBorderColor = Color.Red,
+                            focusedLeadingIconColor = Color(0xFF0A4E38),
+                            unfocusedLeadingIconColor = Color(0xFF78716C)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -439,6 +485,38 @@ fun AuthScreen(
                     }
                 }
             }
+
+            if (isDebugMode && debugInfo.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Black.copy(alpha = 0.85f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(0.95f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .heightIn(max = 280.dp)
+                            .padding(10.dp)
+                            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                    ) {
+                        Text(
+                            text = debugInfo,
+                            color = Color(0xFFA3E2C9),
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        )
     }
 }

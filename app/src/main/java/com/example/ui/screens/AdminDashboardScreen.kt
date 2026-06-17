@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,13 +33,15 @@ import com.example.ui.viewmodel.AdminViewModel
 fun AdminDashboardScreen(
     adminViewModel: AdminViewModel,
     onNavigateToAddBook: () -> Unit,
+    userEmail: String = "admin@muslimslibrary.org",
+    onLogoutClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val totalBooks by adminViewModel.totalBooksCount.collectAsState()
 
     // Key stats
     LaunchedEffect(Unit) {
-        adminViewModel.fetchTotalBooksCount()
+        adminViewModel.getTotalBooksCount()
     }
 
     Column(
@@ -82,7 +85,7 @@ fun AdminDashboardScreen(
                 }
 
                 IconButton(
-                    onClick = { adminViewModel.fetchTotalBooksCount() }
+                    onClick = { adminViewModel.getTotalBooksCount() }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -196,6 +199,81 @@ fun AdminDashboardScreen(
                             text = "RLS active: download = PUBLIC, upload = ADMIN only",
                             fontSize = 11.sp,
                             color = Color.Gray
+                        )
+                    }
+                }
+            }
+
+            // My Profile Card with Logout Option
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = "My Profile Icon",
+                            tint = Color(0xFF0A4E38),
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "My Profile",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF032B1D)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = userEmail,
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "ROLE: ADMIN",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF0A4E38)
+                            )
+                        }
+                    }
+
+                    Divider(color = Color(0xFFEEEEEE))
+
+                    Button(
+                        onClick = onLogoutClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBA1A1A)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("admin_profile_logout_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Logout",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Logout Session",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 13.sp
                         )
                     }
                 }

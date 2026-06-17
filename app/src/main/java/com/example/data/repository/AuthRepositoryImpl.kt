@@ -21,6 +21,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -42,93 +44,160 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
 
     override fun getCurrentUserEmail(): String? {
-        return firebaseAuth.currentUser?.email ?: try {
-            supabaseClient.auth.currentUserOrNull()?.email
-        } catch (e: Exception) {
-            null
-        }
+        return firebaseAuth.currentUser?.email
     }
 
     override fun getCurrentUserUid(): String? {
-        return firebaseAuth.currentUser?.uid ?: try {
-            supabaseClient.auth.currentUserOrNull()?.id
+        return firebaseAuth.currentUser?.uid
+    }
+
+    override fun getSupabaseUid(): String? {
+        return try {
+            supabaseClient.auth.currentUserOrNull()?.id ?: supabaseClient.auth.currentSessionOrNull()?.user?.id
         } catch (e: Exception) {
-            null
+            "Error: ${e.message}"
         }
     }
 
+    private var lastQueryJsonResult: String = "No query run yet"
+
+    override fun getLastQueryJson(): String = lastQueryJsonResult
+
     override suspend fun getUserRole(uid: String): String {
-        return try {
-            val user = supabaseClient.postgrest["users"].select {
+        android.util.Log.d("AuthRepo", "getUserRole called for uid: $uid")
+        var resultRole: String? = null
+        val logBuilder = StringBuilder()
+        logBuilder.append("getUserRole UID: $uid\n")
+
+        // 1. Try Query by id = uid
+        try {
+            logBuilder.append("[UID Query] Attempting id = '$uid'...\n")
+            val response = supabaseClient.postgrest["users"].select {
                 filter {
                     eq("id", uid)
                 }
-            }.decodeList<SupabaseUser>().firstOrNull()
-            user?.role ?: "user"
+            }
+            val dataStr = response.data
+            lastQueryJsonResult = dataStr
+            logBuilder.append("[UID Query] Response JSON: $dataStr\n")
+            
+            val users = response.decodeList<SupabaseUser>()
+            logBuilder.append("[UID Query] Decoded list size: ${users.size}\n")
+            val user = users.firstOrNull()
+            if (user != null) {
+                resultRole = user.role
+                logBuilder.append("[UID Query] Success! Role = '$resultRole'\n")
+            } else {
+                logBuilder.append("[UID Query] Returned empty list.\n")
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
-            "user"
+            val errMsg = e.localizedMessage ?: e.message ?: "Unknown error"
+            android.util.Log.e("AuthRepo", "getUserRole ID query failed: $errMsg", e)
+            logBuilder.append("[UID Query] Failed: $errMsg\n")
+            
+            // Extract response if available in the exception (sometimes available in HTTP exceptions)
+            try {
+                lastQueryJsonResult = "ID query failed: $errMsg"
+            } catch (ex: Exception) {}
         }
+
+        // 2. Fallback: Query by email
+        if (resultRole == null) {
+            val email = getCurrentUserEmail()
+            if (!email.isNullOrEmpty()) {
+                try {
+                    logBuilder.append("[Email Query] Attempting email = '$email'...\n")
+                    val response = supabaseClient.postgrest["users"].select {
+                        filter {
+                            eq("email", email)
+                        }
+                    }
+                    val dataStr = response.data
+                    lastQueryJsonResult = dataStr
+                    logBuilder.append("[Email Query] Response JSON: $dataStr\n")
+                    
+                    val users = response.decodeList<SupabaseUser>()
+                    logBuilder.append("[Email Query] Decoded list size: ${users.size}\n")
+                    val user = users.firstOrNull()
+                    if (user != null) {
+                        resultRole = user.role
+                        logBuilder.append("[Email Query] Success! Role = '$resultRole'\n")
+                    } else {
+                        logBuilder.append("[Email Query] Returned empty list.\n")
+                    }
+                } catch (e: Exception) {
+                    val errMsg = e.localizedMessage ?: e.message ?: "Unknown error"
+                    android.util.Log.e("AuthRepo", "getUserRole Email query failed: $errMsg", e)
+                    logBuilder.append("[Email Query] Failed: $errMsg\n")
+                    
+                    try {
+                        lastQueryJsonResult = "Email query failed: $errMsg\nPrefix ID query failed too."
+                    } catch (ex: Exception) {}
+                }
+            } else {
+                logBuilder.append("[Email Query] Skipped (email is null or empty)\n")
+            }
+        }
+
+        // 3. Fallback: Check raw Json for role if deserialization was weird
+        if (resultRole == null && lastQueryJsonResult.isNotEmpty()) {
+            try {
+                if (lastQueryJsonResult.contains("\"role\": \"admin\"", ignoreCase = true) || 
+                    lastQueryJsonResult.contains("\"role\":\"admin\"", ignoreCase = true)) {
+                    resultRole = "admin"
+                    logBuilder.append("[Regex Fallback] Detected role 'admin' in raw JSON!\n")
+                } else if (lastQueryJsonResult.contains("\"role\": \"user\"", ignoreCase = true) || 
+                           lastQueryJsonResult.contains("\"role\":\"user\"", ignoreCase = true)) {
+                    resultRole = "user"
+                    logBuilder.append("[Regex Fallback] Detected role 'user' in raw JSON!\n")
+                }
+            } catch (e: Exception) {
+                logBuilder.append("[Regex Fallback] Regex check failed: ${e.message}\n")
+            }
+        }
+
+        val finalRole = resultRole ?: "user"
+        logBuilder.append("Final selected role: '$finalRole'")
+        
+        lastQueryJsonResult = logBuilder.toString()
+        android.util.Log.d("AuthRepo", "getUserRole final summary:\n$lastQueryJsonResult")
+        
+        return finalRole
     }
 
     override fun isUserLoggedIn(): Flow<Boolean> = flow {
-        val loggedIn = firebaseAuth.currentUser != null || try {
-            supabaseClient.auth.currentSessionOrNull() != null
-        } catch (e: Exception) {
-            false
-        }
-        emit(loggedIn)
+        emit(firebaseAuth.currentUser != null)
     }
 
     override suspend fun login(email: String, password: String): Result<Unit> {
         return try {
-            firebaseAuth.signInWithEmailAndPassword(email, password).awaitTask()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            try {
-                supabaseClient.auth.signInWith(Email) {
-                    this.email = email
-                    this.password = password
-                }
-                Result.success(Unit)
-            } catch (se: Exception) {
-                // Safe local compatibility fallback if it resembles a valid account
-                if (email.contains("@") && password.length >= 6) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception("Authentication failed: ${e.localizedMessage ?: se.localizedMessage}"))
-                }
+            withTimeout(30_000) { // 30 second timeout
+                firebaseAuth.signInWithEmailAndPassword(email, password).awaitTask()
             }
+            Result.success(Unit)
+        } catch (e: TimeoutCancellationException) {
+            Result.failure(Exception("Login timeout. Please check your internet connection."))
+        } catch (e: Exception) {
+            Result.failure(Exception("Login failed: ${e.localizedMessage}"))
         }
     }
 
     override suspend fun signUp(email: String, password: String): Result<Unit> {
+        var firebaseCreatedUser = false
         return try {
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).awaitTask()
             val user = authResult.user
             if (user != null) {
-                // CRITICAL: Synced real-time account profile creation in Supabase via RPC function!
+                firebaseCreatedUser = true
                 try {
                     supabaseService.createUserProfile(user.uid, user.email ?: email)
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (syncError: Exception) {
+                    throw Exception("Profile sync failed: ${syncError.message}", syncError)
                 }
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            try {
-                supabaseClient.auth.signUpWith(Email) {
-                    this.email = email
-                    this.password = password
-                }
-                Result.success(Unit)
-            } catch (se: Exception) {
-                if (email.contains("@") && password.length >= 6) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception("Registration failed: ${e.localizedMessage ?: se.localizedMessage}"))
-                }
-            }
+            Result.failure(Exception("Registration failed: ${e.localizedMessage}"))
         }
     }
 
@@ -160,16 +229,9 @@ class AuthRepositoryImpl(
                 val authResult = firebaseAuth.signInWithCredential(authCredential).awaitTask()
                 
                 authResult.user?.let { user ->
-                    try {
-                        val supabaseUser = SupabaseUser(
-                            id = user.uid,
-                            email = user.email ?: "",
-                            role = "user"
-                        )
-                        supabaseClient.postgrest["users"].upsert(supabaseUser)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    // Bug 2 Fix: Call the RPC function which uses SECURITY DEFINER to bypass RLS,
+                    // ensuring that OAuth user profiles are synced perfectly to the database without RLS bypass failures.
+                    supabaseService.createUserProfile(user.uid, user.email ?: "")
                 }
                 Result.success(Unit)
             } else {
@@ -185,16 +247,9 @@ class AuthRepositoryImpl(
             val authResult = firebaseAuth.signInAnonymously().awaitTask()
             val user = authResult.user
             if (user != null) {
-                try {
-                    val supabaseUser = SupabaseUser(
-                        id = user.uid,
-                        email = "guest_${user.uid}@muslimslibrary.org",
-                        role = "user"
-                    )
-                    supabaseClient.postgrest["users"].upsert(supabaseUser)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                // Bug 2 Fix: Call the RPC function which uses SECURITY DEFINER to bypass RLS,
+                // ensuring that guest user profiles are created correctly in the database.
+                supabaseService.createUserProfile(user.uid, "guest_${user.uid}@muslimslibrary.org")
             }
             Result.success(Unit)
         } catch (e: Exception) {

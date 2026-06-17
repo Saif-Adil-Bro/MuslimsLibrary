@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -42,7 +43,9 @@ fun HomeScreen(
     role: String,
     onLogoutClick: () -> Unit,
     onBookClick: (SupabaseBook) -> Unit,
-    modifier: Modifier = Modifier
+    onSwitchToAdminClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    onHeaderClick: () -> Unit = {}
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
     val searchQuery by homeViewModel.searchQuery.collectAsState()
@@ -54,6 +57,7 @@ fun HomeScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         // App bar & Profile Header with Emerald/Teal gradient backing or visual accents
+        var headerTapCount by remember { mutableStateOf(0) }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,6 +66,16 @@ fun HomeScreen(
                         colors = listOf(Color(0xFF043B2B), Color(0xFF0A4E38))
                     )
                 )
+                .clickable(
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null
+                ) {
+                    headerTapCount++
+                    if (headerTapCount >= 5) {
+                        onHeaderClick()
+                        headerTapCount = 0
+                    }
+                }
                 .padding(horizontal = 24.dp, vertical = 20.dp)
         ) {
             Row(
@@ -101,6 +115,23 @@ fun HomeScreen(
                         color = Color.White,
                         fontFamily = FontFamily.Serif
                     )
+                    if (role.lowercase() == "admin" && onSwitchToAdminClick != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(
+                            onClick = onSwitchToAdminClick,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFA3E2C9)),
+                            modifier = Modifier.testTag("switch_to_admin_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Switch to Admin View",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Switch to Admin View", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,15 +171,19 @@ fun HomeScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { homeViewModel.onSearchQueryChanged(it) },
-            placeholder = { Text("Search Books, Authors...", color = Color.Gray) },
+            placeholder = { Text("Search Books, Authors...", color = Color(0xFF6B7280)) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "SearchIcon") },
             shape = RoundedCornerShape(24.dp),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color(0xFF1F2937),
+                unfocusedTextColor = Color(0xFF1F2937),
                 focusedBorderColor = Color(0xFF0A4E38),
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedLabelColor = Color(0xFF0A4E38)
+                focusedLabelColor = Color(0xFF0A4E38),
+                focusedLeadingIconColor = Color(0xFF0A4E38),
+                unfocusedLeadingIconColor = Color(0xFF4B5563)
             ),
             modifier = Modifier
                 .fillMaxWidth()

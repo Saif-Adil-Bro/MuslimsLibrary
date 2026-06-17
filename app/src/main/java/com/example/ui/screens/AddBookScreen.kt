@@ -37,8 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import com.example.ui.viewmodel.AdminUiState
+import com.example.ui.viewmodel.UploadState
 import com.example.ui.viewmodel.AdminViewModel
+import com.example.ui.viewmodel.SourceType
+import com.example.ui.viewmodel.BookUploadData
+import android.content.Intent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,14 +56,19 @@ fun AddBookScreen(
 
     var title by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Hadith") }
+    var category by remember { mutableStateOf("হাদিস") }
     var fileType by remember { mutableStateOf("pdf") } // "pdf" or "epub"
 
+    var coverSourceType by remember { mutableStateOf(SourceType.FILE) }
     var coverImageUri by remember { mutableStateOf<Uri?>(null) }
+    var coverImageUrl by remember { mutableStateOf("") }
+
+    var bookSourceType by remember { mutableStateOf(SourceType.FILE) }
     var bookFileUri by remember { mutableStateOf<Uri?>(null) }
+    var bookFileUrl by remember { mutableStateOf("") }
 
     var expandedDropdown by remember { mutableStateOf(false) }
-    val categories = listOf("Hadith", "Aqidah", "Seerah", "Fiqh", "Quran", "Dua")
+    val categories = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
 
     // Image Picker Setup (GetContent)
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -78,7 +86,7 @@ fun AddBookScreen(
 
     // Listen to outcome states
     LaunchedEffect(uiState) {
-        if (uiState is AdminUiState.Success) {
+        if (uiState is UploadState.Success) {
             Toast.makeText(context, "Manuscript published successfully!", Toast.LENGTH_LONG).show()
             adminViewModel.resetState()
             onBackClick()
@@ -121,7 +129,7 @@ fun AddBookScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Error banner if any
-            if (uiState is AdminUiState.Error) {
+            if (uiState is UploadState.Error) {
                 Surface(
                     color = Color(0xFFFDE8E8),
                     border = BorderStroke(1.dp, Color(0xFFF8B4B4)),
@@ -135,7 +143,7 @@ fun AddBookScreen(
                     ) {
                         Icon(Icons.Default.Error, contentDescription = "Error", tint = Color.Red)
                         Text(
-                            text = (uiState as AdminUiState.Error).message,
+                            text = (uiState as UploadState.Error).message,
                             color = Color(0xFF9B1C1C),
                             fontSize = 14.sp
                         )
@@ -172,8 +180,11 @@ fun AddBookScreen(
                             .fillMaxWidth()
                             .testTag("add_book_title_input"),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
                             focusedBorderColor = Color(0xFF0A4E38),
-                            focusedLabelColor = Color(0xFF0A4E38)
+                            focusedLabelColor = Color(0xFF0A4E38),
+                            unfocusedLabelColor = Color(0xFF475569)
                         )
                     )
 
@@ -187,8 +198,11 @@ fun AddBookScreen(
                             .fillMaxWidth()
                             .testTag("add_book_author_input"),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
                             focusedBorderColor = Color(0xFF0A4E38),
-                            focusedLabelColor = Color(0xFF0A4E38)
+                            focusedLabelColor = Color(0xFF0A4E38),
+                            unfocusedLabelColor = Color(0xFF475569)
                         )
                     )
 
@@ -213,8 +227,11 @@ fun AddBookScreen(
                                 .clickable { expandedDropdown = !expandedDropdown }
                                 .testTag("add_book_category_input"),
                             colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF1E293B),
+                                unfocusedTextColor = Color(0xFF1E293B),
                                 focusedBorderColor = Color(0xFF0A4E38),
-                                focusedLabelColor = Color(0xFF0A4E38)
+                                focusedLabelColor = Color(0xFF0A4E38),
+                                unfocusedLabelColor = Color(0xFF475569)
                             )
                         )
 
@@ -284,10 +301,11 @@ fun AddBookScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Cover Image (Optional)",
+                            text = "Cover Image Selection",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF043B2B),
@@ -295,60 +313,174 @@ fun AddBookScreen(
                         )
                     }
 
-                    if (coverImageUri != null) {
-                        Box(
-                            modifier = Modifier
-                                .size(140.dp, 190.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0xFFE6EAE7), RoundedCornerShape(8.dp))
+                    // Cover source type selector (Upload cover vs Web URL)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = { coverSourceType = SourceType.FILE },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (coverSourceType == SourceType.FILE) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                contentColor = if (coverSourceType == SourceType.FILE) Color.White else Color(0xFF475569)
+                            ),
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            shape = RoundedCornerShape(20.dp)
                         ) {
-                            Image(
-                                painter = rememberAsyncImagePainter(coverImageUri),
-                                contentDescription = "Cover preview",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            IconButton(
-                                onClick = { coverImageUri = null },
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Upload Device", fontSize = 12.sp)
+                        }
+
+                        Button(
+                            onClick = { coverSourceType = SourceType.URL },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (coverSourceType == SourceType.URL) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                contentColor = if (coverSourceType == SourceType.URL) Color.White else Color(0xFF475569)
+                            ),
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Use URL", fontSize = 12.sp)
+                        }
+                    }
+
+                    if (coverSourceType == SourceType.FILE) {
+                        if (coverImageUri != null) {
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(6.dp)
-                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-                                    .size(28.dp)
+                                    .size(140.dp, 190.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0xFFE6EAE7), RoundedCornerShape(8.dp))
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
+                                Image(
+                                    painter = rememberAsyncImagePainter(coverImageUri),
+                                    contentDescription = "Cover preview",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
                                 )
+                                IconButton(
+                                    onClick = { coverImageUri = null },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(6.dp)
+                                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                                        .size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF1F4F2))
+                                    .clickable { imagePickerLauncher.launch("image/*") }
+                                    .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0A4E38),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Tap to select Cover Illustration",
+                                        fontSize = 13.sp,
+                                        color = Color.Gray,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFF1F4F2))
-                                .clickable { imagePickerLauncher.launch("image/*") }
-                                .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
+                        // Use Cover URL
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.AddPhotoAlternate,
-                                    contentDescription = null,
-                                    tint = Color(0xFF0A4E38),
-                                    modifier = Modifier.size(36.dp)
+                            OutlinedTextField(
+                                value = coverImageUrl,
+                                onValueChange = { coverImageUrl = it },
+                                label = { Text("Cover Image URL") },
+                                leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, tint = Color(0xFF0A4E38)) },
+                                placeholder = { Text("https://example.com/cover.jpg") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF1E293B),
+                                    unfocusedTextColor = Color(0xFF1E293B),
+                                    focusedBorderColor = Color(0xFF0A4E38),
+                                    focusedLabelColor = Color(0xFF0A4E38)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                            )
+
+                            // Google Drive link detection
+                            if (adminViewModel.supabaseService.isGoogleDriveLink(coverImageUrl)) {
+                                Button(
+                                    onClick = {
+                                        coverImageUrl = adminViewModel.supabaseService.convertGoogleDriveLink(coverImageUrl)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Convert GDrive Cover URL", fontSize = 11.sp)
+                                }
+                            }
+
+                            // URL verification inline warns
+                            val isCoverUrlValid = adminViewModel.supabaseService.isValidImageUrl(coverImageUrl)
+                            if (coverImageUrl.isNotBlank() && !isCoverUrlValid) {
                                 Text(
-                                    text = "Tap to select Cover Illustration",
-                                    fontSize = 13.sp,
-                                    color = Color.Gray,
+                                    text = "Invalid cover image URL (must start with http:// or https://)",
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+                            }
+
+                            if (coverImageUrl.isNotBlank() && isCoverUrlValid) {
+                                Text(
+                                    text = "Valid cover URL detected",
+                                    color = Color(0xFF0A4E38),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Preview Cover Illustration:",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(140.dp, 190.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .align(Alignment.CenterHorizontally)
+                                        .border(1.dp, Color(0xFFE6EAE7), RoundedCornerShape(8.dp))
+                                ) {
+                                    AsyncImage(
+                                        model = coverImageUrl,
+                                        contentDescription = "Cover preview",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
                             }
                         }
                     }
@@ -366,87 +498,328 @@ fun AddBookScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Manuscript Document File",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF043B2B),
-                        fontFamily = FontFamily.Serif
-                    )
+                    var showSourceInfo by remember { mutableStateOf(false) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Manuscript Document File",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF043B2B),
+                                fontFamily = FontFamily.Serif
+                            )
+                            IconButton(onClick = { showSourceInfo = !showSourceInfo }, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Info, contentDescription = "Source info", tint = Color(0xFF0A4E38), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
 
-                    if (bookFileUri != null) {
-                        val fileName = getFileName(contentResolver, bookFileUri)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFEAF5EF))
-                                .border(1.dp, Color(0xFFB1DFCA), RoundedCornerShape(12.dp))
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                    if (showSourceInfo) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF5EF)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Source Types Helpful Guide", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF032B1D))
+                                Text("• Device Upload: Directly upload PDF or EPUB to secure database storage.", fontSize = 12.sp, color = Color(0xFF0A4E38))
+                                Text("• Google Drive: Paste anyone-can-view sharing link. The app will automatically convert it to direct CDN stream.", fontSize = 12.sp, color = Color(0xFF0A4E38))
+                                Text("• Direct URL (CDN): Save workspace storage by pointing directly to external links (e.g. archive.org).", fontSize = 12.sp, color = Color(0xFF0A4E38))
+                            }
+                        }
+                    }
+
+                    // Book source selection buttons row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            SourceType.FILE to "Upload",
+                            SourceType.GDRIVE to "Google Drive",
+                            SourceType.CDN to "CDN URL"
+                        ).forEach { (type, label) ->
+                            val isSelected = bookSourceType == type
+                            val icon = when (type) {
+                                SourceType.FILE -> Icons.Default.CloudUpload
+                                SourceType.GDRIVE -> Icons.Default.AddToDrive
+                                else -> Icons.Default.Link
+                            }
+                            Button(
+                                onClick = { bookSourceType = type },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSelected) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                    contentColor = if (isSelected) Color.White else Color(0xFF475569)
+                                ),
+                                modifier = Modifier.weight(1f).height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp),
+                                shape = RoundedCornerShape(19.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.PictureAsPdf,
-                                    contentDescription = "PdfIcon",
-                                    tint = Color(0xFF0A4E38)
-                                )
-                                Column {
-                                    Text(
-                                        text = fileName,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF032B1D)
+                                Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(label, fontSize = 11.sp, maxLines = 1)
+                            }
+                        }
+                    }
+
+                    if (bookSourceType == SourceType.FILE) {
+                        if (bookFileUri != null) {
+                            val fileName = getFileName(contentResolver, bookFileUri)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFEAF5EF))
+                                    .border(1.dp, Color(0xFFB1DFCA), RoundedCornerShape(12.dp))
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = "PdfIcon",
+                                        tint = Color(0xFF0A4E38)
                                     )
-                                    Text(
-                                        text = fileType.uppercase(),
-                                        fontSize = 11.sp,
-                                        color = Color.Gray
+                                    Column {
+                                        Text(
+                                            text = fileName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF032B1D)
+                                        )
+                                        Text(
+                                            text = fileType.uppercase(),
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+
+                                IconButton(onClick = { bookFileUri = null }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Remove File",
+                                        tint = Color.Gray
                                     )
                                 }
                             }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF1F4F2))
+                                    .clickable {
+                                        val mime = if (fileType == "pdf") "application/pdf" else "application/epub+zip"
+                                        documentPickerLauncher.launch(mime)
+                                    }
+                                    .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Default.UploadFile,
+                                        contentDescription = null,
+                                        tint = Color(0xFF0A4E38),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Select code or ${fileType.uppercase()} file",
+                                        fontSize = 13.sp,
+                                        color = Color.Gray,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    } else if (bookSourceType == SourceType.GDRIVE) {
+                        // Google Drive section
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "⚠️ Make sure file sharing is enabled (Anyone with link can view)",
+                                color = Color(0xFFB45309),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
 
-                            IconButton(onClick = { bookFileUri = null }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Remove File",
-                                    tint = Color.Gray
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = bookFileUrl,
+                                    onValueChange = { input ->
+                                        bookFileUrl = input
+                                        // Auto-convert Google Drive link if it matches
+                                        if (adminViewModel.supabaseService.isGoogleDriveLink(input)) {
+                                            bookFileUrl = adminViewModel.supabaseService.convertGoogleDriveLink(input)
+                                        }
+                                    },
+                                    label = { Text("Google Drive Sharing URL") },
+                                    placeholder = { Text("https://drive.google.com/file/d/FILE_ID/view?usp=sharing") },
+                                    modifier = Modifier.weight(1f),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color(0xFF1E293B),
+                                        unfocusedTextColor = Color(0xFF1E293B),
+                                        focusedBorderColor = Color(0xFF0A4E38),
+                                        focusedLabelColor = Color(0xFF0A4E38)
+                                    )
                                 )
+
+                                Button(
+                                    onClick = {
+                                        bookFileUrl = adminViewModel.supabaseService.convertGoogleDriveLink(bookFileUrl)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                    modifier = Modifier.height(56.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Convert", fontSize = 12.sp)
+                                }
+                            }
+
+                            // Validation and Link Preview info
+                            val isGDriveValid = adminViewModel.supabaseService.isGoogleDriveLink(bookFileUrl) || bookFileUrl.startsWith("https://drive.google.com/uc")
+                            if (bookFileUrl.isNotBlank() && !isGDriveValid) {
+                                Text(
+                                    text = "Invalid GDrive Address format.",
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            } else if (bookFileUrl.isNotBlank()) {
+                                Text(
+                                    text = "Google Drive link verified.",
+                                    color = Color(0xFF0A4E38),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Direct file link: $bookFileUrl",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "File Size: Unknown (Remote CDN)",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (bookFileUrl.isNotBlank()) {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(bookFileUrl))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Cannot open browser: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0A4E38)),
+                                    border = BorderStroke(1.dp, Color(0xFF0A4E38)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Test Link", fontSize = 12.sp)
+                                }
                             }
                         }
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFF1F4F2))
-                                .clickable {
-                                    val mime = if (fileType == "pdf") "application/pdf" else "application/epub+zip"
-                                    documentPickerLauncher.launch(mime)
-                                }
-                                .border(1.dp, Color(0xFFDCE2DE), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
+                        // CDN URL section
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.UploadFile,
-                                    contentDescription = null,
-                                    tint = Color(0xFF0A4E38),
-                                    modifier = Modifier.size(36.dp)
+                            Text(
+                                text = "⚠️ URL must be a direct download link (ends with .pdf or .epub)",
+                                color = Color(0xFFB45309),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            OutlinedTextField(
+                                value = bookFileUrl,
+                                onValueChange = { bookFileUrl = it },
+                                label = { Text("Direct CDN URL") },
+                                placeholder = { Text("https://example.com/books/manual.$fileType") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF1E293B),
+                                    unfocusedTextColor = Color(0xFF1E293B),
+                                    focusedBorderColor = Color(0xFF0A4E38),
+                                    focusedLabelColor = Color(0xFF0A4E38)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                            )
+
+                            // Format Validation
+                            val isCdnValid = if (fileType == "pdf") {
+                                adminViewModel.supabaseService.isValidPdfUrl(bookFileUrl)
+                            } else {
+                                adminViewModel.supabaseService.isValidEpubUrl(bookFileUrl)
+                            }
+
+                            if (bookFileUrl.isNotBlank() && !isCdnValid) {
                                 Text(
-                                    text = "Select code or ${fileType.uppercase()} file",
-                                    fontSize = 13.sp,
-                                    color = Color.Gray,
+                                    text = "Error: Link format is inoperable. Must end with .$fileType (query parameters stripped)",
+                                    color = Color.Red,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+                            } else if (bookFileUrl.isNotBlank()) {
+                                Text(
+                                    text = "CDN link verified.",
+                                    color = Color(0xFF0A4E38),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "File Size: Unknown (Remote CDN)",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Button(
+                                    onClick = {
+                                        if (bookFileUrl.isNotBlank()) {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(bookFileUrl))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Cannot open browser: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0A4E38)),
+                                    border = BorderStroke(1.dp, Color(0xFF0A4E38)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Test Link", fontSize = 12.sp)
+                                }
                             }
                         }
                     }
@@ -455,7 +828,7 @@ fun AddBookScreen(
 
             // Submit / Action upload indicator states
             when (val state = uiState) {
-                is AdminUiState.Uploading -> {
+                is UploadState.Uploading -> {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -476,20 +849,42 @@ fun AddBookScreen(
                     }
                 }
                 else -> {
-                    val isFormValid = title.isNotBlank() && author.isNotBlank() && bookFileUri != null
+                    val hasCover = if (coverSourceType == SourceType.FILE) {
+                        coverImageUri != null
+                    } else {
+                        coverImageUrl.isNotBlank() && adminViewModel.supabaseService.isValidImageUrl(coverImageUrl)
+                    }
+
+                    val hasBook = when (bookSourceType) {
+                        SourceType.FILE -> bookFileUri != null
+                        SourceType.GDRIVE -> bookFileUrl.isNotBlank() && (adminViewModel.supabaseService.isGoogleDriveLink(bookFileUrl) || bookFileUrl.startsWith("https://drive.google.com/uc"))
+                        SourceType.CDN -> {
+                            bookFileUrl.isNotBlank() && if (fileType == "pdf") {
+                                adminViewModel.supabaseService.isValidPdfUrl(bookFileUrl)
+                            } else {
+                                adminViewModel.supabaseService.isValidEpubUrl(bookFileUrl)
+                            }
+                        }
+                        else -> false
+                    }
+
+                    val isFormValid = title.isNotBlank() && author.isNotBlank() && hasCover && hasBook
+
                     Button(
                         onClick = {
-                            if (bookFileUri != null) {
-                                adminViewModel.uploadBook(
-                                    contentResolver = contentResolver,
-                                    title = title,
-                                    author = author,
-                                    category = category,
-                                    coverImageUri = coverImageUri,
-                                    bookFileUri = bookFileUri!!,
-                                    fileType = fileType
-                                )
-                            }
+                            val uploadData = BookUploadData(
+                                title = title,
+                                author = author,
+                                category = category,
+                                fileType = fileType,
+                                coverSourceType = coverSourceType,
+                                coverImageUri = if (coverSourceType == SourceType.FILE) coverImageUri else null,
+                                coverImageUrl = if (coverSourceType == SourceType.URL) coverImageUrl else null,
+                                bookSourceType = bookSourceType,
+                                bookFileUri = if (bookSourceType == SourceType.FILE) bookFileUri else null,
+                                bookFileUrl = if (bookSourceType != SourceType.FILE) bookFileUrl else null
+                            )
+                            adminViewModel.uploadBook(uploadData)
                         },
                         enabled = isFormValid,
                         colors = ButtonDefaults.buttonColors(

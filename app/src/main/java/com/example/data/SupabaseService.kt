@@ -1,9 +1,16 @@
 package com.example.data
 
+import android.content.Context
+import android.net.Uri
+import com.example.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -31,7 +38,8 @@ data class SupabaseBook(
 )
 
 class SupabaseService(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val context: Context? = null
 ) {
     /**
      * Fetches all books marked as public from the Supabase database.
@@ -83,5 +91,94 @@ class SupabaseService(
                 put("user_email", email)
             }
         )
+    }
+
+    /**
+     * Uploads file to Supabase storage and returns public URL.
+     */
+    suspend fun uploadToStorage(bucket: String, path: String, uri: Uri): String = withContext(Dispatchers.IO) {
+        val resolver = context?.contentResolver ?: throw Exception("Context not provided to SupabaseService")
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw Exception("Could not open input stream for Uri: $uri")
+        
+        supabaseClient.storage.from(bucket).upload(path, bytes) {
+            upsert = true
+        }
+        
+        "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/$bucket/$path"
+    }
+
+    /**
+     * Inserts any arbitrary map representing a book row into public.books table.
+     */
+    suspend fun insertBook(bookData: Map<String, Any?>): Unit = withContext(Dispatchers.IO) {
+        val jsonObject = buildJsonObject {
+            bookData.forEach { (key, value) ->
+                when (value) {
+                    null -> put(key, JsonNull)
+                    is String -> put(key, value)
+                    is Number -> put(key, value)
+                    is Boolean -> put(key, value)
+                    is JsonElement -> put(key, value)
+                    else -> put(key, value.toString())
+                }
+            }
+        }
+        supabaseClient.postgrest["books"].insert(jsonObject)
+    }
+
+    /**
+     * Returns total books count from public.books table.
+     */
+    suspend fun getBooksCount(): Int = withContext(Dispatchers.IO) {
+        try {
+            val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+            books.size
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    fun isGoogleDriveLink(url: String): Boolean {
+        return url.contains("drive.google.com")
+    }
+
+    fun convertGoogleDriveLink(url: String): String {
+        if (!isGoogleDriveLink(url)) return url
+        
+        // Try to find file ID from /file/d/{FILE_ID}/view...
+        if (url.contains("/file/d/")) {
+            val startIndex = url.indexOf("/file/d/") + 8
+            val sub = url.substring(startIndex)
+            val endIndex = sub.indexOfAny(charArrayOf('/', '?', '&'))
+            val fileId = if (endIndex != -1) sub.substring(0, endIndex) else sub
+            return "https://drive.google.com/uc?export=download&id=$fileId"
+        }
+        
+        // Try to find file ID from open?id={FILE_ID} or uc?id={FILE_ID}
+        if (url.contains("id=")) {
+            val startIndex = url.indexOf("id=") + 3
+            val sub = url.substring(startIndex)
+            val endIndex = sub.indexOf('&')
+            val fileId = if (endIndex != -1) sub.substring(0, endIndex) else sub
+            return "https://drive.google.com/uc?export=download&id=$fileId"
+        }
+        
+        return url
+    }
+
+    fun isValidImageUrl(url: String): Boolean {
+        val lowercase = url.lowercase().substringBefore("?")
+        return (lowercase.startsWith("http://") || lowercase.startsWith("https://"))
+    }
+
+    fun isValidPdfUrl(url: String): Boolean {
+        val lowercase = url.lowercase().substringBefore("?")
+        return (lowercase.startsWith("http://") || lowercase.startsWith("https://")) && lowercase.endsWith(".pdf")
+    }
+
+    fun isValidEpubUrl(url: String): Boolean {
+        val lowercase = url.lowercase().substringBefore("?")
+        return (lowercase.startsWith("http://") || lowercase.startsWith("https://")) && lowercase.endsWith(".epub")
     }
 }

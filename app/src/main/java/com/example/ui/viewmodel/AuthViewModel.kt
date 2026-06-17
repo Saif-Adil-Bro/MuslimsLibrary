@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -32,20 +33,110 @@ class AuthViewModel(
     private val _userRole = MutableStateFlow("user")
     val userRole: StateFlow<String> = _userRole.asStateFlow()
 
+    private val _debugInfo = MutableStateFlow("")
+    val debugInfo: StateFlow<String> = _debugInfo.asStateFlow()
+
+    private val _isDebugMode = MutableStateFlow(false)
+    val isDebugMode: StateFlow<Boolean> = _isDebugMode.asStateFlow()
+
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
+    fun initDebugMode(context: Context) {
+        val prefs = context.getSharedPreferences("app_debug_prefs", Context.MODE_PRIVATE)
+        _isDebugMode.value = prefs.getBoolean("debug_mode_enabled", false)
+    }
+
+    fun toggleDebugMode(context: Context) {
+        val prefs = context.getSharedPreferences("app_debug_prefs", Context.MODE_PRIVATE)
+        val newValue = !prefs.getBoolean("debug_mode_enabled", false)
+        prefs.edit().putBoolean("debug_mode_enabled", newValue).apply()
+        _isDebugMode.value = newValue
+        _toastMessage.value = if (newValue) "🛠️ Debug Mode Enabled!" else "🛠️ Debug Mode Disabled."
+    }
+
+    fun clearToastMessage() {
+        _toastMessage.value = null
+    }
+
+    private fun updateDebugConsole(queryUid: String, role: String, finalRole: String) {
+        val firebaseUid = authRepository.getCurrentUserUid() ?: "None"
+        val supabaseUid = authRepository.getSupabaseUid() ?: "None"
+        val queryDetails = authRepository.getLastQueryJson()
+        
+        _debugInfo.value = """
+            Firebase UID: $firebaseUid
+            Supabase UID: $supabaseUid
+            Query UID: $queryUid
+            Parsed Role: $role
+            Final Role: $finalRole
+            
+            Database Response / Query Details:
+            $queryDetails
+        """.trimIndent()
+    }
+
+    private fun updateDebugConsoleError(queryUid: String, errorMsg: String) {
+        val firebaseUid = authRepository.getCurrentUserUid() ?: "None"
+        val supabaseUid = authRepository.getSupabaseUid() ?: "None"
+        val queryDetails = authRepository.getLastQueryJson()
+        
+        _debugInfo.value = """
+            Firebase UID: $firebaseUid
+            Supabase UID: $supabaseUid
+            Query UID: $queryUid
+            Parsed Role: Error
+            Final Role: user
+            Error: $errorMsg
+            
+            Database Response / Query Details:
+            $queryDetails
+        """.trimIndent()
+    }
+
     init {
         viewModelScope.launch {
             authRepository.isUserLoggedIn().collectLatest { loggedIn ->
-                _isLoggedIn.value = loggedIn
                 val email = authRepository.getCurrentUserEmail()
                 if (loggedIn && email != null) {
-                    _uiState.value = AuthState.Success(email)
                     val uid = authRepository.getCurrentUserUid()
                     if (uid != null) {
-                        fetchUserRole(uid)
+                        _debugInfo.value = "Fetching role for UID: $uid..."
+                        if (_isDebugMode.value) {
+                            _toastMessage.value = "Fetching Role..."
+                        }
+                        try {
+                            val role = withTimeout(15_000) {
+                                authRepository.getUserRole(uid)
+                            }
+                            _userRole.value = role
+                            android.util.Log.d("AuthViewModel", "Init role fetched: $role")
+                            updateDebugConsole(queryUid = uid, role = role, finalRole = role)
+                            if (_isDebugMode.value) {
+                                _toastMessage.value = "Role loaded: $role\nLogs on-screen."
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("AuthViewModel", "Init role fetch failed", e)
+                            _userRole.value = "user"
+                            updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
+                            if (_isDebugMode.value) {
+                                _toastMessage.value = "Role error: ${e.message}"
+                            }
+                        }
+                    } else {
+                        _userRole.value = "user"
+                        _debugInfo.value = "UID is null"
+                        if (_isDebugMode.value) {
+                            _toastMessage.value = "UID is null"
+                        }
                     }
+                    _uiState.value = AuthState.Success(email)
+                    _isLoggedIn.value = true
                 } else {
                     _uiState.value = AuthState.Idle
                     _userRole.value = "user"
+                    _isLoggedIn.value = false
+                    _debugInfo.value = "Not logged in"
                 }
             }
         }
@@ -53,55 +144,116 @@ class AuthViewModel(
 
     private fun fetchUserRole(uid: String) {
         viewModelScope.launch {
+            _debugInfo.value = "Fetching role for UID: $uid..."
+            if (_isDebugMode.value) {
+                _toastMessage.value = "Fetching Role..."
+            }
             try {
-                val role = authRepository.getUserRole(uid)
+                val role = withTimeout(15_000) {
+                    authRepository.getUserRole(uid)
+                }
                 _userRole.value = role
+                android.util.Log.d("AuthViewModel", "fetchUserRole fetched: $role")
+                updateDebugConsole(queryUid = uid, role = role, finalRole = role)
+                if (_isDebugMode.value) {
+                    _toastMessage.value = "Role loaded: $role"
+                }
             } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "fetchUserRole failed", e)
                 _userRole.value = "user"
+                updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
+                if (_isDebugMode.value) {
+                    _toastMessage.value = "Role check failed: ${e.message}"
+                }
             }
         }
     }
 
-    private fun onAuthenticationSuccess(email: String) {
+    private suspend fun onAuthenticationSuccess(email: String) {
+        val uid = authRepository.getCurrentUserUid()
+        android.util.Log.d("AuthViewModel", "Login success, UID: $uid")
+        if (uid != null) {
+            _debugInfo.value = "Fetching role for UID: $uid..."
+            if (_isDebugMode.value) {
+                _toastMessage.value = "Fetching Role..."
+            }
+            try {
+                // Add timeout to prevent hanging
+                val role = withTimeout(15_000) {
+                    authRepository.getUserRole(uid)
+                }
+                _userRole.value = role
+                android.util.Log.d("AuthViewModel", "Role fetched: $role")
+                updateDebugConsole(queryUid = uid, role = role, finalRole = role)
+                if (_isDebugMode.value) {
+                    _toastMessage.value = "Role loaded: $role"
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Error fetching user role", e)
+                // If role fetch fails, default to 'user' but still allow login
+                _userRole.value = "user"
+                _toastMessage.value = "Login successful (using default role)"
+                updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
+            }
+        } else {
+            _userRole.value = "user"
+            _debugInfo.value = "UID is null"
+            if (_isDebugMode.value) {
+                _toastMessage.value = "UID is null"
+            }
+        }
         _uiState.value = AuthState.Success(email)
         _isLoggedIn.value = true
-        val uid = authRepository.getCurrentUserUid()
-        if (uid != null) {
-            fetchUserRole(uid)
-        }
     }
 
     fun login(email: String, passwordState: String) {
+        android.util.Log.d("AuthViewModel", "Login started for: $email")
         if (email.isBlank() || passwordState.length < 6) {
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return
         }
         _uiState.value = AuthState.Loading("Signing in...")
+        
         viewModelScope.launch {
-            authRepository.login(email, passwordState)
-                .onSuccess {
-                    onAuthenticationSuccess(email)
-                }
-                .onFailure {
-                    _uiState.value = AuthState.Error(it.localizedMessage ?: "Login failed")
-                }
+            try {
+                authRepository.login(email, passwordState)
+                    .onSuccess {
+                        onAuthenticationSuccess(email)
+                    }
+                    .onFailure { error ->
+                        android.util.Log.e("AuthViewModel", "Login failed for: $email", error)
+                        _uiState.value = AuthState.Error(error.message ?: "Login failed")
+                        _toastMessage.value = "Login failed: ${error.message}"
+                    }
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Unexpected login exception", e)
+                _uiState.value = AuthState.Error("Unexpected error: ${e.message}")
+            }
         }
     }
 
     fun signUp(email: String, passwordState: String) {
+        android.util.Log.d("AuthViewModel", "Sign up started for: $email")
         if (email.isBlank() || passwordState.length < 6) {
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return
         }
         _uiState.value = AuthState.Loading("Creating account...")
         viewModelScope.launch {
-            authRepository.signUp(email, passwordState)
-                .onSuccess {
-                    onAuthenticationSuccess(email)
-                }
-                .onFailure {
-                    _uiState.value = AuthState.Error(it.localizedMessage ?: "Registration failed")
-                }
+            try {
+                authRepository.signUp(email, passwordState)
+                    .onSuccess {
+                        onAuthenticationSuccess(email)
+                    }
+                    .onFailure { error ->
+                        android.util.Log.e("AuthViewModel", "Sign up failed for: $email", error)
+                        _uiState.value = AuthState.Error("Sign up failed: ${error.message ?: "Unknown error"}")
+                        _toastMessage.value = "Sign up failed: ${error.message}"
+                    }
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Unexpected sign up exception", e)
+                _uiState.value = AuthState.Error("Unexpected error: ${e.message}")
+            }
         }
     }
 

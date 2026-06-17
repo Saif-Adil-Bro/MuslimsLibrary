@@ -52,6 +52,18 @@ class MainActivity : ComponentActivity() {
                 
                 val navController = rememberNavController()
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+                
+                val toastMessage by authViewModel.toastMessage.collectAsState()
+                val context = androidx.compose.ui.platform.LocalContext.current
+                LaunchedEffect(Unit) {
+                    authViewModel.initDebugMode(context)
+                }
+                LaunchedEffect(toastMessage) {
+                    toastMessage?.let {
+                        android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+                        authViewModel.clearToastMessage()
+                    }
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
@@ -77,6 +89,8 @@ class MainActivity : ComponentActivity() {
                                 if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
                             }
                             val userRole by authViewModel.userRole.collectAsState()
+                            val debugInfo by authViewModel.debugInfo.collectAsState()
+                            val isDebugMode by authViewModel.isDebugMode.collectAsState()
                             DashboardScreen(
                                 libraryViewModel = libraryViewModel,
                                 homeViewModel = homeViewModel,
@@ -94,7 +108,10 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToAddBook = {
                                     navController.navigate("add_book")
-                                }
+                                },
+                                debugInfo = debugInfo,
+                                isDebugMode = isDebugMode,
+                                onToggleDebug = { authViewModel.toggleDebugMode(context) }
                             )
                         }
 
