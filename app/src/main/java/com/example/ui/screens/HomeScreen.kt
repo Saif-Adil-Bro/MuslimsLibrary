@@ -37,11 +37,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.SupabaseBook
+import com.example.data.local.entities.LocalBookProgress
 import com.example.ui.components.BookCard
 import com.example.ui.components.CategoryFilter
 import com.example.ui.components.SearchBar
 import com.example.ui.viewmodel.HomeUiState
 import com.example.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -330,6 +332,7 @@ fun HomeScreen(
                 }
                 is HomeUiState.Success -> {
                     // Books listing grid
+                    val coroutineScope = rememberCoroutineScope()
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier
@@ -340,7 +343,24 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(state.books) { book ->
-                            BookCard(book = book, onClick = { onBookClick(book) })
+                            val isFav by homeViewModel.localSyncRepository.isFavoriteFlow(userEmail, book.id).collectAsState(initial = false)
+                            val isPin by homeViewModel.localSyncRepository.isPinnedFlow(userEmail, book.id).collectAsState(initial = false)
+                            BookCard(
+                                book = book,
+                                onClick = { onBookClick(book) },
+                                isFavorite = isFav,
+                                isPinned = isPin,
+                                onFavoriteClick = {
+                                    coroutineScope.launch {
+                                        homeViewModel.localSyncRepository.toggleFavorite(userEmail, book.id)
+                                    }
+                                },
+                                onPinClick = {
+                                    coroutineScope.launch {
+                                        homeViewModel.localSyncRepository.togglePin(userEmail, book.id)
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -417,7 +437,7 @@ fun ShimmerCustomPlaceholder(modifier: Modifier = Modifier) {
 
 @Composable
 fun ContinueReadingSection(
-    progressList: List<com.example.data.BookProgress>,
+    progressList: List<LocalBookProgress>,
     allBooks: List<SupabaseBook>,
     onResumeClick: (SupabaseBook) -> Unit,
     modifier: Modifier = Modifier

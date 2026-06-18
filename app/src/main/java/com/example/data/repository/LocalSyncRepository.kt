@@ -10,6 +10,7 @@ import com.example.data.sync.SyncManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -17,7 +18,14 @@ interface LocalSyncRepository {
     // --- Book Progress ---
     fun getBookProgressFlow(userId: String, bookId: String): Flow<LocalBookProgress?>
     fun getAllProgressFlow(userId: String): Flow<List<LocalBookProgress>>
-    suspend fun updateBookProgress(userId: String, bookId: String, currentPage: Int, totalPages: Int, status: String = "reading")
+    suspend fun updateBookProgress(
+        userId: String,
+        bookId: String,
+        currentPage: Int,
+        totalPages: Int,
+        status: String = "reading",
+        additionalReadingTimeSeconds: Long = 0L
+    )
 
     // --- Favorites ---
     fun getFavoritesFlow(userId: String): Flow<List<LocalFavoriteBook>>
@@ -47,11 +55,41 @@ class LocalSyncRepositoryImpl(
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     override fun getBookProgressFlow(userId: String, bookId: String): Flow<LocalBookProgress?> {
-        return database.progressDao().getProgressFlow(userId, bookId)
+        return database.progressDao().getProgressFlow(userId, bookId).map { progress ->
+            if (progress != null && progress.status == "reading" && System.currentTimeMillis() - progress.lastReadAt > 7 * 24 * 3600 * 1000L) {
+                val updated = progress.copy(status = "paused")
+                coroutineScope.launch {
+                    database.progressDao().insertProgress(updated)
+                }
+                updated
+            } else {
+                progress
+            }
+        }
     }
 
     override fun getAllProgressFlow(userId: String): Flow<List<LocalBookProgress>> {
-        return database.progressDao().getAllProgressFlow(userId)
+        return database.progressDao().getAllProgressFlow(userId).map { list ->
+            var changed = false
+            val updated = list.map { progress ->
+                if (progress.status == "reading" && System.currentTimeMillis() - progress.lastReadAt > 7 * 24 * 3600 * 1000L) {
+                    changed = true
+                    progress.copy(status = "paused")
+                } else {
+                    progress
+                }
+            }
+            if (changed) {
+                coroutineScope.launch {
+                    updated.forEach { progress ->
+                        if (progress.status == "paused") {
+                            database.progressDao().insertProgress(progress)
+                        }
+                    }
+                }
+            }
+            updated
+        }
     }
 
     override suspend fun updateBookProgress(
@@ -59,23 +97,38 @@ class LocalSyncRepositoryImpl(
         bookId: String,
         currentPage: Int,
         totalPages: Int,
-        status: String
+        status: String,
+        additionalReadingTimeSeconds: Long
     ) {
-        val percentage = if (totalPages > 0) (currentPage.toDouble() / totalPages.toDouble()) * 100.0 else 0.0
+        Log.d("Repository", "Updating progress for book: $bookId, page: $currentPage")
+        val existing = database.progressDao().getProgressOneShot(userId, bookId)
+        val oldTime = existing?.readingTimeSpent ?: 0L
+        val accumulatedTime = oldTime + additionalReadingTimeSeconds
+        
+        val isNewSession = existing != null && (System.currentTimeMillis() - existing.lastReadAt > 30 * 60 * 1000L)
+        val currentSessionCount = if (existing == null) 1 else if (isNewSession) existing.sessionCount + 1 else existing.sessionCount
+
+        val targetStatus = if (currentPage >= totalPages || currentPage >= (totalPages * 0.95).toInt()) "completed" else status
+        val targetPage = if (targetStatus == "completed") totalPages else currentPage
+        val percentage = if (totalPages > 0) (targetPage.toDouble() / totalPages.toDouble()) * 100.0 else 0.0
+
         val localProgress = LocalBookProgress(
             id = "${userId}_$bookId",
             userId = userId,
             bookId = bookId,
-            currentPage = currentPage,
+            currentPage = targetPage,
             totalPages = totalPages,
             progressPercentage = percentage,
-            status = status,
+            status = targetStatus,
             lastReadAt = System.currentTimeMillis(),
-            isSynced = false
+            isSynced = false,
+            readingTimeSpent = accumulatedTime,
+            sessionCount = currentSessionCount
         )
         // 1. Instantly save locally in Room Database
         database.progressDao().insertProgress(localProgress)
-        Log.d("LocalSyncRepository", "Progress updated in Local Room DB. Scheduling push sync...")
+        Log.d("Repository", "Database write result: SUCCESS (Progress updated in Room: Time=$accumulatedTime s, Sessions=$currentSessionCount)")
+        Log.d("LocalSyncRepository", "Progress updated in Room (Time: $accumulatedTime s, Sessions: $currentSessionCount). Scheduling sync...")
         
         // 2. Trigger non-blocking background queue synchronization
         triggerBackgroundSync(userId)

@@ -3,10 +3,15 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +33,11 @@ import com.example.data.SupabaseBook
 fun BookCard(
     book: SupabaseBook,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isFavorite: Boolean = false,
+    isPinned: Boolean = false,
+    onFavoriteClick: (() -> Unit)? = null,
+    onPinClick: (() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
@@ -119,6 +129,55 @@ fun BookCard(
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+
+                // Favorite & Pin action buttons overlay on top-right
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .align(Alignment.TopEnd),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (onPinClick != null) {
+                        IconButton(
+                            onClick = onPinClick,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .background(
+                                    color = if (isPinned) Color(0xFF10B981) else Color.White.copy(alpha = 0.9f),
+                                    shape = CircleShape
+                                )
+                                .testTag("book_card_pin_${book.id}"),
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = if (isPinned) Color.White else Color(0xFF108981))
+                        ) {
+                            Icon(
+                                imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                contentDescription = "Pin book",
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+
+                    if (onFavoriteClick != null) {
+                        IconButton(
+                            onClick = onFavoriteClick,
+                            modifier = Modifier
+                                .size(30.dp)
+                                .background(
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    shape = CircleShape
+                                )
+                                .testTag("book_card_favorite_${book.id}"),
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = if (isFavorite) Color.Red else Color.Gray)
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "Favorite book",
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                 }
             }
 

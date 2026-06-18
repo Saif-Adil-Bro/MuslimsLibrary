@@ -19,7 +19,8 @@ import androidx.navigation.navArgument
 import com.example.ui.screens.AddBookScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.DashboardScreen
-import com.example.ui.screens.ReaderScreen
+import com.example.ui.screens.BookReaderScreen
+import com.example.ui.screens.BookDetailScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.viewmodel.AuthViewModel
@@ -51,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     factory = LibraryViewModel.Factory(appContainer.bookRepository)
                 )
                 val homeViewModel: HomeViewModel = viewModel(
-                    factory = HomeViewModel.Factory(appContainer.supabaseService)
+                    factory = HomeViewModel.Factory(appContainer.supabaseService, appContainer.localSyncRepository)
                 )
                 val adminViewModel: AdminViewModel = viewModel(
                     factory = AdminViewModel.Factory(appContainer.supabaseClient, appContainer.supabaseService)
@@ -118,9 +119,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onBookClick = { book ->
-                                    val encodedTitle = java.net.URLEncoder.encode(book.title, "UTF-8")
-                                    val encodedUrl = java.net.URLEncoder.encode(book.fileUrl ?: "", "UTF-8")
-                                    navController.navigate("reader/${book.id}/$encodedTitle/$encodedUrl/${book.fileType}")
+                                    navController.navigate("book_detail/${book.id}")
                                 },
                                 onNavigateToAddBook = {
                                     navController.navigate("add_book")
@@ -177,6 +176,31 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // Book Detail Route
+                        composable(
+                            route = "book_detail/{bookId}",
+                            arguments = listOf(navArgument("bookId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
+                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
+                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
+                            }
+                            BookDetailScreen(
+                                bookId = bookId,
+                                userId = userEmail,
+                                homeViewModel = homeViewModel,
+                                localSyncRepository = appContainer.localSyncRepository,
+                                onReadNowClick = { clickedBook ->
+                                    val encodedTitle = java.net.URLEncoder.encode(clickedBook.title, "UTF-8")
+                                    val encodedUrl = java.net.URLEncoder.encode(clickedBook.fileUrl ?: "", "UTF-8")
+                                    navController.navigate("reader/${clickedBook.id}/$encodedTitle/$encodedUrl/${clickedBook.fileType}")
+                                },
+                                onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
                         // Detailed PDF / Book render route
                         composable(
                             route = "reader/{bookId}/{bookTitle}",
@@ -190,7 +214,7 @@ class MainActivity : ComponentActivity() {
                             val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
                                 if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
                             }
-                            ReaderScreen(
+                            BookReaderScreen(
                                 bookId = bookId,
                                 bookTitle = bookTitle,
                                 userId = userEmail,
@@ -217,7 +241,7 @@ class MainActivity : ComponentActivity() {
                             val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
                                 if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
                             }
-                            ReaderScreen(
+                            BookReaderScreen(
                                 bookId = bookId,
                                 bookTitle = bookTitle,
                                 fileUrl = fileUrl,
@@ -250,8 +274,13 @@ class MainActivity : ComponentActivity() {
 
                         // Profile Screen Route
                         composable("profile") {
+                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
+                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
+                            }
                             ProfileScreen(
                                 viewModel = profileViewModel,
+                                localSyncRepository = appContainer.localSyncRepository,
+                                userId = userEmail,
                                 onEditProfileClick = {
                                     navController.navigate("edit_profile")
                                 },

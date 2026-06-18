@@ -14,7 +14,9 @@ data class LocalBookProgress(
     val progressPercentage: Double,
     val status: String, // "reading" or "completed"
     val lastReadAt: Long,
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+    val readingTimeSpent: Long = 0L, // in seconds
+    val sessionCount: Int = 1
 ) {
     fun toSupabaseModel(): BookProgress {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
@@ -52,7 +54,9 @@ data class LocalBookProgress(
                 progressPercentage = model.progressPercentage ?: 0.0,
                 status = model.status,
                 lastReadAt = time,
-                isSynced = isSynced
+                isSynced = isSynced,
+                readingTimeSpent = 0,
+                sessionCount = 1
             )
         }
     }

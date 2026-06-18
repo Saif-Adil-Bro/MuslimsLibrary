@@ -20,7 +20,7 @@ import com.example.data.local.entities.LocalUserNote
         LocalPinnedBook::class,
         LocalUserNote::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

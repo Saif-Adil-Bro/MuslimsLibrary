@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.data.repository.LocalSyncRepository
 import com.example.ui.viewmodel.ProfileUiState
 import com.example.ui.viewmodel.ProfileViewModel
 
@@ -31,6 +32,8 @@ import com.example.ui.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
+    localSyncRepository: LocalSyncRepository,
+    userId: String,
     onEditProfileClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onBackClick: () -> Unit
@@ -190,6 +193,135 @@ fun ProfileScreen(
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                             )
+                        }
+
+                        // Observe Statistics from Room database flows
+                        val progressList by localSyncRepository.getAllProgressFlow(userId).collectAsState(initial = emptyList())
+                        val favoritesList by localSyncRepository.getFavoritesFlow(userId).collectAsState(initial = emptyList())
+                        val notesList by localSyncRepository.getNotesForUserFlow(userId).collectAsState(initial = emptyList())
+
+                        val completedCount = remember(progressList) { progressList.count { it.status == "completed" } }
+                        val currentlyReadingCount = remember(progressList) { progressList.count { it.status == "reading" } }
+
+                        // Reading Stats Dashboard Card (Material 3 Grid styled layout)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "আমার পড়াশোনার অগ্রগতি (Statistics)",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF043B2B)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    // Stat Item 1: Reading
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = currentlyReadingCount.toString(),
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0A4E38)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "পড়ছি",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    // Stat Item 2: Completed
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = completedCount.toString(),
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF10B981)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "পড়া শেষ",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    // Stat Item 3: Notes
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = notesList.size.toString(),
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD97706)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "নোট সংখ্যা",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Gray
+                                        )
+                                    }
+
+                                    // Stat Item 4: Favorites
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = favoritesList.size.toString(),
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFE53935)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "প্রিয় তালিকা",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         // Profile Details Box
