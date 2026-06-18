@@ -742,7 +742,7 @@ fun downloadPdf(context: Context, url: String, title: String) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directUrl))
             context.startActivity(intent)
         } catch (ex: Exception) {
-            Toast.makeText(context, "ডাউনলোড করা যাচ্ছে না: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "ডাউনলোড করা যাচ্ছে না: ${ex.localizedMessage}", Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -753,7 +753,7 @@ fun SimulatedBookReadingView(
     themeColor: Color,
     backgroundColor: Color,
     currentPage: Int,
-    totalSimulatedPages: Int = 6,
+    totalSimulatedPages: Int,
     onPageChanged: (Int) -> Unit
 ) {
     var swipeOffsetX by remember { mutableStateOf(0f) }
