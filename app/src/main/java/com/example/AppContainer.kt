@@ -2,10 +2,16 @@ package com.example
 
 import android.content.Context
 import com.example.data.SupabaseService
+import com.example.data.local.AppDatabase
 import com.example.data.repository.AuthRepository
 import com.example.data.repository.AuthRepositoryImpl
 import com.example.data.repository.BookRepository
 import com.example.data.repository.BookRepositoryImpl
+import com.example.data.repository.LocalSyncRepository
+import com.example.data.repository.LocalSyncRepositoryImpl
+import com.example.data.sync.SyncManager
+import com.example.data.util.LiveNetworkMonitor
+import com.example.data.util.NetworkMonitor
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
@@ -73,5 +79,22 @@ class AppContainer(val context: Context) {
     // --- Book Repository ---
     val bookRepository: BookRepository by lazy {
         BookRepositoryImpl(supabaseClient)
+    }
+
+    // --- 4. Room Database and Offline-First Synchronization Wrapper ---
+    val appDatabase: AppDatabase by lazy {
+        AppDatabase.getDatabase(context)
+    }
+
+    val networkMonitor: NetworkMonitor by lazy {
+        LiveNetworkMonitor(context)
+    }
+
+    val syncManager: SyncManager by lazy {
+        SyncManager(context, appDatabase, supabaseService, networkMonitor)
+    }
+
+    val localSyncRepository: LocalSyncRepository by lazy {
+        LocalSyncRepositoryImpl(appDatabase, syncManager)
     }
 }

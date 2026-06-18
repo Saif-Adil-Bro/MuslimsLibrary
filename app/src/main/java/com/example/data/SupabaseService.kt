@@ -98,7 +98,7 @@ data class ForumStats(
 )
 
 class SupabaseService(
-    private val supabaseClient: SupabaseClient,
+    val supabaseClient: SupabaseClient,
     private val context: Context? = null
 ) {
     /**
