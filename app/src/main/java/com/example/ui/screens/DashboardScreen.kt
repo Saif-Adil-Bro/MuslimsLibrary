@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.unit.dp
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import com.example.data.SupabaseBook
 import com.example.data.SupabaseService
@@ -19,6 +21,7 @@ import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.viewmodel.HomeViewModel
 import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.ForumViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +31,7 @@ fun DashboardScreen(
     adminViewModel: AdminViewModel,
     forumViewModel: ForumViewModel,
     userEmail: String,
+    userUid: String = "",
     userRole: String,
     onLogoutClick: () -> Unit,
     onBookClick: (SupabaseBook) -> Unit,
@@ -38,9 +42,131 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     debugInfo: String = "",
     isDebugMode: Boolean = false,
-    onToggleDebug: () -> Unit = {}
+    onToggleDebug: () -> Unit = {},
+    backupManager: com.example.data.backup.BackupManager? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    var showRestorePrompt by remember { mutableStateOf(false) }
+    var checkingBackup by remember { mutableStateOf(false) }
+    var restoreInProgress by remember { mutableStateOf(false) }
+    var restoreSuccess by remember { mutableStateOf(false) }
+    var restoreError by remember { mutableStateOf(null as String?) }
+    var hasCheckedThisSession by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userUid) {
+        if (backupManager != null && userUid.isNotBlank() && !hasCheckedThisSession) {
+            checkingBackup = true
+            try {
+                val exists = backupManager.backupExistsOnCloud(userUid)
+                if (exists) {
+                    showRestorePrompt = true
+                }
+            } catch (e: java.lang.Exception) {
+                android.util.Log.e("DashboardScreen", "Error checking backup: ${e.message}", e)
+            } finally {
+                checkingBackup = false
+                hasCheckedThisSession = true
+            }
+        }
+    }
+
+    if (showRestorePrompt) {
+        AlertDialog(
+            onDismissRequest = { showRestorePrompt = false },
+            title = { Text("ডাটা রিস্টোর করার সুযোগ", fontWeight = FontWeight.Bold, color = Color(0xFF043B2B)) },
+            text = { Text("আপনার এই একাউন্টটির জন্য ক্লাউডে পূর্বের ব্যাকআপ পাওয়া গেছে। আপনি কি পূর্বের ডিভাইস থেকে পড়া বইয়ের অগ্রগতি, প্রিয় তালিকা এবং অনন্য নোটসমূহ রিস্টোর করতে চান?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRestorePrompt = false
+                        restoreInProgress = true
+                        scope.launch {
+                            try {
+                                val success = backupManager?.downloadAndRestoreFromCloud(userUid) == true
+                                if (success) {
+                                    restoreSuccess = true
+                                } else {
+                                    restoreError = "No backup found for this account"
+                                }
+                            } catch (e: java.lang.Exception) {
+                                val errMsg = e.localizedMessage ?: e.message ?: ""
+                                restoreError = when {
+                                    errMsg.contains("Permission denied", ignoreCase = true) || errMsg.contains("403") || errMsg.contains("policy", ignoreCase = true) || errMsg.contains("unauthorized", ignoreCase = true) -> {
+                                        "Permission denied. Please contact support."
+                                    }
+                                    errMsg.contains("FileNotFound", ignoreCase = true) || errMsg.contains("404") || errMsg.contains("not found", ignoreCase = true) -> {
+                                        "No backup found for this account"
+                                    }
+                                    else -> {
+                                        errMsg
+                                    }
+                                }
+                            } finally {
+                                restoreInProgress = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B))
+                ) {
+                    Text("হ্যাঁ, রিস্টোর করুন", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestorePrompt = false }) {
+                    Text("না, পরে করব", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    if (restoreInProgress) {
+        AlertDialog(
+            onDismissRequest = {},
+            confirmButton = {},
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(color = Color(0xFF043B2B))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("অপেক্ষা করুন...", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = { Text("আপনার ব্যাকআপ ফাইলটি ডাউনলোড এবং রিস্টোর করা হচ্ছে। অনুগ্রহ করে অ্যাপস বন্ধ করবেন না।") }
+        )
+    }
+
+    if (restoreSuccess) {
+        AlertDialog(
+            onDismissRequest = { restoreSuccess = false },
+            confirmButton = {
+                Button(
+                    onClick = { restoreSuccess = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B))
+                ) {
+                    Text("ঠিক আছে", color = Color.White)
+                }
+            },
+            title = { Text("ডাটা রিস্টোর সফল", fontWeight = FontWeight.Bold, color = Color(0xFF0A4E38)) },
+            text = { Text("অভিনন্দন! আপনার পূর্বের সব ডাটা সফলভাবে পুনরুদ্ধার করা হয়েছে।") }
+        )
+    }
+
+    if (restoreError != null) {
+        AlertDialog(
+            onDismissRequest = { restoreError = null },
+            confirmButton = {
+                Button(
+                    onClick = { restoreError = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B))
+                ) {
+                    Text("ঠিক আছে", color = Color.White)
+                }
+            },
+            title = { Text("ত্রুটি ঘটেছে", fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = { Text(restoreError ?: "") }
+        )
+    }
 
     // Conditional tabs based on userRole
     val isAdmin = userRole.lowercase() == "admin"

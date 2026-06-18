@@ -231,6 +231,65 @@ class SupabaseService(
     }
 
     /**
+     * Uploads a local file's content directly to a Supabase bucket.
+     */
+    suspend fun uploadFileToStorage(bucket: String, path: String, file: java.io.File): Unit = withContext(Dispatchers.IO) {
+        val bytes = file.readBytes()
+        supabaseClient.storage.from(bucket).upload(path, bytes) {
+            upsert = true
+        }
+    }
+
+    /**
+     * Downloads a file from Supabase storage to a destination local file path.
+     */
+    suspend fun downloadFileFromStorage(bucket: String, path: String, destinationFile: java.io.File): Unit = withContext(Dispatchers.IO) {
+        val bytes = supabaseClient.storage.from(bucket).downloadAuthenticated(path)
+        destinationFile.writeBytes(bytes)
+    }
+
+    /**
+     * Checks if a file exists in the specified Supabase storage bucket under list directory.
+     */
+    suspend fun fileExistsInStorage(bucket: String, path: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val parts = path.split("/")
+            val parentDir = if (parts.size > 1) parts.dropLast(1).joinToString("/") else ""
+            val fileName = parts.last()
+            
+            val files = supabaseClient.storage.from(bucket).list(parentDir)
+            files.any { it.name == fileName }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error in fileExistsInStorage: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun uploadBackupFile(path: String, file: java.io.File): Unit = withContext(Dispatchers.IO) {
+        val bytes = file.readBytes()
+        supabaseClient.storage.from("user_backups").upload(path, bytes) {
+            upsert = true
+        }
+    }
+
+    suspend fun downloadBackupFile(path: String, destinationFile: java.io.File): Unit = withContext(Dispatchers.IO) {
+        val bytes = supabaseClient.storage.from("user_backups").downloadAuthenticated(path)
+        destinationFile.writeBytes(bytes)
+    }
+
+    suspend fun backupExists(path: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val parts = path.split("/")
+            val parentDir = if (parts.size > 1) parts.dropLast(1).joinToString("/") else ""
+            val fileName = parts.last()
+            val files = supabaseClient.storage.from("user_backups").list(parentDir)
+            files.any { it.name == fileName }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
      * Inserts any arbitrary map representing a book row into public.books table.
      */
     suspend fun insertBook(bookData: Map<String, Any?>): Unit = withContext(Dispatchers.IO) {

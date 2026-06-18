@@ -17,7 +17,7 @@ import kotlinx.coroutines.withTimeout
 sealed class AuthState {
     object Idle : AuthState()
     data class Loading(val message: String = "Loading...") : AuthState()
-    data class Success(val email: String) : AuthState()
+    data class Success(val email: String, val uid: String) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -131,7 +131,7 @@ class AuthViewModel(
                             _toastMessage.value = "UID is null"
                         }
                     }
-                    _uiState.value = AuthState.Success(email)
+                    _uiState.value = AuthState.Success(email, uid ?: "")
                     _isLoggedIn.value = true
                 } else {
                     _uiState.value = AuthState.Idle
@@ -203,7 +203,7 @@ class AuthViewModel(
                 _toastMessage.value = "UID is null"
             }
         }
-        _uiState.value = AuthState.Success(email)
+        _uiState.value = AuthState.Success(email, uid ?: "")
         _isLoggedIn.value = true
     }
 

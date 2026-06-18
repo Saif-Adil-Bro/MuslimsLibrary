@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProgressDao {
+    @Query("SELECT * FROM book_progress WHERE userId = :userId")
+    suspend fun getAllProgressForUser(userId: String): List<LocalBookProgress>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllProgress(list: List<LocalBookProgress>)
+
     @Query("SELECT * FROM book_progress WHERE userId = :userId ORDER BY lastReadAt DESC")
     fun getAllProgressFlow(userId: String): Flow<List<LocalBookProgress>>
 
@@ -30,6 +36,12 @@ interface ProgressDao {
 
 @Dao
 interface FavoriteDao {
+    @Query("SELECT * FROM favorite_books WHERE userId = :userId")
+    suspend fun getAllFavoritesForUser(userId: String): List<LocalFavoriteBook>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllFavorites(list: List<LocalFavoriteBook>)
+
     @Query("SELECT * FROM favorite_books WHERE userId = :userId AND isDeleted = 0 ORDER BY timestamp DESC")
     fun getFavoritesFlow(userId: String): Flow<List<LocalFavoriteBook>>
 
@@ -60,6 +72,12 @@ interface FavoriteDao {
 
 @Dao
 interface PinDao {
+    @Query("SELECT * FROM pinned_books WHERE userId = :userId")
+    suspend fun getAllPinsForUser(userId: String): List<LocalPinnedBook>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllPins(list: List<LocalPinnedBook>)
+
     @Query("SELECT * FROM pinned_books WHERE userId = :userId AND isDeleted = 0 ORDER BY timestamp DESC")
     fun getPinnedBooksFlow(userId: String): Flow<List<LocalPinnedBook>>
 
@@ -90,6 +108,12 @@ interface PinDao {
 
 @Dao
 interface NoteDao {
+    @Query("SELECT * FROM user_notes WHERE userId = :userId")
+    suspend fun getAllNotesForUser(userId: String): List<LocalUserNote>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllNotes(list: List<LocalUserNote>)
+
     @Query("SELECT * FROM user_notes WHERE userId = :userId AND bookId = :bookId AND isDeleted = 0 ORDER BY timestamp DESC")
     fun getNotesFlow(userId: String, bookId: String): Flow<List<LocalUserNote>>
 

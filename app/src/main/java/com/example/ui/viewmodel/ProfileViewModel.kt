@@ -19,13 +19,24 @@ sealed interface ProfileUiState {
     data class Error(val message: String) : ProfileUiState
 }
 
+sealed interface BackupUiState {
+    object Idle : BackupUiState
+    object Loading : BackupUiState
+    object Success : BackupUiState
+    data class Error(val message: String) : BackupUiState
+}
+
 class ProfileViewModel(
     private val authRepository: AuthRepository,
-    private val supabaseService: SupabaseService
+    private val supabaseService: SupabaseService,
+    private val backupManager: com.example.data.backup.BackupManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    private val _backupStatus = MutableStateFlow<BackupUiState>(BackupUiState.Idle)
+    val backupStatus: StateFlow<BackupUiState> = _backupStatus.asStateFlow()
 
     private val _uploadProgress = MutableStateFlow<Boolean>(false)
     val uploadProgress: StateFlow<Boolean> = _uploadProgress.asStateFlow()
@@ -170,14 +181,69 @@ class ProfileViewModel(
         }
     }
 
+    fun performBackup(userId: String) {
+        _backupStatus.value = BackupUiState.Loading
+        viewModelScope.launch {
+            try {
+                backupManager.uploadBackup()
+                _backupStatus.value = BackupUiState.Success
+            } catch (e: SecurityException) {
+                _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
+            } catch (e: Exception) {
+                val errMsg = e.localizedMessage ?: e.message ?: ""
+                val displayMsg = when {
+                    errMsg.contains("Permission denied", ignoreCase = true) || errMsg.contains("403") || errMsg.contains("policy", ignoreCase = true) || errMsg.contains("unauthorized", ignoreCase = true) -> {
+                        "অনুমতি অস্বীকৃত। অনুগ্রহ করে সহায়তার জন্য যোগাযোগ করুন।"
+                    }
+                    else -> {
+                        "ব্যাকআপ ব্যর্থ হয়েছে: $errMsg"
+                    }
+                }
+                _backupStatus.value = BackupUiState.Error(displayMsg)
+            }
+        }
+    }
+
+    fun performRestore(userId: String) {
+        _backupStatus.value = BackupUiState.Loading
+        viewModelScope.launch {
+            try {
+                _backupStatus.value = BackupUiState.Loading
+                backupManager.downloadBackup()
+                _backupStatus.value = BackupUiState.Success
+            } catch (e: SecurityException) {
+                _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
+            } catch (e: Exception) {
+                val errMsg = e.localizedMessage ?: e.message ?: ""
+                val displayMsg = when {
+                    errMsg.contains("Permission denied", ignoreCase = true) || errMsg.contains("403") || errMsg.contains("policy", ignoreCase = true) || errMsg.contains("unauthorized", ignoreCase = true) -> {
+                        "অনুমতি অস্বীকৃত। অনুগ্রহ করে সহায়তার জন্য যোগাযোগ করুন।"
+                    }
+                    errMsg.contains("FileNotFound", ignoreCase = true) || errMsg.contains("404") || errMsg.contains("not found", ignoreCase = true) -> {
+                        "এই অ্যাকাউন্টের জন্য ক্লাউডে কোনো ব্যাকআপ ফাইল পাওয়া যায়নি।"
+                    }
+                    else -> {
+                        "রিস্টোর ব্যর্থ হয়েছে: $errMsg"
+                    }
+                }
+                _backupStatus.value = BackupUiState.Error(displayMsg)
+            }
+        }
+    }
+
+    fun resetBackupStatus() {
+        _backupStatus.value = BackupUiState.Idle
+    }
+
     class Factory(
         private val authRepository: AuthRepository,
-        private val supabaseService: SupabaseService
+        private val supabaseService: SupabaseService,
+        private val backupManager: com.example.data.backup.BackupManager
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ProfileViewModel(authRepository, supabaseService) as T
+                return ProfileViewModel(authRepository, supabaseService, backupManager) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

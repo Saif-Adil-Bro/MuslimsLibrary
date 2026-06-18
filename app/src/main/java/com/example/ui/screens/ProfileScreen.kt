@@ -12,6 +12,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import com.example.ui.viewmodel.BackupUiState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +44,7 @@ fun ProfileScreen(
     onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val backupStatus by viewModel.backupStatus.collectAsState()
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
@@ -361,6 +367,53 @@ fun ProfileScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            // Data Backup & Restore Section
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF4F0)),
+                                border = BorderStroke(1.dp, Color(0xFF043B2B).copy(alpha = 0.2f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "ডাটা ব্যাকআপ ও রিস্টোর",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF043B2B)
+                                    )
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { viewModel.performBackup(userId) },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("ব্যাকআপ", fontSize = 12.sp, color = Color.White)
+                                        }
+
+                                        Button(
+                                            onClick = { viewModel.performRestore(userId) },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("রিস্টোর", fontSize = 12.sp, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+
                             Button(
                                 onClick = onEditProfileClick,
                                 modifier = Modifier
@@ -395,5 +448,105 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    // Backup/Restore status dialogs/overlays
+    when (backupStatus) {
+        is BackupUiState.Loading -> {
+            AlertDialog(
+                onDismissRequest = { /* Prevent dismiss during operation */ },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { viewModel.resetBackupStatus() }) {
+                        Text("বাতিল করুন", color = Color(0xFF043B2B))
+                    }
+                },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF043B2B))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("অপেক্ষা করুন...", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+                },
+                text = {
+                    Text("আপনার ডাটা ক্লাউডে অত্যন্ত নিরাপদে ব্যাকআপ/রিস্টোর করা হচ্ছে। অনুগ্রহ করে অ্যাপ বন্ধ করবেন না।")
+                }
+            )
+        }
+        is BackupUiState.Success -> {
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupStatus() },
+                confirmButton = {
+                    Button(
+                        onClick = { viewModel.resetBackupStatus() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B))
+                    ) {
+                        Text("ঠিক আছে", color = Color.White)
+                    }
+                },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF0A4E38))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("সফল হয়েছে!", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF0A4E38))
+                    }
+                },
+                text = {
+                    Text("অভিনন্দন! আপনার ব্যাকআপ/রিস্টোর প্রক্রিয়াটি সফলভাবে সম্পন্ন হয়েছে।")
+                }
+            )
+        }
+        is BackupUiState.Error -> {
+            val errorMessage = (backupStatus as BackupUiState.Error).message
+            AlertDialog(
+                onDismissRequest = { viewModel.resetBackupStatus() },
+                confirmButton = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.resetBackupStatus() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("বন্ধ করুন", color = Color.Gray)
+                        }
+                        Button(
+                            onClick = {
+                                if (errorMessage.contains("রিস্টোর") || errorMessage.contains("রিস্টোর ")) {
+                                    viewModel.performRestore(userId)
+                                } else {
+                                    viewModel.performBackup(userId)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("পুনরায় চেষ্টা করুন", color = Color.White)
+                        }
+                    }
+                },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Error, contentDescription = null, tint = Color.Red)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("ত্রুটি ঘটেছে", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Red)
+                    }
+                },
+                text = {
+                    Text(errorMessage)
+                }
+            )
+        }
+        else -> { /* Idle - do nothing */ }
     }
 }

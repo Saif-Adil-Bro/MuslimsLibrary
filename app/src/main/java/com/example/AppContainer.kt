@@ -97,4 +97,8 @@ class AppContainer(val context: Context) {
     val localSyncRepository: LocalSyncRepository by lazy {
         LocalSyncRepositoryImpl(appDatabase, syncManager)
     }
+
+    val backupManager: com.example.data.backup.BackupManager by lazy {
+        com.example.data.backup.BackupManager(context, appDatabase, supabaseService, firebaseAuth)
+    }
 }

@@ -61,7 +61,11 @@ class MainActivity : ComponentActivity() {
                     factory = ForumViewModel.Factory(appContainer.supabaseService)
                 )
                 val profileViewModel: ProfileViewModel = viewModel(
-                    factory = ProfileViewModel.Factory(appContainer.authRepository, appContainer.supabaseService)
+                    factory = ProfileViewModel.Factory(
+                        appContainer.authRepository,
+                        appContainer.supabaseService,
+                        appContainer.backupManager
+                    )
                 )
                 
                 val navController = rememberNavController()
@@ -99,9 +103,9 @@ class MainActivity : ComponentActivity() {
 
                         // Library catalog directory route
                         composable("dashboard") {
-                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
-                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
-                            }
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else "User@muslimslibrary.org"
+                            val userUid = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.uid else ""
                             val userRole by authViewModel.userRole.collectAsState()
                             val debugInfo by authViewModel.debugInfo.collectAsState()
                             val isDebugMode by authViewModel.isDebugMode.collectAsState()
@@ -111,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                 adminViewModel = adminViewModel,
                                 forumViewModel = forumViewModel,
                                 userEmail = userEmail,
+                                userUid = userUid,
                                 userRole = userRole,
                                 onLogoutClick = {
                                     authViewModel.logout()
@@ -135,7 +140,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 debugInfo = debugInfo,
                                 isDebugMode = isDebugMode,
-                                onToggleDebug = { authViewModel.toggleDebugMode(context) }
+                                onToggleDebug = { authViewModel.toggleDebugMode(context) },
+                                backupManager = appContainer.backupManager
                             )
                         }
 
@@ -274,13 +280,12 @@ class MainActivity : ComponentActivity() {
 
                         // Profile Screen Route
                         composable("profile") {
-                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
-                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
-                            }
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userId = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.uid else ""
                             ProfileScreen(
                                 viewModel = profileViewModel,
                                 localSyncRepository = appContainer.localSyncRepository,
-                                userId = userEmail,
+                                userId = userId,
                                 onEditProfileClick = {
                                     navController.navigate("edit_profile")
                                 },
