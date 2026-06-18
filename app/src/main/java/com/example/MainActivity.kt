@@ -71,6 +71,13 @@ class MainActivity : ComponentActivity() {
                         appContainer.appDatabase
                     )
                 )
+                val downloadedBooksViewModel: com.example.ui.viewmodel.DownloadedBooksViewModel = viewModel(
+                    factory = com.example.ui.viewmodel.DownloadedBooksViewModel.Factory(
+                        appContainer.appDatabase,
+                        appContainer.downloadManager,
+                        appContainer.supabaseService
+                    )
+                )
                 
                 val navController = rememberNavController()
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
@@ -225,6 +232,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = {
                                     navController.navigate("profile")
                                 },
+                                onNavigateToDownloads = {
+                                    navController.navigate("downloaded_books")
+                                },
                                 debugInfo = debugInfo,
                                 isDebugMode = isDebugMode,
                                 onToggleDebug = { authViewModel.toggleDebugMode(context) },
@@ -283,6 +293,7 @@ class MainActivity : ComponentActivity() {
                                 userId = userEmail,
                                 homeViewModel = homeViewModel,
                                 localSyncRepository = appContainer.localSyncRepository,
+                                downloadedBooksViewModel = downloadedBooksViewModel,
                                 onReadNowClick = { clickedBook ->
                                     val encodedTitle = java.net.URLEncoder.encode(clickedBook.title, "UTF-8")
                                     val encodedUrl = java.net.URLEncoder.encode(clickedBook.fileUrl ?: "", "UTF-8")
@@ -394,6 +405,25 @@ class MainActivity : ComponentActivity() {
                                 viewModel = profileViewModel,
                                 onBackClick = {
                                     navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // Downloaded Books Screen Route
+                        composable("downloaded_books") {
+                            com.example.ui.screens.DownloadedBooksScreen(
+                                viewModel = downloadedBooksViewModel,
+                                onBookClick = { bookId ->
+                                    val dbBook = downloadedBooksViewModel.downloadedBooks.value.find { it.bookId == bookId }
+                                    val encodedTitle = java.net.URLEncoder.encode(dbBook?.title ?: "বই", "UTF-8")
+                                    val encodedPath = java.net.URLEncoder.encode(dbBook?.localFilePath ?: "", "UTF-8")
+                                    navController.navigate("reader/$bookId/$encodedTitle/$encodedPath/pdf")
+                                },
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToHome = {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("dashboard") { inclusive = true }
+                                    }
                                 }
                             )
                         }

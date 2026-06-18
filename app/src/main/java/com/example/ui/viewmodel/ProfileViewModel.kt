@@ -258,7 +258,7 @@ class ProfileViewModel(
         _backupStatus.value = BackupUiState.Loading
         viewModelScope.launch {
             try {
-                backupManager.uploadBackup()
+                backupManager.uploadBackup(userId)
                 _backupStatus.value = BackupUiState.Success
             } catch (e: SecurityException) {
                 _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
@@ -282,7 +282,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 _backupStatus.value = BackupUiState.Loading
-                backupManager.downloadBackup()
+                backupManager.downloadBackup(userId)
                 _backupStatus.value = BackupUiState.Success
             } catch (e: SecurityException) {
                 _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")

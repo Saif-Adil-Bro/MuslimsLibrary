@@ -50,7 +50,8 @@ interface LocalSyncRepository {
 
 class LocalSyncRepositoryImpl(
     private val database: AppDatabase,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val backupManager: com.example.data.backup.BackupManager
 ) : LocalSyncRepository {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -240,12 +241,24 @@ class LocalSyncRepositoryImpl(
 
     override suspend fun syncNow(userId: String) {
         syncManager.syncNow(userId)
+        try {
+            Log.d("LocalSyncRepository", "Manual sync completed. Initiating automatic cloud backup for user... Room ID: $userId")
+            backupManager.uploadBackup(userId)
+        } catch (e: Exception) {
+            Log.e("LocalSyncRepository", "Automatic cloud backup failed during manual sync: ${e.message}")
+        }
     }
 
     private fun triggerBackgroundSync(userId: String) {
         coroutineScope.launch {
             try {
                 syncManager.syncNow(userId)
+                try {
+                    Log.d("LocalSyncRepository", "Auto-sync completed. Initiating automatic cloud backup for user... Room ID: $userId")
+                    backupManager.uploadBackup(userId)
+                } catch (e: Exception) {
+                    Log.e("LocalSyncRepository", "Automatic cloud backup failed: ${e.message}")
+                }
             } catch (e: Exception) {
                 Log.e("LocalSyncRepository", "Asynchronous automatic sync triggered failure: ${e.message}")
             }

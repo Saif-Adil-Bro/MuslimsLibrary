@@ -76,16 +76,16 @@ class BackupManager(
         encodeDefaults = true
     }
 
-    suspend fun uploadBackup() {
+    suspend fun uploadBackup(roomUserId: String? = null) {
         val userId = firebaseAuth.currentUser?.uid 
             ?: throw SecurityException("User not authenticated")
         if (userId.length < 10) {
             throw SecurityException("Invalid user ID")
         }
-        uploadBackupToCloud(userId)
+        uploadBackupToCloud(userId, roomUserId)
     }
 
-    suspend fun downloadBackup() {
+    suspend fun downloadBackup(roomUserId: String? = null) {
         val userId = firebaseAuth.currentUser?.uid 
             ?: throw SecurityException("User not authenticated")
         if (userId.length < 10) {
@@ -95,15 +95,55 @@ class BackupManager(
         if (!exists) {
             throw Exception("No backup found for this account")
         }
-        val success = downloadAndRestoreFromCloud(userId)
+        val success = downloadAndRestoreFromCloud(userId, roomUserId)
         if (!success) {
             throw Exception("No backup found for this account")
         }
     }
 
     // 1. Export Room data to JSON file
-    suspend fun exportDataToJson(userId: String): File = withContext(Dispatchers.IO) {
-        val progress = appDatabase.progressDao().getAllProgressForUser(userId).map {
+    suspend fun exportDataToJson(userId: String, roomUserId: String? = null): File = withContext(Dispatchers.IO) {
+        val currentUser = firebaseAuth.currentUser
+        val email = currentUser?.email ?: ""
+        
+        android.util.Log.d("BackupManager", "Exporting data. Passed userId (UID): $userId, roomUserId: $roomUserId, Current email: $email")
+
+        // Gather all candidate IDs to query Room database
+        val candidateIds = mutableSetOf<String>()
+        candidateIds.add(userId) // Firebase UID
+        if (roomUserId != null && roomUserId.isNotBlank()) {
+            candidateIds.add(roomUserId)
+        }
+        if (email.isNotBlank()) {
+            candidateIds.add(email)
+        }
+        candidateIds.add("Guest User")
+        candidateIds.add("guest_user")
+        candidateIds.add("User@muslimslibrary.org")
+        candidateIds.add("User_Guest")
+
+        android.util.Log.d("BackupManager", "Exporting for candidate user IDs: $candidateIds")
+
+        // 1. Progress: Fetch and deduplicate by bookId (keeping the latest updated entry)
+        val rawProgress = mutableListOf<LocalBookProgress>()
+        for (candidate in candidateIds) {
+            try {
+                rawProgress.addAll(appDatabase.progressDao().getAllProgressForUser(candidate))
+            } catch (ex: Exception) {
+                android.util.Log.e("BackupManager", "Error querying progress for candidate $candidate", ex)
+            }
+        }
+        val progressMap = mutableMapOf<String, LocalBookProgress>()
+        for (p in rawProgress) {
+            val existing = progressMap[p.bookId]
+            if (existing == null || p.lastReadAt > existing.lastReadAt) {
+                progressMap[p.bookId] = p
+            }
+        }
+        val finalProgress = progressMap.values.toList()
+        android.util.Log.d("BackupManager", "Export distinct progress records count: ${finalProgress.size}")
+
+        val progress = finalProgress.map {
             BackupBookProgress(
                 id = it.id,
                 userId = it.userId,
@@ -118,7 +158,26 @@ class BackupManager(
             )
         }
 
-        val favorites = appDatabase.favoriteDao().getAllFavoritesForUser(userId).map {
+        // 2. Favorites: Fetch and deduplicate (keeping active favorites where isDeleted = false)
+        val rawFavorites = mutableListOf<LocalFavoriteBook>()
+        for (candidate in candidateIds) {
+            try {
+                rawFavorites.addAll(appDatabase.favoriteDao().getAllFavoritesForUser(candidate))
+            } catch (ex: Exception) {
+                android.util.Log.e("BackupManager", "Error querying favorites for candidate $candidate", ex)
+            }
+        }
+        val favoritesMap = mutableMapOf<String, LocalFavoriteBook>()
+        for (f in rawFavorites) {
+            val existing = favoritesMap[f.bookId]
+            if (existing == null || (existing.isDeleted && !f.isDeleted) || f.timestamp > existing.timestamp) {
+                favoritesMap[f.bookId] = f
+            }
+        }
+        val finalFavorites = favoritesMap.values.filter { !it.isDeleted }
+        android.util.Log.d("BackupManager", "Export distinct favorites count: ${finalFavorites.size}")
+
+        val favorites = finalFavorites.map {
             BackupFavoriteBook(
                 id = it.id,
                 userId = it.userId,
@@ -127,7 +186,26 @@ class BackupManager(
             )
         }
 
-        val pins = appDatabase.pinDao().getAllPinsForUser(userId).map {
+        // 3. Pins: Fetch and deduplicate (keeping active pins where isDeleted = false)
+        val rawPins = mutableListOf<LocalPinnedBook>()
+        for (candidate in candidateIds) {
+            try {
+                rawPins.addAll(appDatabase.pinDao().getAllPinsForUser(candidate))
+            } catch (ex: Exception) {
+                android.util.Log.e("BackupManager", "Error querying pins for candidate $candidate", ex)
+            }
+        }
+        val pinsMap = mutableMapOf<String, LocalPinnedBook>()
+        for (p in rawPins) {
+            val existing = pinsMap[p.bookId]
+            if (existing == null || (existing.isDeleted && !p.isDeleted) || p.timestamp > existing.timestamp) {
+                pinsMap[p.bookId] = p
+            }
+        }
+        val finalPins = pinsMap.values.filter { !it.isDeleted }
+        android.util.Log.d("BackupManager", "Export distinct pins count: ${finalPins.size}")
+
+        val pins = finalPins.map {
             BackupPinnedBook(
                 id = it.id,
                 userId = it.userId,
@@ -136,7 +214,26 @@ class BackupManager(
             )
         }
 
-        val notes = appDatabase.noteDao().getAllNotesForUser(userId).map {
+        // 4. Notes: Fetch and deduplicate by note ID (keeping active notes where isDeleted = false)
+        val rawNotes = mutableListOf<LocalUserNote>()
+        for (candidate in candidateIds) {
+            try {
+                rawNotes.addAll(appDatabase.noteDao().getAllNotesForUser(candidate))
+            } catch (ex: Exception) {
+                android.util.Log.e("BackupManager", "Error querying notes for candidate $candidate", ex)
+            }
+        }
+        val notesMap = mutableMapOf<String, LocalUserNote>()
+        for (n in rawNotes) {
+            val existing = notesMap[n.id]
+            if (existing == null || (existing.isDeleted && !n.isDeleted) || n.timestamp > existing.timestamp) {
+                notesMap[n.id] = n
+            }
+        }
+        val finalNotes = notesMap.values.filter { !it.isDeleted }
+        android.util.Log.d("BackupManager", "Export distinct notes count: ${finalNotes.size}")
+
+        val notes = finalNotes.map {
             BackupUserNote(
                 id = it.id,
                 userId = it.userId,
@@ -163,8 +260,8 @@ class BackupManager(
     }
 
     // 2. Upload JSON to Supabase Storage
-    suspend fun uploadBackupToCloud(userId: String): Unit = withContext(Dispatchers.IO) {
-        val localFile = exportDataToJson(userId)
+    suspend fun uploadBackupToCloud(userId: String, roomUserId: String? = null): Unit = withContext(Dispatchers.IO) {
+        val localFile = exportDataToJson(userId, roomUserId)
         val storagePath = "$userId/backup.json"
         
         // Use user_backups bucket
@@ -181,11 +278,24 @@ class BackupManager(
     }
 
     // 3. Download and Restore
-    suspend fun downloadAndRestoreFromCloud(userId: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun downloadAndRestoreFromCloud(userId: String, roomUserId: String? = null): Boolean = withContext(Dispatchers.IO) {
         val storagePath = "$userId/backup.json"
         val localFile = File(context.cacheDir, "temp_restore.json")
         
         try {
+            // Determine active user ID (email preferred, falling back to UID)
+            val currentUser = firebaseAuth.currentUser
+            val currentEmail = currentUser?.email
+            val currentUid = currentUser?.uid
+            val activeUserId = when {
+                roomUserId != null && roomUserId.isNotBlank() -> roomUserId
+                !currentEmail.isNullOrBlank() -> currentEmail
+                !uidToUseIsEmail(userId) && !currentUid.isNullOrBlank() -> currentUid
+                else -> userId
+            }
+            
+            android.util.Log.d("BackupManager", "Restoring. Mapping all backup records to active userId: $activeUserId")
+
             // Download content
             supabaseService.downloadBackupFile(storagePath, localFile)
             
@@ -194,11 +304,11 @@ class BackupManager(
             val jsonString = localFile.readText()
             val backupData = json.decodeFromString(FullBackupData.serializer(), jsonString)
             
-            // Map backup objects back to Room entity models
+            // Map backup objects back to Room entity models using activeUserId
             val localProgress = backupData.progress.map {
                 LocalBookProgress(
                     id = it.id,
-                    userId = it.userId,
+                    userId = activeUserId,
                     bookId = it.bookId,
                     currentPage = it.currentPage,
                     totalPages = it.totalPages,
@@ -214,7 +324,7 @@ class BackupManager(
             val localFavorites = backupData.favorites.map {
                 LocalFavoriteBook(
                     id = it.id,
-                    userId = it.userId,
+                    userId = activeUserId,
                     bookId = it.bookId,
                     timestamp = it.timestamp,
                     isSynced = false,
@@ -225,7 +335,7 @@ class BackupManager(
             val localPins = backupData.pins.map {
                 LocalPinnedBook(
                     id = it.id,
-                    userId = it.userId,
+                    userId = activeUserId,
                     bookId = it.bookId,
                     timestamp = it.timestamp,
                     isSynced = false,
@@ -236,7 +346,7 @@ class BackupManager(
             val localNotes = backupData.notes.map {
                 LocalUserNote(
                     id = it.id,
-                    userId = it.userId,
+                    userId = activeUserId,
                     bookId = it.bookId,
                     noteContent = it.noteContent,
                     pageNumber = it.pageNumber,
@@ -273,6 +383,10 @@ class BackupManager(
                 // ignore
             }
         }
+    }
+
+    private fun uidToUseIsEmail(uid: String): Boolean {
+        return uid.contains("@")
     }
 
     // 4. Check if cloud backup exists

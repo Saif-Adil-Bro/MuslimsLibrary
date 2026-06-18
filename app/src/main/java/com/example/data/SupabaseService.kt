@@ -688,4 +688,60 @@ class SupabaseService(
             ForumStats(0, 0, 0, 1)
         }
     }
+
+    suspend fun downloadBookFile(
+        bookId: String,
+        fileUrl: String,
+        destinationFile: java.io.File,
+        onProgress: (Int) -> Unit
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            destinationFile.parentFile?.mkdirs()
+            val url = java.net.URL(fileUrl)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 20000
+            connection.readTimeout = 20000
+            connection.connect()
+            
+            if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
+                android.util.Log.e("SupabaseService", "HTTP error ${connection.responseCode} downloading from: $fileUrl")
+                return@withContext false
+            }
+            
+            val fileLength = connection.contentLength
+            val inputStream = connection.inputStream
+            val outputStream = java.io.FileOutputStream(destinationFile)
+            
+            val data = ByteArray(4096)
+            var total: Long = 0
+            var count: Int
+            while (inputStream.read(data).also { count = it } != -1) {
+                total += count
+                if (fileLength > 0) {
+                    val progress = ((total * 100) / fileLength).toInt()
+                    onProgress(progress)
+                }
+                outputStream.write(data, 0, count)
+            }
+            
+            outputStream.flush()
+            outputStream.close()
+            inputStream.close()
+            true
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error in downloadBookFile: ${e.message}", e)
+            false
+        }
+    }
+
+    suspend fun getDownloadedFilePath(bookId: String): String? = withContext(Dispatchers.IO) {
+        val storageDir = java.io.File(context?.getExternalFilesDir("books") ?: context?.filesDir, "")
+        val localFile = java.io.File(storageDir, "$bookId.pdf")
+        if (localFile.exists()) {
+            localFile.absolutePath
+        } else {
+            null
+        }
+    }
 }

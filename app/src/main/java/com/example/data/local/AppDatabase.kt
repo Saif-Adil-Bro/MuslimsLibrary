@@ -8,19 +8,22 @@ import com.example.data.local.dao.FavoriteDao
 import com.example.data.local.dao.NoteDao
 import com.example.data.local.dao.PinDao
 import com.example.data.local.dao.ProgressDao
+import com.example.data.local.dao.DownloadDao
 import com.example.data.local.entities.LocalBookProgress
 import com.example.data.local.entities.LocalFavoriteBook
 import com.example.data.local.entities.LocalPinnedBook
 import com.example.data.local.entities.LocalUserNote
+import com.example.data.local.entities.DownloadedBook
 
 @Database(
     entities = [
         LocalBookProgress::class,
         LocalFavoriteBook::class,
         LocalPinnedBook::class,
-        LocalUserNote::class
+        LocalUserNote::class,
+        DownloadedBook::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun pinDao(): PinDao
     abstract fun noteDao(): NoteDao
+    abstract fun downloadDao(): DownloadDao
 
     companion object {
         @Volatile

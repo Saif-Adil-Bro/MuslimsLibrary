@@ -672,15 +672,34 @@ fun convertGoogleDriveLink(url: String): String {
  * This runs fully on a background thread and uses Android's native PdfRenderer.
  */
 suspend fun downloadAndGetPdfPageCount(context: Context, fileUrl: String, bookId: String): Int = withContext(Dispatchers.IO) {
-    if (fileUrl.trim().isEmpty() || fileUrl.contains("placeholder_or_empty")) {
-        Log.w("PDF_Debug", "Empty or placeholder fileUrl, skipping page count detection.")
-        return@withContext -1
-    }
     try {
+        val booksDir = java.io.File(context.getExternalFilesDir("books") ?: context.filesDir, "")
         val cacheFile = File(context.cacheDir, "book_${bookId}.pdf")
+        
+        val localSrcFile = if (fileUrl.startsWith("/")) {
+            File(fileUrl)
+        } else {
+            java.io.File(booksDir, "${bookId}.pdf")
+        }
+
+        if (localSrcFile.exists() && localSrcFile.length() > 0) {
+            Log.d("PDF_Debug", "Found downloaded offline PDF file at: ${localSrcFile.absolutePath}")
+            try {
+                if (!cacheFile.exists() || cacheFile.length() != localSrcFile.length()) {
+                    localSrcFile.copyTo(cacheFile, overwrite = true)
+                }
+            } catch (copyEx: Exception) {
+                Log.e("PDF_Debug", "Error copying offline downloaded file to cache: ${copyEx.message}")
+            }
+        }
+
         if (cacheFile.exists() && cacheFile.length() > 0) {
             Log.d("PDF_Debug", "Found cached PDF file at: ${cacheFile.absolutePath}")
         } else {
+            if (fileUrl.trim().isEmpty() || fileUrl.contains("placeholder_or_empty")) {
+                Log.w("PDF_Debug", "Empty or placeholder fileUrl, skipping page count detection.")
+                return@withContext -1
+            }
             val directUrl = convertGoogleDriveLink(fileUrl)
             Log.d("PDF_Debug", "Downloading PDF to cache file: ${cacheFile.absolutePath} from resolved URL: $directUrl")
             val url = URL(directUrl)

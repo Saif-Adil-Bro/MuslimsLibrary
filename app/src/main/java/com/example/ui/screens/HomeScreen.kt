@@ -44,6 +44,7 @@ import com.example.ui.components.SearchBar
 import com.example.ui.viewmodel.HomeUiState
 import com.example.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.ArrowForward
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +55,7 @@ fun HomeScreen(
     onLogoutClick: () -> Unit,
     onBookClick: (SupabaseBook) -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToDownloads: () -> Unit,
     onSwitchToAdminClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onHeaderClick: () -> Unit = {}
@@ -215,6 +217,63 @@ fun HomeScreen(
             allBooks = homeViewModel.allPublicBooks,
             onResumeClick = onBookClick
         )
+
+        // Downloaded Books Shortcut Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 6.dp)
+                .clickable { onNavigateToDownloads() },
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF043B2B).copy(alpha = 0.06f)),
+            border = BorderStroke(1.dp, Color(0xFF043B2B).copy(alpha = 0.15f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFF043B2B), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Book,
+                            contentDescription = "Downloads",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "আমার ডাউনলোডসমূহ",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF043B2B)
+                        )
+                        Text(
+                            text = "অফলাইনে পড়ার জন্য ডাউনলোডকৃত বইগুলো দেখুন",
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    tint = Color(0xFF043B2B),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         // Category Filter scrollable row
         CategoryFilter(

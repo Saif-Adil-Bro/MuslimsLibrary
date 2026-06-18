@@ -46,6 +46,7 @@ fun BookDetailScreen(
     userId: String,
     homeViewModel: HomeViewModel,
     localSyncRepository: LocalSyncRepository,
+    downloadedBooksViewModel: com.example.ui.viewmodel.DownloadedBooksViewModel,
     onReadNowClick: (SupabaseBook) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -62,6 +63,31 @@ fun BookDetailScreen(
     // Observe Favorites and Pins reactively from Local Room flows
     val isFavorite by localSyncRepository.isFavoriteFlow(userId, bookId).collectAsState(initial = false)
     val isPinned by localSyncRepository.isPinnedFlow(userId, bookId).collectAsState(initial = false)
+
+    val downloadedBooks by downloadedBooksViewModel.downloadedBooks.collectAsState()
+    val downloadStates by downloadedBooksViewModel.downloadStatesFlow.collectAsState()
+
+    val isDownloaded = remember(downloadedBooks, bookId) {
+        downloadedBooks.any { it.bookId == bookId && it.downloadStatus == "completed" }
+    }
+    
+    val activeState = downloadStates[bookId]
+
+    val bookModel = remember(book) {
+        if (book != null) {
+            com.example.data.model.Book(
+                id = book.id,
+                title = book.title,
+                author = book.author,
+                description = "",
+                coverUrl = book.coverImageUrl ?: "",
+                pdfUrl = book.fileUrl ?: "",
+                category = book.category,
+                sizeMb = 0.0,
+                pages = 0
+            )
+        } else null
+    }
 
     // Observe Book progress status and page counts
     val progressFlow = remember(userId, bookId) {
@@ -335,6 +361,245 @@ fun BookDetailScreen(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )
+                        }
+                    }
+                }
+
+                // Download Block Card
+                if (book != null && bookModel != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "ডাউনলোড অপশন (Offline Download)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF043B2B)
+                            )
+                            
+                            HorizontalDivider(color = Color(0xFFF3F4F6))
+
+                            if (isDownloaded) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Downloaded",
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "অফলাইনে পড়ার জন্য উপলব্ধ",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF032B1D)
+                                        )
+                                        Text(
+                                            text = "বইটি আপনার ডিভাইসে সেভ করা আছে",
+                                            fontSize = 10.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            downloadedBooksViewModel.deleteDownload(bookId)
+                                            Toast.makeText(context, "ডাউনলোড ফাইলটি মুছে ফেলা হয়েছে", Toast.LENGTH_SHORT).show()
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("মুছে ফেলুন", fontSize = 12.sp)
+                                    }
+                                }
+                            } else {
+                                val currentStatus = activeState?.status
+                                val progressVal = activeState?.progress ?: 0
+                                
+                                when (currentStatus) {
+                                    "downloading" -> {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "ডাউনলোড হচ্ছে... $progressVal%",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF032B1D)
+                                                )
+                                                if (!activeState.speedText.isNullOrEmpty()) {
+                                                    Text(
+                                                        text = activeState.speedText,
+                                                        fontSize = 11.sp,
+                                                        color = Color(0xFF10B981),
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                            
+                                            LinearProgressIndicator(
+                                                progress = { progressVal / 100f },
+                                                color = Color(0xFF10B981),
+                                                trackColor = Color(0xFFE5E7EB),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(6.dp)
+                                                    .clip(CircleShape)
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                TextButton(
+                                                    onClick = { downloadedBooksViewModel.pauseDownload(bookId) }
+                                                ) {
+                                                    Icon(Icons.Default.Pause, contentDescription = "Pause", modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("স্থগিত করুন", fontSize = 11.sp)
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                TextButton(
+                                                    onClick = {
+                                                        coroutineScope.launch {
+                                                            downloadedBooksViewModel.downloadManager.cancelDownload(bookId)
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                                ) {
+                                                    Icon(Icons.Default.Cancel, contentDescription = "Cancel", modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("বাতিল", fontSize = 11.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "paused" -> {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "ডাউনলোড স্থগিত আছে",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Gray
+                                            )
+                                            
+                                            LinearProgressIndicator(
+                                                progress = { progressVal / 100f },
+                                                color = Color.Gray,
+                                                trackColor = Color(0xFFE5E7EB),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(6.dp)
+                                                    .clip(CircleShape)
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Button(
+                                                    onClick = { downloadedBooksViewModel.resumeDownload(bookModel) },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                                    modifier = Modifier.height(32.dp)
+                                                ) {
+                                                    Icon(Icons.Default.PlayArrow, contentDescription = "Resume", modifier = Modifier.size(14.dp), tint = Color.White)
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("পুনরায় শুরু করুন", fontSize = 11.sp, color = Color.White)
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                TextButton(
+                                                    onClick = {
+                                                        coroutineScope.launch {
+                                                            downloadedBooksViewModel.downloadManager.cancelDownload(bookId)
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                                ) {
+                                                    Icon(Icons.Default.Cancel, contentDescription = "Cancel", modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("বাতিল", fontSize = 11.sp)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .background(Color(0xFF043B2B).copy(alpha = 0.1f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CloudDownload,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF043B2B),
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                                Column {
+                                                    Text(
+                                                        text = if (currentStatus == "failed") "ডাউনলোড ব্যর্থ হয়েছে, আবার চেষ্টা করুন" else "বইটি ডাউনলোড করে রাখুন",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF032B1D)
+                                                    )
+                                                    Text(
+                                                        text = "অফলাইনে নেট ছাড়াই পড়তে ডাউনলোড করুন",
+                                                        fontSize = 10.sp,
+                                                        color = Color.Gray
+                                                    )
+                                                }
+                                            }
+                                            Button(
+                                                onClick = { downloadedBooksViewModel.startDownload(bookModel) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.height(36.dp)
+                                            ) {
+                                                Icon(Icons.Default.ArrowDownward, contentDescription = "Download", modifier = Modifier.size(14.dp), tint = Color.White)
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("ডাউনলোড", fontSize = 12.sp, color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

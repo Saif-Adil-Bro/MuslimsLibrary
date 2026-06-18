@@ -39,6 +39,7 @@ fun DashboardScreen(
     onNavigateToCreatePost: () -> Unit,
     onNavigateToPostDetail: (String) -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToDownloads: () -> Unit,
     modifier: Modifier = Modifier,
     debugInfo: String = "",
     isDebugMode: Boolean = false,
@@ -123,6 +124,7 @@ fun DashboardScreen(
                         onLogoutClick = onLogoutClick,
                         onBookClick = onBookClick,
                         onNavigateToProfile = onNavigateToProfile,
+                        onNavigateToDownloads = onNavigateToDownloads,
                         onSwitchToAdminClick = { if (isAdmin) selectedTab = 2 },
                         onHeaderClick = onToggleDebug
                     )
