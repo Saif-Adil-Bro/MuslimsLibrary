@@ -8,14 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.*
 import com.example.ui.viewmodel.BackupUiState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,6 +42,14 @@ fun ProfileScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
+    }
+
+    // Load statistics using Firebase UID (not Supabase UID)
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            android.util.Log.d("ProfileScreen", "Loading stats for Firebase UID: $userId")
+            viewModel.loadStatistics(userId)
+        }
     }
 
     Scaffold(
@@ -201,13 +202,8 @@ fun ProfileScreen(
                             )
                         }
 
-                        // Observe Statistics from Room database flows
-                        val progressList by localSyncRepository.getAllProgressFlow(userId).collectAsState(initial = emptyList())
-                        val favoritesList by localSyncRepository.getFavoritesFlow(userId).collectAsState(initial = emptyList())
-                        val notesList by localSyncRepository.getNotesForUserFlow(userId).collectAsState(initial = emptyList())
-
-                        val completedCount = remember(progressList) { progressList.count { it.status == "completed" } }
-                        val currentlyReadingCount = remember(progressList) { progressList.count { it.status == "reading" } }
+                        // Observe Live Statistics from Room Database via ProfileViewModel
+                        val stats by viewModel.stats.collectAsState()
 
                         // Reading Stats Dashboard Card (Material 3 Grid styled layout)
                         Card(
@@ -228,14 +224,14 @@ fun ProfileScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "আমার পড়াশোনার অগ্রগতি (Statistics)",
+                                        text = "আমার পড়াশোনার অগ্রগতি (Statistics)",
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF043B2B)
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
+                                        imageVector = Icons.Default.BarChart,
+                                        contentDescription = "Statistics",
                                         tint = Color(0xFF10B981),
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -243,87 +239,51 @@ fun ProfileScreen(
 
                                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
 
+                                // Stats Grid
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-                                    // Stat Item 1: Reading
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = currentlyReadingCount.toString(),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0A4E38)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "পড়ছি",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Gray
-                                        )
-                                    }
+                                    StatItem(
+                                        label = "পড়া শেষ",
+                                        value = stats.booksRead.toString(),
+                                        icon = Icons.Default.CheckCircle,
+                                        iconTint = Color(0xFF10B981)
+                                    )
 
-                                    // Stat Item 2: Completed
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = completedCount.toString(),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF10B981)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "পড়া শেষ",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Gray
-                                        )
-                                    }
+                                    StatItem(
+                                        label = "চলমান",
+                                        value = stats.booksInProgress.toString(),
+                                        icon = Icons.Default.Book,
+                                        iconTint = Color(0xFF3B82F6)
+                                    )
 
-                                    // Stat Item 3: Notes
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = notesList.size.toString(),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFD97706)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "নোট সংখ্যা",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Gray
-                                        )
-                                    }
+                                    StatItem(
+                                        label = "প্রিয়",
+                                        value = stats.totalFavorites.toString(),
+                                        icon = Icons.Default.Favorite,
+                                        iconTint = Color(0xFFEF4444)
+                                    )
 
-                                    // Stat Item 4: Favorites
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    StatItem(
+                                        label = "নোট",
+                                        value = stats.totalNotes.toString(),
+                                        icon = Icons.Default.Note,
+                                        iconTint = Color(0xFFFBBF24)
+                                    )
+                                }
+
+                                if (stats.totalPins > 0) {
+                                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.15f))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center
                                     ) {
-                                        Text(
-                                            text = favoritesList.size.toString(),
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFE53935)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "প্রিয় তালিকা",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Gray
+                                        StatItem(
+                                            label = "পিন করা",
+                                            value = stats.totalPins.toString(),
+                                            icon = Icons.Default.PushPin,
+                                            iconTint = Color(0xFF8B5CF6)
                                         )
                                     }
                                 }
@@ -548,5 +508,52 @@ fun ProfileScreen(
             )
         }
         else -> { /* Idle - do nothing */ }
+    }
+}
+
+@Composable
+fun StatItem(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .background(
+                    color = iconTint.copy(alpha = 0.1f),
+                    shape = CircleShape
+                )
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(5, 59, 43)
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = Color.Gray
+        )
     }
 }

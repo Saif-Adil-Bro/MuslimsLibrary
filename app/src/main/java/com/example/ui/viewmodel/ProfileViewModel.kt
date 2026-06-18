@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.SupabaseService
 import com.example.data.SupabaseUser
 import com.example.data.repository.AuthRepository
+import com.example.data.local.AppDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,10 +27,19 @@ sealed interface BackupUiState {
     data class Error(val message: String) : BackupUiState
 }
 
+data class ProfileStats(
+    val booksRead: Int = 0,
+    val booksInProgress: Int = 0,
+    val totalFavorites: Int = 0,
+    val totalNotes: Int = 0,
+    val totalPins: Int = 0
+)
+
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val supabaseService: SupabaseService,
-    private val backupManager: com.example.data.backup.BackupManager
+    private val backupManager: com.example.data.backup.BackupManager,
+    private val appDatabase: AppDatabase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Idle)
@@ -46,6 +56,69 @@ class ProfileViewModel(
 
     private val _pendingCustomImageUri = MutableStateFlow<Uri?>(null)
     val pendingCustomImageUri: StateFlow<Uri?> = _pendingCustomImageUri.asStateFlow()
+
+    private val _stats = MutableStateFlow(ProfileStats())
+    val stats: StateFlow<ProfileStats> = _stats.asStateFlow()
+
+    fun loadStatistics(userId: String) {
+        viewModelScope.launch {
+            if (userId.isBlank()) {
+                android.util.Log.w("ProfileStats", "User ID is blank!")
+                return@launch
+            }
+            
+            try {
+                // Determine the correct identifier used for local sync data (which is userEmail)
+                val userEmail = authRepository.getCurrentUserEmail()
+                val firebaseUid = authRepository.getCurrentUserUid()
+                
+                android.util.Log.d("ProfileStats", "Current user email from AuthRepository: $userEmail")
+                android.util.Log.d("ProfileStats", "Firebase UID: $firebaseUid")
+                android.util.Log.d("ProfileStats", "Passed user identifier: $userId")
+                
+                // Since local DB entries are stored under 'userEmail' (or fallback), prioritize userEmail,
+                // falling back to passed userId or Firebase UID if email is blank.
+                val uidToUse = when {
+                    !userEmail.isNullOrBlank() -> userEmail
+                    userId.contains("@") -> userId
+                    !firebaseUid.isNullOrBlank() -> firebaseUid
+                    else -> userId
+                }
+                
+                android.util.Log.d("ProfileStats", "Using UID/Email for Room queries: $uidToUse")
+                
+                // Fetch from Room Database using correct UID
+                val progress = appDatabase.progressDao().getAllProgressForUser(uidToUse)
+                val favorites = appDatabase.favoriteDao().getAllFavoritesForUser(uidToUse)
+                val pins = appDatabase.pinDao().getAllPinsForUser(uidToUse)
+                val notes = appDatabase.noteDao().getAllNotesForUser(uidToUse)
+
+                android.util.Log.d("ProfileStats", "Progress count: ${progress.size}")
+                android.util.Log.d("ProfileStats", "Favorites count: ${favorites.size}")
+                android.util.Log.d("ProfileStats", "Pins count: ${pins.size}")
+                android.util.Log.d("ProfileStats", "Notes count: ${notes.size}")
+
+                val booksCompleted = progress.count { it.status.lowercase() == "completed" }
+                val booksReading = progress.count { it.status.lowercase() == "reading" }
+
+                android.util.Log.d("ProfileStats", "Books completed: $booksCompleted")
+                android.util.Log.d("ProfileStats", "Books reading: $booksReading")
+
+                _stats.value = ProfileStats(
+                    booksRead = booksCompleted,
+                    booksInProgress = booksReading,
+                    totalFavorites = favorites.count { !it.isDeleted },
+                    totalNotes = notes.count { !it.isDeleted },
+                    totalPins = pins.count { !it.isDeleted }
+                )
+                
+                android.util.Log.d("ProfileStats", "Final stats updated: ${_stats.value}")
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileStats", "Error loading stats: ${e.message}", e)
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun selectDefaultAvatar(url: String?) {
         _selectedDefaultAvatarUrl.value = url
@@ -238,12 +311,13 @@ class ProfileViewModel(
     class Factory(
         private val authRepository: AuthRepository,
         private val supabaseService: SupabaseService,
-        private val backupManager: com.example.data.backup.BackupManager
+        private val backupManager: com.example.data.backup.BackupManager,
+        private val appDatabase: AppDatabase
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ProfileViewModel(authRepository, supabaseService, backupManager) as T
+                return ProfileViewModel(authRepository, supabaseService, backupManager, appDatabase) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
