@@ -17,4 +17,5 @@ interface AuthRepository {
     suspend fun signInAnonymously(): Result<Unit>
     suspend fun logout()
     suspend fun deleteAccount(): Result<Unit>
+    suspend fun ensureProfileSynced(): Result<Unit>
 }

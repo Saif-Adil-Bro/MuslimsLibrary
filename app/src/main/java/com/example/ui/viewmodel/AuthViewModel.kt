@@ -102,6 +102,11 @@ class AuthViewModel(
                 if (loggedIn && email != null) {
                     val uid = authRepository.getCurrentUserUid()
                     if (uid != null) {
+                        try {
+                            authRepository.ensureProfileSynced()
+                        } catch (e: Exception) {
+                            android.util.Log.e("AuthViewModel", "Init profile sync error", e)
+                        }
                         _debugInfo.value = "Fetching role for UID: $uid..."
                         if (_isDebugMode.value) {
                             _toastMessage.value = "Fetching Role..."
@@ -174,6 +179,11 @@ class AuthViewModel(
         val uid = authRepository.getCurrentUserUid()
         android.util.Log.d("AuthViewModel", "Login success, UID: $uid")
         if (uid != null) {
+            try {
+                authRepository.ensureProfileSynced()
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Login profile sync error", e)
+            }
             _debugInfo.value = "Fetching role for UID: $uid..."
             if (_isDebugMode.value) {
                 _toastMessage.value = "Fetching Role..."

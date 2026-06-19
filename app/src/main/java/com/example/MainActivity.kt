@@ -21,6 +21,8 @@ import androidx.navigation.navArgument
 import com.example.ui.screens.AddBookScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.AllBooksScreen
+import androidx.compose.foundation.layout.WindowInsets
 import com.example.ui.screens.BookReaderScreen
 import com.example.ui.screens.BookDetailScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -177,7 +179,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                 Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0)
+                ) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = if (isLoggedIn) "dashboard" else "auth",
@@ -208,6 +213,8 @@ class MainActivity : ComponentActivity() {
                                 homeViewModel = homeViewModel,
                                 adminViewModel = adminViewModel,
                                 forumViewModel = forumViewModel,
+                                profileViewModel = profileViewModel,
+                                localSyncRepository = appContainer.localSyncRepository,
                                 userEmail = userEmail,
                                 userUid = userUid,
                                 userRole = userRole,
@@ -235,6 +242,10 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDownloads = {
                                     navController.navigate("downloaded_books")
                                 },
+                                onNavigateToAllBooks = { sortBy, categoryFilter ->
+                                    val filterParam = categoryFilter ?: "All"
+                                    navController.navigate("all_books/$sortBy/$filterParam")
+                                },
                                 debugInfo = debugInfo,
                                 isDebugMode = isDebugMode,
                                 onToggleDebug = { authViewModel.toggleDebugMode(context) },
@@ -242,14 +253,37 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // All Books Screen Route
+                        composable(
+                            route = "all_books/{sortBy}/{categoryFilter}",
+                            arguments = listOf(
+                                navArgument("sortBy") { type = NavType.StringType },
+                                navArgument("categoryFilter") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val sortBy = backStackEntry.arguments?.getString("sortBy") ?: "recent"
+                            val categoryFilter = backStackEntry.arguments?.getString("categoryFilter") ?: "All"
+                            
+                            AllBooksScreen(
+                                sortBy = sortBy,
+                                categoryFilter = if (categoryFilter == "All") null else categoryFilter,
+                                onBackClick = { navController.popBackStack() },
+                                onBookClick = { book ->
+                                    navController.navigate("book_detail/${book.id}")
+                                },
+                                viewModel = homeViewModel
+                            )
+                        }
+
                         // Create Post Screen
                         composable("create_post") {
-                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
-                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
-                            }
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else "User@muslimslibrary.org"
+                            val userUid = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.uid else ""
                             val userRole by authViewModel.userRole.collectAsState()
                             CreatePostScreen(
                                 forumViewModel = forumViewModel,
+                                userId = userUid,
                                 userEmail = userEmail,
                                 userRole = userRole,
                                 onBackClick = {
@@ -264,13 +298,14 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("postId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val postId = backStackEntry.arguments?.getString("postId") ?: ""
-                            val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
-                                if (state is com.example.ui.viewmodel.AuthState.Success) state.email else "User@muslimslibrary.org"
-                            }
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else "User@muslimslibrary.org"
+                            val userUid = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.uid else ""
                             val userRole by authViewModel.userRole.collectAsState()
                             PostDetailScreen(
                                 postId = postId,
                                 forumViewModel = forumViewModel,
+                                userId = userUid,
                                 userEmail = userEmail,
                                 userRole = userRole,
                                 onBackClick = {

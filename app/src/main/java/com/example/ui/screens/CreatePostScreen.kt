@@ -54,6 +54,7 @@ fun validatePost(title: String, content: String, category: String): String? {
 @Composable
 fun CreatePostScreen(
     forumViewModel: ForumViewModel,
+    userId: String,
     userEmail: String,
     userRole: String,
     onBackClick: () -> Unit,
@@ -300,7 +301,7 @@ fun CreatePostScreen(
 
                         isPublishing.value = true
                         forumViewModel.createPost(
-                            userId = userEmail,
+                            userId = userId,
                             email = userEmail,
                             title = sanitizedTitle,
                             content = sanitizedContent,

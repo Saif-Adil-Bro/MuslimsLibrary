@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun PostDetailScreen(
     postId: String,
     forumViewModel: ForumViewModel,
+    userId: String,
     userEmail: String,
     userRole: String,
     onBackClick: () -> Unit,
@@ -89,9 +90,9 @@ fun PostDetailScreen(
         forumViewModel.loadPostDetails(postId)
     }
 
-    LaunchedEffect(userEmail) {
-        if (userEmail.isNotBlank()) {
-            forumViewModel.checkUserLikes(userEmail)
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            forumViewModel.checkUserLikes(userId)
         }
     }
 
@@ -179,7 +180,7 @@ fun PostDetailScreen(
                 Button(
                     onClick = {
                         if (editPostTitle.isNotBlank() && editPostContent.isNotBlank()) {
-                            forumViewModel.editPost(postId, userEmail, editPostTitle, editPostContent) {
+                            forumViewModel.editPost(postId, userId, editPostTitle, editPostContent) {
                                 showEditPostDialog = false
                             }
                         } else {
@@ -221,7 +222,7 @@ fun PostDetailScreen(
                 Button(
                     onClick = {
                         if (editCommentContent.isNotBlank()) {
-                            forumViewModel.editComment(editCommentId, userEmail, editCommentContent, postId) {
+                            forumViewModel.editComment(editCommentId, userId, editCommentContent, postId) {
                                 showEditCommentDialog = false
                             }
                         } else {
@@ -249,7 +250,7 @@ fun PostDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        forumViewModel.deleteComment(deleteCommentId, userEmail, postId) {
+                        forumViewModel.deleteComment(deleteCommentId, userId, postId) {
                             showDeleteCommentDialog = false
                         }
                     },
@@ -274,7 +275,7 @@ fun PostDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        forumViewModel.deletePost(deletePostId, userEmail) {
+                        forumViewModel.deletePost(deletePostId, userId) {
                             showDeletePostDialog = false
                             Toast.makeText(context, "পোস্টটি সফলভাবে মুছে ফেলা হয়েছে!", Toast.LENGTH_SHORT).show()
                             onBackClick() // navigate back upon deletion
@@ -364,7 +365,7 @@ fun PostDetailScreen(
                             item {
                                 OriginalPostViewCard(
                                     post = post,
-                                    currentUserId = userEmail,
+                                    currentUserId = userId,
                                     currentUserRole = userRole,
                                     categoryDisplay = categoryMappings[post.category] ?: post.category,
                                     isLiked = likedPostIds.contains(post.id),
@@ -385,7 +386,7 @@ fun PostDetailScreen(
                                                 snackbarHostState.showSnackbar("Please login to participate in the community")
                                             }
                                         } else {
-                                            forumViewModel.toggleLike(post.id, userEmail)
+                                            forumViewModel.toggleLike(post.id, userId)
                                         }
                                     },
                                     onEditClick = {
@@ -437,7 +438,7 @@ fun PostDetailScreen(
                                 items(comments) { comment ->
                                     CommentViewItem(
                                         comment = comment,
-                                        currentUserId = userEmail,
+                                        currentUserId = userId,
                                         currentUserRole = userRole,
                                         onEditClick = {
                                             editCommentId = comment.id
@@ -499,7 +500,7 @@ fun PostDetailScreen(
                             } else if (commentText.isNotBlank()) {
                                 forumViewModel.addComment(
                                     postId = postId,
-                                    userId = userEmail,
+                                    userId = userId,
                                     email = userEmail,
                                     content = commentText.trim(),
                                     role = userRole

@@ -411,7 +411,7 @@ class SupabaseService(
                 put("post_content", content)
                 put("post_category", category)
                 put("post_author_email", authorEmail ?: "")
-                put("post_user_role", userRole)
+                put("post_user_role", userRole.lowercase())
             }
         )
     }
@@ -430,7 +430,7 @@ class SupabaseService(
                 put("comment_user_id", userId)
                 put("comment_content", content)
                 put("comment_author_email", authorEmail ?: "")
-                put("comment_user_role", userRole)
+                put("comment_user_role", userRole.lowercase())
             }
         )
     }

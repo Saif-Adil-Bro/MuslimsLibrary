@@ -329,4 +329,16 @@ class AuthRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun ensureProfileSynced(): Result<Unit> {
+        return try {
+            val user = firebaseAuth.currentUser
+            if (user != null) {
+                supabaseService.createUserProfile(user.uid, user.email ?: "")
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

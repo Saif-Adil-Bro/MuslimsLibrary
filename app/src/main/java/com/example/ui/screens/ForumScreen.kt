@@ -49,6 +49,7 @@ import androidx.compose.foundation.BorderStroke
 @Composable
 fun ForumScreen(
     forumViewModel: ForumViewModel,
+    userId: String,
     userEmail: String,
     userRole: String,
     onNavigateToCreatePost: () -> Unit,
@@ -91,9 +92,9 @@ fun ForumScreen(
         }
     }
 
-    LaunchedEffect(userEmail) {
-        if (userEmail.isNotBlank()) {
-            forumViewModel.checkUserLikes(userEmail)
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            forumViewModel.checkUserLikes(userId)
         }
     }
 
@@ -183,7 +184,7 @@ fun ForumScreen(
                 Button(
                     onClick = {
                         if (editPostTitle.isNotBlank() && editPostContent.isNotBlank()) {
-                            forumViewModel.editPost(editPostId, userEmail, editPostTitle, editPostContent) {
+                            forumViewModel.editPost(editPostId, userId, editPostTitle, editPostContent) {
                                 showEditPostDialog = false
                             }
                         } else {
@@ -211,7 +212,7 @@ fun ForumScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        forumViewModel.deletePost(deletePostId, userEmail) {
+                        forumViewModel.deletePost(deletePostId, userId) {
                             showDeletePostDialog = false
                             Toast.makeText(context, "পোস্টটি সফলভাবে মুছে ফেলা হয়েছে!", Toast.LENGTH_SHORT).show()
                         }
@@ -425,7 +426,7 @@ fun ForumScreen(
                                 items(state.posts) { post ->
                                     ForumPostCard(
                                         post = post,
-                                        currentUserId = userEmail, // Supabase user lookup matches email or uuid
+                                        currentUserId = userId, // Pass authenticating UID
                                         currentUserRole = userRole,
                                         categoryMapping = categoryMappings[post.category] ?: post.category,
                                         isLiked = likedPostIds.contains(post.id),
@@ -447,7 +448,7 @@ fun ForumScreen(
                                                     snackbarHostState.showSnackbar("Please login to participate in the community")
                                                 }
                                             } else {
-                                                forumViewModel.toggleLike(post.id, userEmail)
+                                                forumViewModel.toggleLike(post.id, userId)
                                             }
                                         },
                                         onEditClick = {
@@ -512,7 +513,7 @@ fun ForumPostCard(
         "অজানা মেম্বার"
     }
 
-    val isAuthor = currentUserId.lowercase() == post.authorEmail?.lowercase()
+    val isAuthor = currentUserId.lowercase() == post.userId?.lowercase() || currentUserId.lowercase() == post.authorEmail?.lowercase()
     val isAdmin = currentUserRole.lowercase() == "admin"
     val canDelete = isAuthor || isAdmin
 

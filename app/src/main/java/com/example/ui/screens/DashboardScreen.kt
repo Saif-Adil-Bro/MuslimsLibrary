@@ -1,26 +1,24 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.data.SupabaseBook
-import com.example.data.SupabaseService
+import com.example.ui.components.*
 import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.viewmodel.HomeViewModel
 import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.ForumViewModel
+import com.example.ui.viewmodel.ProfileViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +28,8 @@ fun DashboardScreen(
     homeViewModel: HomeViewModel,
     adminViewModel: AdminViewModel,
     forumViewModel: ForumViewModel,
+    profileViewModel: ProfileViewModel,
+    localSyncRepository: com.example.data.repository.LocalSyncRepository,
     userEmail: String,
     userUid: String = "",
     userRole: String,
@@ -40,6 +40,7 @@ fun DashboardScreen(
     onNavigateToPostDetail: (String) -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToDownloads: () -> Unit,
+    onNavigateToAllBooks: (sortBy: String, categoryFilter: String?) -> Unit,
     modifier: Modifier = Modifier,
     debugInfo: String = "",
     isDebugMode: Boolean = false,
@@ -47,175 +48,222 @@ fun DashboardScreen(
     backupManager: com.example.data.backup.BackupManager? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    var drawerScreenTitle by remember { mutableStateOf("") }
+    val searchQuery by homeViewModel.searchQuery.collectAsState()
+
     val scope = rememberCoroutineScope()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    // Conditional tabs based on userRole
-    val isAdmin = userRole.lowercase() == "admin"
+    val nameFromEmail = userEmail.split("@").first().replaceFirstChar { it.uppercase() }
 
-    LaunchedEffect(userRole) {
-        if (isAdmin) {
-            selectedTab = 2
-        } else {
-            selectedTab = 0
-        }
-    }
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                contentColor = Color(0xFF032B1D)
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = Color.White,
+                modifier = Modifier.width(280.dp)
             ) {
-                // Home Tab
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home", style = MaterialTheme.typography.labelMedium) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF0A4E38),
-                        indicatorColor = Color(0xFF0A4E38)
-                    )
+                SideDrawer(
+                    userDisplayName = nameFromEmail,
+                    userEmail = userEmail,
+                    onCloseClick = {
+                        scope.launch { drawerState.close() }
+                    },
+                    onMenuItemClick = { route ->
+                        scope.launch { drawerState.close() }
+                        when (route) {
+                            "home" -> {
+                                drawerScreenTitle = ""
+                                selectedTab = 0
+                            }
+                            "my_books" -> {
+                                drawerScreenTitle = "🚧 আমার বই"
+                            }
+                            "downloads" -> {
+                                drawerScreenTitle = "🚧 ডাউনলোড"
+                            }
+                            "favorite_books" -> {
+                                drawerScreenTitle = "🚧 প্রিয় বই"
+                            }
+                            "settings" -> {
+                                drawerScreenTitle = "🚧 সেটিংস"
+                            }
+                            "help" -> {
+                                drawerScreenTitle = "🚧 সাহায্য"
+                            }
+                        }
+                    },
+                    onLogoutClick = {
+                        scope.launch { drawerState.close() }
+                        onLogoutClick()
+                    }
                 )
-
-                // Community Tab
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(Icons.Default.Group, contentDescription = "Community") },
-                    label = { Text("Community", style = MaterialTheme.typography.labelMedium) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF0A4E38),
-                        indicatorColor = Color(0xFF0A4E38)
-                    )
-                )
-
-                // Admin Dashboard Tab
-                if (isAdmin) {
-                    NavigationBarItem(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        icon = { Icon(Icons.Default.Lock, contentDescription = "Admin Hub") },
-                        label = { Text("Admin Hub", style = MaterialTheme.typography.labelMedium) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = Color(0xFF0A4E38),
-                            indicatorColor = Color(0xFF0A4E38)
-                        )
-                    )
-                }
             }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (selectedTab) {
-                0 -> {
-                    HomeScreen(
-                        homeViewModel = homeViewModel,
-                        userEmail = userEmail,
-                        role = userRole,
-                        onLogoutClick = onLogoutClick,
-                        onBookClick = onBookClick,
-                        onNavigateToProfile = onNavigateToProfile,
-                        onNavigateToDownloads = onNavigateToDownloads,
-                        onSwitchToAdminClick = { if (isAdmin) selectedTab = 2 },
-                        onHeaderClick = onToggleDebug
+        },
+        modifier = modifier.fillMaxSize()
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                Column {
+                    StickyHeader(
+                        onMenuClick = {
+                            scope.launch {
+                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                            }
+                        },
+                        onFavoriteClick = {
+                            drawerScreenTitle = "🚧 প্রিয় বই"
+                        },
+                        onNotificationsClick = {
+                            drawerScreenTitle = "🚧 সাহায্য"
+                        }
                     )
-                }
-                1 -> {
-                    ForumScreen(
-                        forumViewModel = forumViewModel,
-                        userEmail = userEmail,
-                        userRole = userRole,
-                        onNavigateToCreatePost = onNavigateToCreatePost,
-                        onNavigateToPostDetail = onNavigateToPostDetail
-                    )
-                }
-                2 -> {
-                    if (isAdmin) {
-                        AdminDashboardScreen(
-                            adminViewModel = adminViewModel,
-                            onNavigateToAddBook = onNavigateToAddBook,
-                            userEmail = userEmail,
-                            onLogoutClick = onLogoutClick
+                    // Sticky search bar is only visible on standard Home tab content
+                    if (selectedTab == 0 && drawerScreenTitle.isEmpty()) {
+                        StickySearchBar(
+                            query = searchQuery,
+                            onQueryChange = { homeViewModel.onSearchQueryChanged(it) },
+                            onSearchClick = { homeViewModel.refreshBooks() }
                         )
-                    } else {
-                        selectedTab = 0
                     }
                 }
-                else -> {
-                    selectedTab = 0
-                }
+            },
+            bottomBar = {
+                BottomNavBar(
+                    selectedTab = if (drawerScreenTitle.isNotEmpty()) -1 else selectedTab,
+                    onTabSelected = { tab ->
+                        drawerScreenTitle = "" // Clear drawer placeholders on tab switches
+                        selectedTab = tab
+                    }
+                )
             }
-
-            // Floating Debug Console Overlay at the bottom center of the screen
-            if (isDebugMode && debugInfo.isNotEmpty()) {
-                var isLogsVisible by remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier
-                        .align(androidx.compose.ui.Alignment.BottomCenter)
-                        .padding(bottom = 8.dp)
-                        .fillMaxWidth(0.95f)
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.Black.copy(alpha = 0.92f)
-                        ),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                if (drawerScreenTitle.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        EmptyPlaceholder(
+                            title = drawerScreenTitle,
+                            message = "আমরা শীঘ্রই এই বিভাগটিকে সরাসরি মূল অ্যাপ্লিকেশনের সংগে লাইভ করতে কাজ করছি।"
+                        )
+                        // If it's download, let's also offer the option to open local folder downloads
+                        if (drawerScreenTitle.contains("ডাউনলোড")) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = onNavigateToDownloads,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
                             ) {
-                                Text(
-                                    text = "🛠️ Auth Debug Panel",
-                                    color = Color(0xFFA3E2C9),
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                                TextButton(
-                                    onClick = { isLogsVisible = !isLogsVisible },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                Text("ডাউনলোডকৃত অফলাইন বই দেখুন", color = Color.White)
+                            }
+                        }
+                    }
+                } else {
+                    when (selectedTab) {
+                        0 -> {
+                            HomeScreen(
+                                homeViewModel = homeViewModel,
+                                userEmail = userEmail,
+                                role = userRole,
+                                onBookClick = onBookClick,
+                                onNavigateToAllBooks = onNavigateToAllBooks
+                            )
+                        }
+                        1 -> {
+                            LibraryScreen()
+                        }
+                        2 -> {
+                            ForumScreen(
+                                forumViewModel = forumViewModel,
+                                userId = userUid,
+                                userEmail = userEmail,
+                                userRole = userRole,
+                                onNavigateToCreatePost = onNavigateToCreatePost,
+                                onNavigateToPostDetail = onNavigateToPostDetail
+                            )
+                        }
+                        3 -> {
+                            AuthorScreen()
+                        }
+                        4 -> {
+                            ProfileScreen(
+                                viewModel = profileViewModel,
+                                localSyncRepository = localSyncRepository,
+                                userId = userEmail,
+                                onEditProfileClick = {
+                                    onNavigateToProfile() // Navigates to edit/details view
+                                },
+                                onLogoutClick = onLogoutClick,
+                                onBackClick = {
+                                    selectedTab = 0
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Keep existing float debug overlay if enabled
+                if (isDebugMode && debugInfo.isNotEmpty()) {
+                    var isLogsVisible by remember { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 8.dp)
+                            .fillMaxWidth(0.95f)
+                    ) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.Black.copy(alpha = 0.92f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = if (isLogsVisible) "Hide Details" else "Show Details",
-                                        color = Color.White,
-                                        fontSize = 10.sp
+                                        text = "🔧 Debug Diagnostic Console",
+                                        color = Color.Green,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
+                                    Row {
+                                        TextButton(
+                                            onClick = { isLogsVisible = !isLogsVisible },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(if (isLogsVisible) "Hide" else "Show", color = Color.White, fontSize = 10.sp)
+                                        }
+                                        TextButton(
+                                            onClick = onToggleDebug,
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Close Info", color = Color.Red, fontSize = 10.sp)
+                                        }
+                                    }
                                 }
-                            }
-                            if (isLogsVisible) {
-                                Box(
-                                    modifier = Modifier
-                                        .heightIn(max = 180.dp)
-                                        .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                                ) {
+                                if (isLogsVisible) {
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = debugInfo,
-                                        color = Color(0xFFA3E2C9),
-                                        fontSize = 10.sp,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                        color = Color.LightGray,
+                                        fontSize = 9.sp,
+                                        lineHeight = 12.sp,
+                                        modifier = Modifier.heightIn(max = 120.dp)
                                     )
                                 }
-                            } else {
-                                // Just show simple summary (first 5 lines contains key state info)
-                                val summary = debugInfo.split("\n").take(5).joinToString("\n")
-                                Text(
-                                    text = summary,
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                )
                             }
                         }
                     }
