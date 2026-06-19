@@ -30,7 +30,8 @@ fun SideDrawer(
     onMenuItemClick: (String) -> Unit,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier,
-    userDisplayName: String = "ব্যবহারকারী"
+    userDisplayName: String = "ব্যবহারকারী",
+    userRole: String = ""
 ) {
     val initialLetter = if (userDisplayName.isNotBlank()) {
         userDisplayName.first().uppercase()
@@ -157,6 +158,14 @@ fun SideDrawer(
                 onClick = { onMenuItemClick("help") },
                 testTag = "drawer_item_help"
             )
+            if (userRole.equals("admin", ignoreCase = true) || userEmail.equals("admin@muslimslibrary.org", ignoreCase = true)) {
+                DrawerMenuItem(
+                    icon = Icons.Default.Security,
+                    label = "অ্যাডমিন প্যানেল (Admin)",
+                    onClick = { onMenuItemClick("admin_panel") },
+                    testTag = "drawer_item_admin"
+                )
+            }
             Divider(
                 modifier = Modifier
                     .fillMaxWidth()

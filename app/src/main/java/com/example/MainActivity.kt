@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ui.screens.AddBookScreen
+import com.example.ui.screens.AdminDashboardScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.AllBooksScreen
@@ -64,6 +65,9 @@ class MainActivity : ComponentActivity() {
                 )
                 val forumViewModel: ForumViewModel = viewModel(
                     factory = ForumViewModel.Factory(appContainer.supabaseService)
+                )
+                val authorViewModel: com.example.ui.viewmodel.AuthorViewModel = viewModel(
+                    factory = com.example.ui.viewmodel.AuthorViewModel.Factory(appContainer.supabaseService)
                 )
                 val profileViewModel: ProfileViewModel = viewModel(
                     factory = ProfileViewModel.Factory(
@@ -214,6 +218,7 @@ class MainActivity : ComponentActivity() {
                                 adminViewModel = adminViewModel,
                                 forumViewModel = forumViewModel,
                                 profileViewModel = profileViewModel,
+                                authorViewModel = authorViewModel,
                                 localSyncRepository = appContainer.localSyncRepository,
                                 userEmail = userEmail,
                                 userUid = userUid,
@@ -245,6 +250,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToAllBooks = { sortBy, categoryFilter ->
                                     val filterParam = categoryFilter ?: "All"
                                     navController.navigate("all_books/$sortBy/$filterParam")
+                                },
+                                onNavigateToAdminDashboard = {
+                                    navController.navigate("admin_dashboard")
                                 },
                                 debugInfo = debugInfo,
                                 isDebugMode = isDebugMode,
@@ -392,6 +400,35 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // Admin Dashboard / Manager Route
+                        composable("admin_dashboard") {
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
+                            val userRole by authViewModel.userRole.collectAsState()
+                            
+                            if (userRole.lowercase() == "admin" || userEmail.lowercase() == "admin@muslimslibrary.org") {
+                                AdminDashboardScreen(
+                                    adminViewModel = adminViewModel,
+                                    onNavigateToAddBook = {
+                                        navController.navigate("add_book")
+                                    },
+                                    userEmail = userEmail,
+                                    onLogoutClick = {
+                                        authViewModel.logout()
+                                        navController.navigate("auth") {
+                                            popUpTo("dashboard") { inclusive = true }
+                                        }
+                                    }
+                                )
+                            } else {
+                                LaunchedEffect(Unit) {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("dashboard") { inclusive = true }
+                                    }
+                                }
+                            }
+                        }
+
                         // Add Book Route with Admin authorization check guard
                         composable("add_book") {
                             val userRole by authViewModel.userRole.collectAsState()
@@ -430,6 +467,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onBackClick = {
                                     navController.popBackStack()
+                                },
+                                onAdminDashboardClick = {
+                                    navController.navigate("admin_dashboard")
                                 }
                             )
                         }

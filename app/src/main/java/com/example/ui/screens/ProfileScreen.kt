@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -34,7 +35,8 @@ fun ProfileScreen(
     userId: String,
     onEditProfileClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onAdminDashboardClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
@@ -371,6 +373,22 @@ fun ProfileScreen(
                                             Text("রিস্টোর", fontSize = 12.sp, color = Color.White)
                                         }
                                     }
+                                }
+                            }
+                            
+                            if (user.role.equals("admin", ignoreCase = true) || userId.equals("admin@muslimslibrary.org", ignoreCase = true)) {
+                                Button(
+                                    onClick = onAdminDashboardClick,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .testTag("admin_dashboard_navigation_button"),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC53030)), // crimson red accent
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Security, contentDescription = "Security Status", tint = Color.White)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("অ্যাডমিন প্যানেল প্রবেশ করুন", color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
 

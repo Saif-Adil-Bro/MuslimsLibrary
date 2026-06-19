@@ -29,6 +29,7 @@ fun DashboardScreen(
     adminViewModel: AdminViewModel,
     forumViewModel: ForumViewModel,
     profileViewModel: ProfileViewModel,
+    authorViewModel: com.example.ui.viewmodel.AuthorViewModel,
     localSyncRepository: com.example.data.repository.LocalSyncRepository,
     userEmail: String,
     userUid: String = "",
@@ -41,6 +42,7 @@ fun DashboardScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToDownloads: () -> Unit,
     onNavigateToAllBooks: (sortBy: String, categoryFilter: String?) -> Unit,
+    onNavigateToAdminDashboard: () -> Unit = {},
     modifier: Modifier = Modifier,
     debugInfo: String = "",
     isDebugMode: Boolean = false,
@@ -67,6 +69,7 @@ fun DashboardScreen(
                 SideDrawer(
                     userDisplayName = nameFromEmail,
                     userEmail = userEmail,
+                    userRole = userRole,
                     onCloseClick = {
                         scope.launch { drawerState.close() }
                     },
@@ -76,6 +79,9 @@ fun DashboardScreen(
                             "home" -> {
                                 drawerScreenTitle = ""
                                 selectedTab = 0
+                            }
+                            "admin_panel" -> {
+                                onNavigateToAdminDashboard()
                             }
                             "my_books" -> {
                                 drawerScreenTitle = "🚧 আমার বই"
@@ -208,7 +214,11 @@ fun DashboardScreen(
                             )
                         }
                         3 -> {
-                            AuthorScreen()
+                            AuthorScreen(
+                                viewModel = authorViewModel,
+                                onBookClick = onBookClick,
+                                onBackClick = { selectedTab = 0 }
+                            )
                         }
                         4 -> {
                             ProfileScreen(
@@ -221,7 +231,8 @@ fun DashboardScreen(
                                 onLogoutClick = onLogoutClick,
                                 onBackClick = {
                                     selectedTab = 0
-                                }
+                                },
+                                onAdminDashboardClick = onNavigateToAdminDashboard
                             )
                         }
                     }
