@@ -5,11 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.SupabaseService
+import com.example.data.SupabaseAuthor
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import java.util.UUID
 
 sealed interface UploadState {
@@ -47,8 +52,75 @@ class AdminViewModel(
     private val _totalBooksCount = MutableStateFlow(0)
     val totalBooksCount: StateFlow<Int> = _totalBooksCount.asStateFlow()
 
+    // NEW: Author suggestion states
+    private val _authorSuggestions = MutableStateFlow<List<AuthorSuggestion>>(emptyList())
+    val authorSuggestions: StateFlow<List<AuthorSuggestion>> = _authorSuggestions.asStateFlow()
+
+    private val _showAuthorSuggestions = MutableStateFlow(false)
+    val showAuthorSuggestions: StateFlow<Boolean> = _showAuthorSuggestions.asStateFlow()
+
+    data class AuthorSuggestion(
+        val author: SupabaseAuthor,
+        val bookCount: Int
+    )
+
+    private var searchJob: Job? = null
+
     init {
         getTotalBooksCount()
+    }
+
+    fun onAuthorNameChanged(query: String) {
+        searchJob?.cancel()
+
+        if (query.length < 2) {
+            _authorSuggestions.value = emptyList()
+            _showAuthorSuggestions.value = false
+            return
+        }
+
+        searchJob = viewModelScope.launch {
+            delay(300)
+            try {
+                val authors = supabaseService.searchAuthors(query, limit = 5)
+                val suggestions = authors.map { author ->
+                    val bookCount = supabaseService.getAuthorBookCount(author.name)
+                    AuthorSuggestion(author, bookCount)
+                }
+                _authorSuggestions.value = suggestions
+                _showAuthorSuggestions.value = suggestions.isNotEmpty()
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error searching authors: ${e.message}")
+            }
+        }
+    }
+
+    fun selectAuthor(author: SupabaseAuthor) {
+        _showAuthorSuggestions.value = false
+        _authorSuggestions.value = emptyList()
+    }
+
+    fun hideAuthorSuggestions() {
+        _showAuthorSuggestions.value = false
+    }
+
+    suspend fun ensureAuthorExists(authorName: String, authorBio: String? = null): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val existing = supabaseService.searchAuthors(authorName, limit = 100)
+                    .find { it.name.equals(authorName, ignoreCase = true) }
+
+                if (existing != null) {
+                    return@withContext true
+                }
+
+                supabaseService.addAuthor(authorName, authorBio)
+                true
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error ensuring author exists: ${e.message}")
+                false
+            }
+        }
     }
 
     fun getTotalBooksCount() {
@@ -75,11 +147,14 @@ class AdminViewModel(
         _uiState.value = UploadState.Idle
     }
 
-    fun uploadBook(data: BookUploadData) {
+    fun uploadBook(data: BookUploadData, authorBio: String? = null) {
         _uiState.value = UploadState.Uploading(10)
         android.util.Log.d("AdminViewModel", "Starting upload with data: $data")
         viewModelScope.launch {
             try {
+                // Ensure the author exists first
+                ensureAuthorExists(data.author, authorBio)
+
                 val timestamp = System.currentTimeMillis()
                 val uuid = UUID.randomUUID().toString()
                 val ext = data.fileType.lowercase()

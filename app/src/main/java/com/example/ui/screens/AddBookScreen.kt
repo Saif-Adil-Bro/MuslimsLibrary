@@ -42,6 +42,11 @@ import com.example.ui.viewmodel.AdminViewModel
 import com.example.ui.viewmodel.SourceType
 import com.example.ui.viewmodel.BookUploadData
 import android.content.Intent
+import com.example.ui.components.AuthorSuggestionItem
+import com.example.ui.components.AddNewAuthorDialog
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +63,12 @@ fun AddBookScreen(
     var author by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("হাদিস") }
     var fileType by remember { mutableStateOf("pdf") } // "pdf" or "epub"
+
+    var showAddAuthorDialog by remember { mutableStateOf(false) }
+    var authorBio by remember { mutableStateOf<String?>(null) }
+
+    val authorSuggestions by adminViewModel.authorSuggestions.collectAsState()
+    val showSuggestions by adminViewModel.showAuthorSuggestions.collectAsState()
 
     var coverSourceType by remember { mutableStateOf(SourceType.FILE) }
     var coverImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -198,23 +209,101 @@ fun AddBookScreen(
                         )
                     )
 
-                    // Author
-                    OutlinedTextField(
-                        value = author,
-                        onValueChange = { author = it },
-                        label = { Text("Author / Compiler (Alim)") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF0A4E38)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("add_book_author_input"),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1E293B),
-                            unfocusedTextColor = Color(0xFF1E293B),
-                            focusedBorderColor = Color(0xFF0A4E38),
-                            focusedLabelColor = Color(0xFF0A4E38),
-                            unfocusedLabelColor = Color(0xFF475569)
+                    // Author with Autocomplete dropdown of suggestions
+                    Box(modifier = Modifier.fillMaxWidth().zIndex(100f)) {
+                        OutlinedTextField(
+                            value = author,
+                            onValueChange = { newValue ->
+                                author = newValue
+                                adminViewModel.onAuthorNameChanged(newValue)
+                            },
+                            label = { Text("লেখকের নাম *") },
+                            placeholder = { Text("লেখকের নাম লিখুন...") },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF667EEA)) },
+                            trailingIcon = {
+                                if (author.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        author = ""
+                                        adminViewModel.hideAuthorSuggestions()
+                                    }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("add_book_author_input"),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF1E293B),
+                                unfocusedTextColor = Color(0xFF1E293B),
+                                focusedBorderColor = Color(0xFF667EEA),
+                                focusedLabelColor = Color(0xFF667EEA),
+                                unfocusedLabelColor = Color(0xFF475569)
+                            )
                         )
-                    )
+
+                        // Suggestions dropdown layout card
+                        if (showSuggestions && authorSuggestions.isNotEmpty()) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 66.dp)
+                                    .zIndex(101f),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .background(Color.White)
+                                        .padding(vertical = 8.dp)
+                                ) {
+                                    authorSuggestions.take(5).forEach { suggestion ->
+                                        AuthorSuggestionItem(
+                                            suggestion = suggestion,
+                                            query = author,
+                                            onClick = {
+                                                author = suggestion.author.name
+                                                adminViewModel.selectAuthor(suggestion.author)
+                                            }
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Divider(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                        color = Color(0xFFE2E8F0),
+                                        thickness = 1.dp
+                                    )
+
+                                    // Add new author row
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                showAddAuthorDialog = true
+                                                adminViewModel.hideAuthorSuggestions()
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = Color(0xFF667EEA),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Text(
+                                            text = "নতুন লেখক যোগ করুন",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF667EEA)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Category Selector Dropdown
                     Box(modifier = Modifier.fillMaxWidth()) {
@@ -949,7 +1038,7 @@ fun AddBookScreen(
                                 bookFileUri = if (bookSourceType == SourceType.FILE) bookFileUri else null,
                                 bookFileUrl = if (bookSourceType != SourceType.FILE) bookFileUrl else null
                             )
-                            adminViewModel.uploadBook(uploadData)
+                            adminViewModel.uploadBook(uploadData, authorBio = authorBio)
                         },
                         enabled = isFormValid,
                         colors = ButtonDefaults.buttonColors(
@@ -973,6 +1062,18 @@ fun AddBookScreen(
                 }
             }
         }
+    }
+
+    if (showAddAuthorDialog) {
+        AddNewAuthorDialog(
+            initialName = author,
+            onDismiss = { showAddAuthorDialog = false },
+            onConfirm = { name, bio ->
+                author = name
+                authorBio = bio
+                showAddAuthorDialog = false
+            }
+        )
     }
 }
 

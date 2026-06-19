@@ -41,6 +41,14 @@ data class SupabaseBook(
 )
 
 @Serializable
+data class SupabaseAuthor(
+    val id: String = "",
+    val name: String,
+    val bio: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
 data class ForumPost(
     val id: String = "",
     @SerialName("user_id") val userId: String? = null,
@@ -742,6 +750,55 @@ class SupabaseService(
             localFile.absolutePath
         } else {
             null
+        }
+    }
+
+    suspend fun searchAuthors(query: String, limit: Int = 10): List<SupabaseAuthor> = withContext(Dispatchers.IO) {
+        if (query.length < 2) return@withContext emptyList()
+        try {
+            supabaseClient.postgrest["authors"]
+                .select {
+                    filter {
+                        ilike("name", "%$query%")
+                    }
+                    limit(count = limit.toLong())
+                }
+                .decodeList<SupabaseAuthor>()
+                .sortedBy { it.name }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error searching authors: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getAuthorBookCount(authorName: String): Int = withContext(Dispatchers.IO) {
+        try {
+            val books = supabaseClient.postgrest["books"]
+                .select {
+                    filter {
+                        eq("author", authorName)
+                        eq("is_public", true)
+                    }
+                }
+                .decodeList<SupabaseBook>()
+            books.size
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+    suspend fun addAuthor(name: String, bio: String? = null): Unit = withContext(Dispatchers.IO) {
+        try {
+            val id = java.util.UUID.randomUUID().toString()
+            val jsonObject = buildJsonObject {
+                put("id", id)
+                put("name", name)
+                if (bio != null) put("bio", bio) else put("bio", JsonNull)
+            }
+            supabaseClient.postgrest["authors"].insert(jsonObject)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error adding author: ${e.message}", e)
+            throw e
         }
     }
 }
