@@ -766,8 +766,32 @@ class SupabaseService(
                 .decodeList<SupabaseAuthor>()
                 .sortedBy { it.name }
         } catch (e: Exception) {
-            android.util.Log.e("SupabaseService", "Error searching authors: ${e.message}", e)
-            emptyList()
+            android.util.Log.e("SupabaseService", "Error searching authors from authors table (falling back to books): ${e.message}", e)
+            try {
+                // FALLBACK: Query 'books' table, extract unique authors
+                val books = supabaseClient.postgrest["books"]
+                    .select {
+                        filter {
+                            ilike("author", "%$query%")
+                        }
+                    }
+                    .decodeList<SupabaseBook>()
+                
+                books.map { it.author }
+                    .distinct()
+                    .take(limit)
+                    .map { authorName ->
+                        SupabaseAuthor(
+                            id = authorName.hashCode().toString(),
+                            name = authorName,
+                            bio = null
+                        )
+                    }
+                    .sortedBy { it.name }
+            } catch (ex: Exception) {
+                android.util.Log.e("SupabaseService", "Error fallback searching authors: ${ex.message}", ex)
+                emptyList()
+            }
         }
     }
 
@@ -797,8 +821,7 @@ class SupabaseService(
             }
             supabaseClient.postgrest["authors"].insert(jsonObject)
         } catch (e: Exception) {
-            android.util.Log.e("SupabaseService", "Error adding author: ${e.message}", e)
-            throw e
+            android.util.Log.w("SupabaseService", "Error adding author to authors table (ignoring as fallback if table missing): ${e.message}", e)
         }
     }
 }

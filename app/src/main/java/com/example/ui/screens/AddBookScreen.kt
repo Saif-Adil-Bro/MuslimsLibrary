@@ -243,7 +243,7 @@ fun AddBookScreen(
                         )
 
                         // Suggestions dropdown layout card
-                        if (showSuggestions && authorSuggestions.isNotEmpty()) {
+                        if (showSuggestions) {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -257,14 +257,23 @@ fun AddBookScreen(
                                         .background(Color.White)
                                         .padding(vertical = 8.dp)
                                 ) {
-                                    authorSuggestions.take(5).forEach { suggestion ->
-                                        AuthorSuggestionItem(
-                                            suggestion = suggestion,
-                                            query = author,
-                                            onClick = {
-                                                author = suggestion.author.name
-                                                adminViewModel.selectAuthor(suggestion.author)
-                                            }
+                                    if (authorSuggestions.isNotEmpty()) {
+                                        authorSuggestions.take(5).forEach { suggestion ->
+                                            AuthorSuggestionItem(
+                                                suggestion = suggestion,
+                                                query = author,
+                                                onClick = {
+                                                    author = suggestion.author.name
+                                                    adminViewModel.selectAuthor(suggestion.author)
+                                                }
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = "কোনো লেখক পাওয়া যায়নি",
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF718096),
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                         )
                                     }
 

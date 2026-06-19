@@ -88,9 +88,11 @@ class AdminViewModel(
                     AuthorSuggestion(author, bookCount)
                 }
                 _authorSuggestions.value = suggestions
-                _showAuthorSuggestions.value = suggestions.isNotEmpty()
+                _showAuthorSuggestions.value = true
             } catch (e: Exception) {
                 android.util.Log.e("AdminViewModel", "Error searching authors: ${e.message}")
+                _authorSuggestions.value = emptyList()
+                _showAuthorSuggestions.value = true
             }
         }
     }
