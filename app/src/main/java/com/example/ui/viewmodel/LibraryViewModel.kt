@@ -3,88 +3,292 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.data.model.Book
-import com.example.data.repository.BookRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import com.example.data.SupabaseBook
+import com.example.data.SupabaseService
+import com.example.data.local.AppDatabase
+import com.example.data.local.entities.DownloadedBook
+import com.example.data.local.entities.LocalBookProgress
+import com.example.data.local.entities.LocalFavoriteBook
+import com.example.data.local.entities.LocalPinnedBook
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-sealed interface LibraryUiState {
-    object Loading : LibraryUiState
-    data class Success(val books: List<Book>) : LibraryUiState
-    data class Error(val message: String) : LibraryUiState
-}
-
 class LibraryViewModel(
-    private val bookRepository: BookRepository
+    private val appDatabase: AppDatabase,
+    private val supabaseService: SupabaseService
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<LibraryUiState>(LibraryUiState.Loading)
-    val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
+    // Current UserId holder
+    private val _userId = MutableStateFlow<String>("")
+    val userId: StateFlow<String> = _userId.asStateFlow()
 
+    // Tab selection
+    private val _selectedTab = MutableStateFlow(LibraryTab.ALL)
+    val selectedTab: StateFlow<LibraryTab> = _selectedTab.asStateFlow()
+
+    // View mode (grid/list)
+    private val _isGridView = MutableStateFlow(true)
+    val isGridView: StateFlow<Boolean> = _isGridView.asStateFlow()
+
+    // Search query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow("All")
-    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+    // Online books cache catalog
+    private val _publicBooks = MutableStateFlow<List<SupabaseBook>>(emptyList())
 
-    private val allAvailableBooks = mutableListOf<Book>()
-
-    init {
-        loadBooks()
+    enum class LibraryTab {
+        ALL, DOWNLOADS, FAVORITES, READING, COMPLETED, PINNED
     }
 
-    fun loadBooks() {
-        _uiState.value = LibraryUiState.Loading
+    data class LibraryStats(
+        val totalBooks: Int = 0,
+        val completedBooks: Int = 0,
+        val readingBooks: Int = 0,
+        val favoriteBooks: Int = 0
+    )
+
+    data class LibraryBook(
+        val bookId: String,
+        val title: String,
+        val author: String,
+        val coverUrl: String?,
+        val status: String, // "reading", "completed", "downloaded", "none"
+        val progress: Int, // 0-100
+        val isFavorite: Boolean,
+        val isPinned: Boolean,
+        val isDownloaded: Boolean,
+        val lastReadAt: Long?
+    )
+
+    // Intermediate holder for all local user's library interactions
+    data class UserLibraryData(
+        val progressList: List<LocalBookProgress> = emptyList(),
+        val favoritesList: List<LocalFavoriteBook> = emptyList(),
+        val pinsList: List<LocalPinnedBook> = emptyList(),
+        val downloadsList: List<DownloadedBook> = emptyList()
+    )
+
+    init {
+        loadOnlineBooksCatalog()
+    }
+
+    fun setUserId(id: String) {
+        if (_userId.value != id) {
+            _userId.value = id
+        }
+    }
+
+    private fun loadOnlineBooksCatalog() {
         viewModelScope.launch {
             try {
-                bookRepository.getBooks().collectLatest { books ->
-                    allAvailableBooks.clear()
-                    allAvailableBooks.addAll(books)
-                    filterAndPublish()
-                }
+                val books = supabaseService.fetchPublicBooks()
+                _publicBooks.value = books
             } catch (e: Exception) {
-                _uiState.value = LibraryUiState.Error(e.localizedMessage ?: "Failed to load library books")
+                // Keep empty, local or download fallbacks will cover
             }
         }
     }
 
-    fun onSearchQueryChanged(query: String) {
+    fun selectTab(tab: LibraryTab) {
+        _selectedTab.value = tab
+    }
+
+    fun toggleViewMode() {
+        _isGridView.value = !_isGridView.value
+    }
+
+    fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-        filterAndPublish()
     }
 
-    fun onCategorySelected(category: String) {
-        _selectedCategory.value = category
-        filterAndPublish()
+    // Step 1: Combine only local Room data streams reactively
+    private val userLibraryDataFlow: Flow<UserLibraryData> = _userId.flatMapLatest { uid ->
+        if (uid.isEmpty()) {
+            flowOf(UserLibraryData())
+        } else {
+            combine(
+                appDatabase.progressDao().getAllProgressFlow(uid),
+                appDatabase.favoriteDao().getFavoritesFlow(uid),
+                appDatabase.pinDao().getPinnedBooksFlow(uid),
+                appDatabase.downloadDao().getAllDownloadedBooksFlow()
+            ) { progress, favorites, pins, downloads ->
+                UserLibraryData(
+                    progressList = progress,
+                    favoritesList = favorites,
+                    pinsList = pins,
+                    downloadsList = downloads
+                )
+            }
+        }
     }
 
-    private fun filterAndPublish() {
-        var filteredList = allAvailableBooks.toList()
-        
-        val category = _selectedCategory.value
-        if (category != "All") {
-            filteredList = filteredList.filter { it.category.equals(category, ignoreCase = true) }
+    // Step 2: Combine filters and catalogs with the grouped User Library Data
+    val libraryBooks: StateFlow<List<LibraryBook>> = combine(
+        _selectedTab,
+        _searchQuery,
+        _publicBooks,
+        userLibraryDataFlow
+    ) { tab, query, publicBooks, userData ->
+        val progressMap = userData.progressList.associateBy { it.bookId }
+        val favoritesSet = userData.favoritesList.map { it.bookId }.toSet()
+        val pinsSet = userData.pinsList.map { it.bookId }.toSet()
+        val downloadsMap = userData.downloadsList.associateBy { it.bookId }
+
+        // Take the absolute union of all personal library book IDs
+        val allLibraryBookIds = (progressMap.keys + favoritesSet + pinsSet + downloadsMap.keys)
+        val publicBooksMap = publicBooks.associateBy { it.id }
+
+        val books = allLibraryBookIds.map { bookId ->
+            val publicBook = publicBooksMap[bookId]
+            val downloadedBook = downloadsMap[bookId]
+
+            val title = publicBook?.title ?: downloadedBook?.title ?: "অজানা বই"
+            val author = publicBook?.author ?: downloadedBook?.author ?: "অজানা লেখক"
+            val coverUrl = publicBook?.coverImageUrl ?: downloadedBook?.coverImageUrl
+
+            val progressEntity = progressMap[bookId]
+            val progressPercentage = progressEntity?.progressPercentage?.toInt() ?: 0
+            val isDownloaded = downloadedBook != null
+
+            val status = when {
+                progressEntity?.status == "completed" -> "completed"
+                progressEntity?.status == "reading" -> "reading"
+                isDownloaded -> "downloaded"
+                else -> "none"
+            }
+
+            LibraryBook(
+                bookId = bookId,
+                title = title,
+                author = author,
+                coverUrl = coverUrl,
+                status = status,
+                progress = progressPercentage,
+                isFavorite = bookId in favoritesSet,
+                isPinned = bookId in pinsSet,
+                isDownloaded = isDownloaded,
+                lastReadAt = progressEntity?.lastReadAt ?: downloadedBook?.downloadDate
+            )
         }
 
-        val query = _searchQuery.value
-        if (query.isNotBlank()) {
-            filteredList = filteredList.filter {
+        // Filter based on currently selected tab
+        val tabFiltered = when (tab) {
+            LibraryTab.ALL -> books
+            LibraryTab.DOWNLOADS -> books.filter { it.isDownloaded }
+            LibraryTab.FAVORITES -> books.filter { it.isFavorite }
+            LibraryTab.READING -> books.filter { it.status == "reading" || (it.progress > 0 && it.status != "completed") }
+            LibraryTab.COMPLETED -> books.filter { it.status == "completed" || it.progress >= 100 }
+            LibraryTab.PINNED -> books.filter { it.isPinned }
+        }
+
+        // Filter based on search query
+        val searchFiltered = if (query.isNotBlank()) {
+            tabFiltered.filter {
                 it.title.contains(query, ignoreCase = true) ||
                 it.author.contains(query, ignoreCase = true)
             }
+        } else {
+            tabFiltered
         }
 
-        _uiState.value = LibraryUiState.Success(filteredList)
+        // Sort pinned items to the top, then by last read / downloaded timestamp desc
+        searchFiltered.sortedWith(
+            compareByDescending<LibraryBook> { it.isPinned }
+                .thenByDescending { it.lastReadAt ?: 0L }
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Reactively compute library stats card numbers by combining flows
+    val stats: StateFlow<LibraryStats> = _userId.flatMapLatest { uid ->
+        if (uid.isEmpty()) {
+            flowOf(LibraryStats())
+        } else {
+            combine(
+                appDatabase.progressDao().getAllProgressFlow(uid),
+                appDatabase.favoriteDao().getFavoritesFlow(uid),
+                appDatabase.downloadDao().getAllDownloadedBooksFlow()
+            ) { progressList, favoritesList, downloadsList ->
+                val reading = progressList.count { it.status == "reading" || (it.progressPercentage > 0.0 && it.progressPercentage < 100.0) }
+                val completed = progressList.count { it.status == "completed" || it.progressPercentage >= 100.0 }
+                LibraryStats(
+                    totalBooks = (progressList.map { it.bookId } + favoritesList.map { it.bookId } + downloadsList.map { it.bookId }).distinct().size,
+                    completedBooks = completed,
+                    readingBooks = reading,
+                    favoriteBooks = favoritesList.size
+                )
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryStats())
+
+    // Database manipulation utilities
+    fun toggleFavorite(bookId: String) {
+        val uid = _userId.value
+        if (uid.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val isFav = appDatabase.favoriteDao().isFavoriteOneShot(uid, bookId)
+                if (isFav) {
+                    appDatabase.favoriteDao().deleteFavoriteLocally(uid, bookId)
+                } else {
+                    appDatabase.favoriteDao().insertFavorite(
+                        LocalFavoriteBook(
+                            id = "${uid}_${bookId}",
+                            userId = uid,
+                            bookId = bookId,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                // handle error
+            }
+        }
     }
 
-    class Factory(private val repository: BookRepository) : ViewModelProvider.Factory {
+    fun togglePin(bookId: String) {
+        val uid = _userId.value
+        if (uid.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val isPin = appDatabase.pinDao().isPinnedOneShot(uid, bookId)
+                if (isPin) {
+                    appDatabase.pinDao().unpinLocally(uid, bookId)
+                } else {
+                    appDatabase.pinDao().insertPin(
+                        LocalPinnedBook(
+                            id = "${uid}_${bookId}",
+                            userId = uid,
+                            bookId = bookId,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                // handle error
+            }
+        }
+    }
+
+    fun deleteDownload(bookId: String) {
+        viewModelScope.launch {
+            try {
+                appDatabase.downloadDao().deleteDownloadedBook(bookId)
+            } catch (e: Exception) {
+                // handle error
+            }
+        }
+    }
+
+    // Required factory implementation matching our new signature
+    class Factory(
+        private val appDatabase: AppDatabase,
+        private val supabaseService: SupabaseService
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(LibraryViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return LibraryViewModel(repository) as T
+                return LibraryViewModel(appDatabase, supabaseService) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

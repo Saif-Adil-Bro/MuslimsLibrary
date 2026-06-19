@@ -104,13 +104,6 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                item {
-                                    CategoryPill(
-                                        categoryName = "সব বই",
-                                        isSelected = selectedCategory == "All",
-                                        onClick = { homeViewModel.onCategorySelected("All") }
-                                    )
-                                }
                                 items(homeViewModel.categories) { cat ->
                                     CategoryPill(
                                         categoryName = cat,

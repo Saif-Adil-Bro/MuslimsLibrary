@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
                     factory = AuthViewModel.Factory(appContainer.authRepository)
                 )
                 val libraryViewModel: LibraryViewModel = viewModel(
-                    factory = LibraryViewModel.Factory(appContainer.bookRepository)
+                    factory = LibraryViewModel.Factory(appContainer.appDatabase, appContainer.supabaseService)
                 )
                 val homeViewModel: HomeViewModel = viewModel(
                     factory = HomeViewModel.Factory(appContainer.supabaseService, appContainer.localSyncRepository)

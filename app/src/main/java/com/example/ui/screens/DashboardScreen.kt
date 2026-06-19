@@ -179,7 +179,23 @@ fun DashboardScreen(
                             )
                         }
                         1 -> {
-                            LibraryScreen()
+                            LibraryScreen(
+                                libraryViewModel = libraryViewModel,
+                                userId = userEmail,
+                                onBookClick = { bookId ->
+                                    onBookClick(
+                                        SupabaseBook(
+                                            id = bookId,
+                                            title = "",
+                                            author = "",
+                                            category = ""
+                                        )
+                                    )
+                                },
+                                onGoToHomeClick = {
+                                    selectedTab = 0
+                                }
+                            )
                         }
                         2 -> {
                             ForumScreen(
