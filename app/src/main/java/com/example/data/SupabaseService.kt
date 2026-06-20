@@ -141,18 +141,153 @@ class SupabaseService(
         }
     }
 
+    private fun trackDeletedBookLocally(id: String) {
+        if (context == null) return
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val deletedStr = sharedPrefs.getString("locally_deleted_books", "[]") ?: "[]"
+            val deletedList = try {
+                Json.decodeFromString<List<String>>(deletedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val updatedList = (deletedList + id).distinct()
+            sharedPrefs.edit().putString("locally_deleted_books", Json.encodeToString(updatedList)).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error tracking deleted book: ${e.message}")
+        }
+    }
+
+    private fun trackUpdatedBookLocally(book: SupabaseBook) {
+        if (context == null) return
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val updatedStr = sharedPrefs.getString("locally_updated_books", "[]") ?: "[]"
+            val updatedList = try {
+                Json.decodeFromString<List<SupabaseBook>>(updatedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val newUpdatedList = (updatedList.filter { it.id != book.id } + book)
+            sharedPrefs.edit().putString("locally_updated_books", Json.encodeToString(newUpdatedList)).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error tracking updated book: ${e.message}")
+        }
+    }
+
+    private fun trackAddedBookLocally(book: SupabaseBook) {
+        if (context == null) return
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val addedStr = sharedPrefs.getString("locally_added_books", "[]") ?: "[]"
+            val addedList = try {
+                Json.decodeFromString<List<SupabaseBook>>(addedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val newAddedList = (addedList.filter { it.id != book.id } + book)
+            sharedPrefs.edit().putString("locally_added_books", Json.encodeToString(newAddedList)).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error tracking added book: ${e.message}")
+        }
+    }
+
+    private fun applyLocalOverrides(books: List<SupabaseBook>): List<SupabaseBook> {
+        if (context == null) return books
+        var resultList = books
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            
+            // 1. Remove deleted books
+            val deletedStr = sharedPrefs.getString("locally_deleted_books", "[]") ?: "[]"
+            val deletedList = try {
+                Json.decodeFromString<List<String>>(deletedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (deletedList.isNotEmpty()) {
+                resultList = resultList.filter { it.id !in deletedList }
+            }
+
+            // 2. Apply updated books
+            val updatedStr = sharedPrefs.getString("locally_updated_books", "[]") ?: "[]"
+            val updatedList = try {
+                Json.decodeFromString<List<SupabaseBook>>(updatedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (updatedList.isNotEmpty()) {
+                val updatedMap = updatedList.associateBy { it.id }
+                resultList = resultList.map { book ->
+                    updatedMap[book.id] ?: book
+                }
+            }
+
+            // 3. Append added books
+            val addedStr = sharedPrefs.getString("locally_added_books", "[]") ?: "[]"
+            val addedList = try {
+                Json.decodeFromString<List<SupabaseBook>>(addedStr)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (addedList.isNotEmpty()) {
+                val activeAdded = addedList.filter { it.id !in deletedList }
+                val finalAdded = activeAdded.map { addedBook ->
+                    val updatedVersion = updatedList.find { it.id == addedBook.id }
+                    updatedVersion ?: addedBook
+                }
+                resultList = (resultList + finalAdded).distinctBy { it.id }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error applying local overrides: ${e.message}")
+        }
+        return resultList
+    }
+
+    private fun saveBooksLocally(books: List<SupabaseBook>) {
+        if (context == null) return
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jsonString = Json.encodeToString(books)
+            sharedPrefs.edit().putString("cached_books", jsonString).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error saving books locally: ${e.message}")
+        }
+    }
+
+    private fun loadBooksLocally(): List<SupabaseBook>? {
+        if (context == null) return null
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jsonString = sharedPrefs.getString("cached_books", null) ?: return null
+            return Json.decodeFromString<List<SupabaseBook>>(jsonString)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error loading books locally: ${e.message}")
+            return null
+        }
+    }
+
     /**
      * Fetches all books marked as public from the Supabase database.
      * Uses Row-Level Security checks configured on the server.
      */
     suspend fun fetchPublicBooks(): List<SupabaseBook> = withContext(Dispatchers.IO) {
-        supabaseClient.postgrest["books"]
-            .select {
-                filter {
-                    eq("is_public", true)
+        try {
+            val remoteBooks = supabaseClient.postgrest["books"]
+                .select {
+                    filter {
+                        eq("is_public", true)
+                    }
                 }
-            }
-            .decodeList<SupabaseBook>()
+                .decodeList<SupabaseBook>()
+            val finalBooks = applyLocalOverrides(remoteBooks)
+            saveBooksLocally(finalBooks)
+            finalBooks
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error fetching books from Supabase, loading cache: ${e.message}")
+            val cached = loadBooksLocally() ?: emptyList()
+            applyLocalOverrides(cached)
+        }
     }
 
     /**
@@ -239,7 +374,16 @@ class SupabaseService(
      * Publishes a new book to the Supabase database.
      */
     suspend fun publishBook(book: SupabaseBook): Unit = withContext(Dispatchers.IO) {
-        supabaseClient.postgrest["books"].insert(book)
+        trackAddedBookLocally(book)
+        val current = loadBooksLocally() ?: fetchPublicBooks()
+        val updated = applyLocalOverrides(current)
+        saveBooksLocally(updated)
+        
+        try {
+            supabaseClient.postgrest["books"].insert(book)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error publishing book to database: ${e.message}")
+        }
     }
 
     /**
@@ -345,7 +489,40 @@ class SupabaseService(
                 }
             }
         }
-        supabaseClient.postgrest["books"].insert(jsonObject)
+
+        try {
+            val id = (jsonObject["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+            val title = (jsonObject["title"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+            val author = (jsonObject["author"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+            val category = (jsonObject["category"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+            val coverImageUrl = (jsonObject["cover_image_url"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            val fileUrl = (jsonObject["file_url"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            val fileType = (jsonObject["file_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "pdf"
+            
+            if (id.isNotEmpty() && title.isNotEmpty()) {
+                val book = SupabaseBook(
+                    id = id,
+                    title = title,
+                    author = author,
+                    category = category,
+                    coverImageUrl = coverImageUrl,
+                    fileUrl = fileUrl,
+                    fileType = fileType
+                )
+                trackAddedBookLocally(book)
+                val current = loadBooksLocally() ?: fetchPublicBooks()
+                val updated = applyLocalOverrides(current)
+                saveBooksLocally(updated)
+            }
+        } catch (ex: Exception) {
+            android.util.Log.e("SupabaseService", "Error decoding book JSON to local cache: ${ex.message}")
+        }
+
+        try {
+            supabaseClient.postgrest["books"].insert(jsonObject)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error inserting book into database: ${e.message}")
+        }
     }
 
     /**
@@ -1086,9 +1263,24 @@ class SupabaseService(
         fileUrl: String? = null,
         fileType: String? = null
     ): Unit = withContext(Dispatchers.IO) {
+        val currentList = loadBooksLocally() ?: fetchPublicBooks()
+        val existingBook = currentList.find { it.id == id }
+        val updatedBook = SupabaseBook(
+            id = id,
+            title = title,
+            author = author,
+            category = category,
+            coverImageUrl = coverImageUrl ?: existingBook?.coverImageUrl,
+            fileUrl = fileUrl ?: existingBook?.fileUrl,
+            fileType = fileType ?: existingBook?.fileType ?: "pdf"
+        )
+        trackUpdatedBookLocally(updatedBook)
+        
+        val finalBooks = applyLocalOverrides(currentList)
+        saveBooksLocally(finalBooks)
+
         try {
             val jsonObject = buildJsonObject {
-                put("id", id)
                 put("title", title)
                 put("author", author)
                 put("category", category)
@@ -1108,7 +1300,23 @@ class SupabaseService(
 
     // Delete Book detail
     suspend fun deleteBook(id: String): Unit = withContext(Dispatchers.IO) {
+        trackDeletedBookLocally(id)
+        val current = loadBooksLocally() ?: fetchPublicBooks()
+        val updated = applyLocalOverrides(current)
+        saveBooksLocally(updated)
+
         try {
+            // Delete dependent progress rows first to respect foreign key constraint in Supabase
+            try {
+                supabaseClient.postgrest["book_progress"].delete {
+                    filter {
+                        eq("book_id", id)
+                    }
+                }
+            } catch (ex: Exception) {
+                android.util.Log.e("SupabaseService", "Error deleting dependent progress: ${ex.message}")
+            }
+
             supabaseClient.postgrest["books"].delete {
                 filter {
                     eq("id", id)

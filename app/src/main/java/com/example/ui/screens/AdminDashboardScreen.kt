@@ -37,7 +37,7 @@ fun AdminDashboardScreen(
     adminViewModel: AdminViewModel,
     onNavigateToAddBook: () -> Unit,
     onNavigateToEditBook: (String) -> Unit,
-    userEmail: String = "admin@muslimslibrary.org",
+    userEmail: String = "admin@test.com",
     onLogoutClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {

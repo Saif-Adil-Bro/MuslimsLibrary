@@ -376,7 +376,7 @@ fun ProfileScreen(
                                 }
                             }
                             
-                            if (user.role.equals("admin", ignoreCase = true) || userId.equals("admin@muslimslibrary.org", ignoreCase = true)) {
+                            if (user.role.equals("admin", ignoreCase = true)) {
                                 Button(
                                     onClick = onAdminDashboardClick,
                                     modifier = Modifier

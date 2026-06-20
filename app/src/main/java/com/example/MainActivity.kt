@@ -406,7 +406,7 @@ class MainActivity : ComponentActivity() {
                             val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
                             val userRole by authViewModel.userRole.collectAsState()
                             
-                            if (userRole.lowercase() == "admin" || userEmail.lowercase() == "admin@muslimslibrary.org") {
+                            if (userRole.lowercase() == "admin") {
                                 AdminDashboardScreen(
                                     adminViewModel = adminViewModel,
                                     onNavigateToAddBook = {
@@ -444,6 +444,8 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { backStackEntry ->
                             val bookId = backStackEntry.arguments?.getString("bookId")
+                            val authState = authViewModel.uiState.collectAsState().value
+                            val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
                             val userRole by authViewModel.userRole.collectAsState()
                             if (userRole.lowercase() == "admin") {
                                 AddBookScreen(

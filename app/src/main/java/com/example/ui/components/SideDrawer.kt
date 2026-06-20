@@ -158,7 +158,7 @@ fun SideDrawer(
                 onClick = { onMenuItemClick("help") },
                 testTag = "drawer_item_help"
             )
-            if (userRole.equals("admin", ignoreCase = true) || userEmail.equals("admin@muslimslibrary.org", ignoreCase = true)) {
+            if (userRole.equals("admin", ignoreCase = true)) {
                 DrawerMenuItem(
                     icon = Icons.Default.Security,
                     label = "অ্যাডমিন প্যানেল (Admin)",
