@@ -63,9 +63,7 @@ class HomeViewModel(
             }
             try {
                 val dbCategories = supabaseService.getCategories().map { it.name }
-                val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
-                val combined = (defaultList + dbCategories).distinct()
-                _categories.value = listOf("সব") + combined
+                _categories.value = listOf("সব") + dbCategories
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Error fetching dynamic categories: ${e.message}")
             }

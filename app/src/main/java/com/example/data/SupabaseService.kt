@@ -15,6 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
 @Serializable
 data class SupabaseUser(
@@ -115,6 +118,29 @@ class SupabaseService(
     val supabaseClient: SupabaseClient,
     private val context: Context? = null
 ) {
+    private fun saveCategoriesLocally(categories: List<SupabaseCategory>) {
+        if (context == null) return
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jsonString = Json.encodeToString(categories)
+            sharedPrefs.edit().putString("cached_categories", jsonString).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error saving categories locally: ${e.message}")
+        }
+    }
+
+    private fun loadCategoriesLocally(): List<SupabaseCategory>? {
+        if (context == null) return null
+        try {
+            val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val jsonString = sharedPrefs.getString("cached_categories", null) ?: return null
+            return Json.decodeFromString<List<SupabaseCategory>>(jsonString)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error loading categories locally: ${e.message}")
+            return null
+        }
+    }
+
     /**
      * Fetches all books marked as public from the Supabase database.
      * Uses Row-Level Security checks configured on the server.
@@ -901,53 +927,152 @@ class SupabaseService(
     // Get categories from 'categories' table with a fallback using books or default list elements
     suspend fun getCategories(): List<SupabaseCategory> = withContext(Dispatchers.IO) {
         try {
-            supabaseClient.postgrest["categories"]
+            val dbCats = supabaseClient.postgrest["categories"]
                 .select()
                 .decodeList<SupabaseCategory>()
-                .sortedBy { it.name }
+            
+            if (dbCats.isEmpty()) {
+                val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+                val insertedList = mutableListOf<SupabaseCategory>()
+                defaultList.forEach { name ->
+                    val id = java.util.UUID.randomUUID().toString()
+                    val jsonObject = buildJsonObject {
+                        put("id", id)
+                        put("name", name)
+                    }
+                    try {
+                        supabaseClient.postgrest["categories"].insert(jsonObject)
+                        insertedList.add(SupabaseCategory(id = id, name = name))
+                    } catch (e: Exception) {
+                        android.util.Log.e("SupabaseService", "Error pre-populating category $name: ${e.message}")
+                    }
+                }
+                val resultList = if (insertedList.isNotEmpty()) {
+                    insertedList.sortedBy { it.name }
+                } else {
+                    dbCats.sortedBy { it.name }
+                }
+                saveCategoriesLocally(resultList)
+                resultList
+            } else {
+                val resultList = dbCats.sortedBy { it.name }
+                saveCategoriesLocally(resultList)
+                resultList
+            }
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error loading categories from categories table (using fallback): ${e.message}")
-            val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
-            try {
-                val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
-                val bookCategories = books.flatMap { it.category.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }
-                (defaultList + bookCategories).distinct().map {
-                    SupabaseCategory(id = it.hashCode().toString(), name = it)
-                }.sortedBy { it.name }
-            } catch (ex: Exception) {
-                defaultList.map { SupabaseCategory(id = it.hashCode().toString(), name = it) }.sortedBy { it.name }
+            val cached = loadCategoriesLocally()
+            if (cached != null && cached.isNotEmpty()) {
+                cached.sortedBy { it.name }
+            } else {
+                val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+                try {
+                    val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+                    val bookCategories = books.flatMap { it.category.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }
+                    val combined = (defaultList + bookCategories).distinct()
+                    val resultList = combined.map {
+                        SupabaseCategory(id = it.hashCode().toString(), name = it)
+                    }.sortedBy { it.name }
+                    saveCategoriesLocally(resultList)
+                    resultList
+                } catch (ex: Exception) {
+                    val resultList = defaultList.map { SupabaseCategory(id = it.hashCode().toString(), name = it) }.sortedBy { it.name }
+                    saveCategoriesLocally(resultList)
+                    resultList
+                }
             }
         }
     }
 
     // Add category as Supabase element
     suspend fun addCategory(name: String): Unit = withContext(Dispatchers.IO) {
+        val id = java.util.UUID.randomUUID().toString()
+        val newCat = SupabaseCategory(id = id, name = name)
+        
+        val current = loadCategoriesLocally() ?: getCategories()
+        val updated = (current + newCat).distinctBy { it.name.trim().lowercase() }
+        saveCategoriesLocally(updated)
+
         try {
-            val id = java.util.UUID.randomUUID().toString()
             val jsonObject = buildJsonObject {
                 put("id", id)
                 put("name", name)
             }
             supabaseClient.postgrest["categories"].insert(jsonObject)
         } catch (e: Exception) {
-            android.util.Log.e("SupabaseService", "Error adding category to table: ${e.message}", e)
+            android.util.Log.e("SupabaseService", "Error adding category to table (ignoring): ${e.message}")
         }
     }
 
     // Update Category name
     suspend fun updateCategory(id: String, name: String): Unit = withContext(Dispatchers.IO) {
+        val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+        val currentCats = loadCategoriesLocally() ?: getCategories()
+        val existing = currentCats.find { it.id == id }
+        var oldName = existing?.name
+
+        if (oldName == null) {
+            oldName = defaultList.find { it.hashCode().toString() == id }
+        }
+
+        val updatedCats = currentCats.map { 
+            if (it.id == id) it.copy(name = name) else it 
+        }
+        saveCategoriesLocally(updatedCats)
+
         try {
             val jsonObject = buildJsonObject {
                 put("id", id)
                 put("name", name)
             }
-            supabaseClient.postgrest["categories"].update(jsonObject) {
-                filter {
-                    eq("id", id)
+            var existsInDb = false
+            try {
+                val check = supabaseClient.postgrest["categories"].select {
+                    filter {
+                        eq("id", id)
+                    }
+                }.decodeList<SupabaseCategory>()
+                existsInDb = check.isNotEmpty()
+            } catch (e: Exception) {
+                // ignore
+            }
+
+            if (existsInDb) {
+                supabaseClient.postgrest["categories"].update(jsonObject) {
+                    filter {
+                        eq("id", id)
+                    }
                 }
+            } else {
+                supabaseClient.postgrest["categories"].insert(jsonObject)
             }
         } catch (e: Exception) {
-            android.util.Log.e("SupabaseService", "Error updating category: ${e.message}", e)
+            android.util.Log.e("SupabaseService", "Error updating/inserting category to categories table (ignoring): ${e.message}")
+        }
+
+        if (oldName != null && oldName.trim().lowercase() != name.trim().lowercase()) {
+            try {
+                val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+                books.forEach { book ->
+                    val categoriesList = book.category.split(",").map { it.trim() }
+                    if (categoriesList.any { it.equals(oldName, ignoreCase = true) }) {
+                        val updatedCategories = categoriesList.map { 
+                            if (it.equals(oldName, ignoreCase = true)) name else it 
+                        }.joinToString(", ")
+                        
+                        val updatedBookObj = buildJsonObject {
+                            put("category", updatedCategories)
+                        }
+                        supabaseClient.postgrest["books"].update(updatedBookObj) {
+                            filter {
+                                eq("id", book.id)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SupabaseService", "Error updating books: ${e.message}")
+            }
         }
     }
 
@@ -1009,6 +1134,19 @@ class SupabaseService(
 
     // Delete Category detail
     suspend fun deleteCategory(id: String): Unit = withContext(Dispatchers.IO) {
+        val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+        val currentCats = loadCategoriesLocally() ?: getCategories()
+        val existing = currentCats.find { it.id == id }
+        var oldName = existing?.name
+
+        if (oldName == null) {
+            oldName = defaultList.find { it.hashCode().toString() == id }
+        }
+
+        // Update local cache
+        val updatedCats = currentCats.filter { it.id != id }
+        saveCategoriesLocally(updatedCats)
+
         try {
             supabaseClient.postgrest["categories"].delete {
                 filter {
@@ -1016,7 +1154,31 @@ class SupabaseService(
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("SupabaseService", "Error deleting category: ${e.message}", e)
+            android.util.Log.e("SupabaseService", "Error deleting from categories table (ignoring): ${e.message}")
+        }
+
+        if (oldName != null) {
+            try {
+                val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+                books.forEach { book ->
+                    val categoriesList = book.category.split(",").map { it.trim() }
+                    if (categoriesList.any { it.equals(oldName, ignoreCase = true) }) {
+                        val updatedCategoriesList = categoriesList.filter { !it.equals(oldName, ignoreCase = true) }
+                        val updatedCategories = if (updatedCategoriesList.isEmpty()) "অন্যান্য" else updatedCategoriesList.joinToString(", ")
+                        
+                        val updatedBookObj = buildJsonObject {
+                            put("category", updatedCategories)
+                        }
+                        supabaseClient.postgrest["books"].update(updatedBookObj) {
+                            filter {
+                                eq("id", book.id)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SupabaseService", "Error updating books after category deletion: ${e.message}")
+            }
         }
     }
 

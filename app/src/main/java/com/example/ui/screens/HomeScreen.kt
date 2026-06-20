@@ -45,134 +45,155 @@ fun HomeScreen(
     val selectedCategory by homeViewModel.selectedCategory.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
 
-    PullToRefreshBox(
-        isRefreshing = uiState is HomeUiState.Loading,
-        onRefresh = { homeViewModel.refreshBooks() },
+    LaunchedEffect(Unit) {
+        homeViewModel.refreshBooks()
+    }
+
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
-        when (val state = uiState) {
-            is HomeUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF667EEA))
+        // 1. Sticky Category Pills scrollable row (ALWAYS visible at the top below primary header!)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(vertical = 12.dp)
+        ) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(categories) { cat ->
+                    CategoryPill(
+                        categoryName = cat,
+                        isSelected = selectedCategory == cat,
+                        onClick = { homeViewModel.onCategorySelected(cat) }
+                    )
                 }
             }
-            is HomeUiState.Empty -> {
-                EmptyPlaceholder(
-                    title = "কোনো বই পাওয়া যায়নি",
-                    message = "দুঃখিত, আপনার পছন্দের ফিল্টার বা ক্যাটাগরির জন্য কোনো বই পাওয়া যায়নি।"
-                )
-            }
-            is HomeUiState.Error -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("⚠️", fontSize = 48.sp)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("সংযোগ ব্যাহত হয়েছে", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(state.message, color = Color.Gray, fontSize = 13.sp, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = { homeViewModel.refreshBooks() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
-                        ) {
-                            Text("পুনরায় চেষ্টা করুন", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 2. Content area with Pull To Refresh
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            PullToRefreshBox(
+                isRefreshing = uiState is HomeUiState.Loading,
+                onRefresh = { homeViewModel.refreshBooks() },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (val state = uiState) {
+                    is HomeUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Color(0xFF667EEA))
                         }
                     }
-                }
-            }
-            is HomeUiState.Success -> {
-                val books = state.books
-                
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 80.dp)
-                ) {
-                    // 1. Category Pills scrollable row
-                    item {
-                        Column(
+                    is HomeUiState.Empty -> {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.White)
-                                .padding(vertical = 15.dp)
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                items(categories) { cat ->
-                                    CategoryPill(
-                                        categoryName = cat,
-                                        isSelected = selectedCategory == cat,
-                                        onClick = { homeViewModel.onCategorySelected(cat) }
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-
-                    // 2. Recent Books - Horizontal Section
-                    if (books.isNotEmpty()) {
-                        item {
-                            RecentBooksHeader(onViewAllClick = {
-                                onNavigateToAllBooks("recent", "All")
-                            })
-                            
-                            LazyRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color.Transparent),
-                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 5.dp),
-                                horizontalArrangement = Arrangement.spacedBy(15.dp)
-                            ) {
-                                val recentBooks = books.take(8)
-                                items(recentBooks) { book ->
-                                    BookCardHorizontal(
-                                        book = book,
-                                        onClick = { onBookClick(book) }
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
+                            EmptyPlaceholder(
+                                title = "কোনো বই পাওয়া যায়নি",
+                                message = "দুঃখিত, এই ক্যাটাগরিতে এই মুহূর্তে কোনো বই পাওয়া যায়নি।"
+                            )
                         }
                     }
-
-                    // 3. Dynamic Category Sections
-                    val categoriesWithBooks = books.flatMap { it.category.split(",") }.map { it.trim() }.distinct().filter { it.isNotBlank() }
-                    categoriesWithBooks.forEach { category ->
-                        val categoryBooks = books.filter { book ->
-                            book.category.split(",").map { it.trim() }.any { it.equals(category, ignoreCase = true) }
-                        }
-                        if (categoryBooks.isNotEmpty()) {
-                            item {
-                                CategorySectionHeader(
-                                    categoryName = category,
-                                    onViewAllClick = {
-                                        onNavigateToAllBooks("recent", category)
-                                    }
-                                )
-                                
-                                LazyRow(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(Color.Transparent),
-                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 5.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(15.dp)
+                    is HomeUiState.Error -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("⚠️", fontSize = 48.sp)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("সংযোগ ব্যাহত হয়েছে", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(state.message, color = Color.Gray, fontSize = 13.sp, textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Button(
+                                    onClick = { homeViewModel.refreshBooks() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
                                 ) {
-                                    items(categoryBooks) { book ->
-                                        BookCardHorizontal(
-                                            book = book,
-                                            onClick = { onBookClick(book) }
+                                    Text("পুনরায় চেষ্টা করুন", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                    is HomeUiState.Success -> {
+                        val books = state.books
+                        
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            // 1. Recent Books - Horizontal Section
+                            if (books.isNotEmpty()) {
+                                item {
+                                    RecentBooksHeader(onViewAllClick = {
+                                        onNavigateToAllBooks("recent", "All")
+                                    })
+                                    
+                                    LazyRow(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color.Transparent),
+                                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 5.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(15.dp)
+                                    ) {
+                                        val recentBooks = books.take(8)
+                                        items(recentBooks) { book ->
+                                            BookCardHorizontal(
+                                                book = book,
+                                                onClick = { onBookClick(book) }
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+                            }
+
+                            // 2. Dynamic Category Sections
+                            val categoriesWithBooks = books.flatMap { it.category.split(",") }.map { it.trim() }.distinct().filter { it.isNotBlank() }
+                            categoriesWithBooks.forEach { category ->
+                                val categoryBooks = books.filter { book ->
+                                    book.category.split(",").map { it.trim() }.any { it.equals(category, ignoreCase = true) }
+                                }
+                                if (categoryBooks.isNotEmpty()) {
+                                    item {
+                                        CategorySectionHeader(
+                                            categoryName = category,
+                                            onViewAllClick = {
+                                                onNavigateToAllBooks("recent", category)
+                                            }
                                         )
+                                        
+                                        LazyRow(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color.Transparent),
+                                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 5.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(15.dp)
+                                        ) {
+                                            items(categoryBooks) { book ->
+                                                BookCardHorizontal(
+                                                    book = book,
+                                                    onClick = { onBookClick(book) }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(10.dp))
                             }
                         }
                     }
