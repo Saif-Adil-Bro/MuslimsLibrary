@@ -82,7 +82,18 @@ fun AddBookScreen(
     var bookFileUrl by remember { mutableStateOf("") }
 
     var expandedDropdown by remember { mutableStateOf(false) }
-    val categories = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+    val adminCategories by adminViewModel.adminCategories.collectAsState()
+    val categories = remember(adminCategories) {
+        if (adminCategories.isEmpty()) {
+            listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+        } else {
+            adminCategories.map { it.name }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        adminViewModel.loadAdminData()
+    }
 
     val isEditMode = bookId != null
     var isLoadingBook by remember { mutableStateOf(false) }

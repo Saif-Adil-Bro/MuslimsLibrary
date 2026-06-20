@@ -43,6 +43,7 @@ fun HomeScreen(
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
     val selectedCategory by homeViewModel.selectedCategory.collectAsState()
+    val categories by homeViewModel.categories.collectAsState()
 
     PullToRefreshBox(
         isRefreshing = uiState is HomeUiState.Loading,
@@ -104,7 +105,7 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                items(homeViewModel.categories) { cat ->
+                                items(categories) { cat ->
                                     CategoryPill(
                                         categoryName = cat,
                                         isSelected = selectedCategory == cat,

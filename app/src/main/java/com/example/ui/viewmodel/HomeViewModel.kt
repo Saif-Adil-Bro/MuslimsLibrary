@@ -39,7 +39,8 @@ class HomeViewModel(
     private val allBooks = mutableListOf<SupabaseBook>()
     val allPublicBooks: List<SupabaseBook> get() = allBooks.toList()
 
-    val categories = listOf("সব", "কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+    private val _categories = MutableStateFlow<List<String>>(listOf("সব", "কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য"))
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
 
     init {
         loadBooks()
@@ -59,6 +60,14 @@ class HomeViewModel(
                 filterAndPublish()
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.localizedMessage ?: "Failed to fetch books from Supabase")
+            }
+            try {
+                val dbCategories = supabaseService.getCategories().map { it.name }
+                val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+                val combined = (defaultList + dbCategories).distinct()
+                _categories.value = listOf("সব") + combined
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Error fetching dynamic categories: ${e.message}")
             }
         }
     }
