@@ -55,6 +55,7 @@ import androidx.compose.ui.window.PopupProperties
 fun AddBookScreen(
     adminViewModel: AdminViewModel,
     onBackClick: () -> Unit,
+    bookId: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -83,6 +84,47 @@ fun AddBookScreen(
     var expandedDropdown by remember { mutableStateOf(false) }
     val categories = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
 
+    val isEditMode = bookId != null
+    var isLoadingBook by remember { mutableStateOf(false) }
+
+    // Prefill fields if which editMode
+    LaunchedEffect(bookId) {
+        if (bookId != null) {
+            isLoadingBook = true
+            var found = adminViewModel.adminBooks.value.find { it.id == bookId }
+            if (found == null) {
+                try {
+                    adminViewModel.loadAdminData()
+                    found = adminViewModel.adminBooks.value.find { it.id == bookId }
+                } catch (e: Exception) {
+                    android.util.Log.e("AddBookScreen", "Error loading books for prepopulating: ${e.message}")
+                }
+            }
+            if (found != null) {
+                title = found.title
+                author = found.author
+                category = found.category
+                fileType = found.fileType.lowercase()
+
+                if (!found.coverImageUrl.isNullOrBlank()) {
+                    coverSourceType = SourceType.URL
+                    coverImageUrl = found.coverImageUrl
+                }
+
+                if (!found.fileUrl.isNullOrBlank()) {
+                    if (adminViewModel.supabaseService.isGoogleDriveLink(found.fileUrl) || found.fileUrl.startsWith("https://drive.google.com/uc")) {
+                        bookSourceType = SourceType.GDRIVE
+                        bookFileUrl = found.fileUrl
+                    } else {
+                        bookSourceType = SourceType.CDN
+                        bookFileUrl = found.fileUrl
+                    }
+                }
+            }
+            isLoadingBook = false
+        }
+    }
+
     // Image Picker Setup (GetContent)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -105,10 +147,14 @@ fun AddBookScreen(
             } else {
                 coverImageUrl.isNotBlank()
             }
-            val message = if (isCoverProvided) {
-                "বইটি কভার ইমেজসহ সফলভাবে যুক্ত করা হয়েছে!"
+            val message = if (isEditMode) {
+                "বইয়ের তথ্য সফলভাবে সংশোধন করা হয়েছে!"
             } else {
-                "বইটি কভার ইমেজ ছাড়াই সফলভাবে যুক্ত করা হয়েছে! (ডিফল্ট কভার ব্যবহার করা হবে)"
+                if (isCoverProvided) {
+                    "বইটি কভার ইমেজসহ সফলভাবে যুক্ত করা হয়েছে!"
+                } else {
+                    "বইটি কভার ইমেজ ছাড়াই সফলভাবে যুক্ত করা হয়েছে! (ডিফল্ট কভার ব্যবহার করা হবে)"
+                }
             }
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             adminViewModel.resetState()
@@ -121,7 +167,7 @@ fun AddBookScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Add Islamic Manuscript",
+                        text = if (isEditMode) "Edit Islamic Manuscript" else "Add Islamic Manuscript",
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -1055,23 +1101,29 @@ fun AddBookScreen(
                     }
                 }
                 else -> {
-                    val hasCover = if (coverSourceType == SourceType.FILE) {
+                    val hasCover = if (isEditMode) {
+                        true
+                    } else if (coverSourceType == SourceType.FILE) {
                         true // Optional
                     } else {
                         coverImageUrl.isBlank() || adminViewModel.supabaseService.isValidImageUrl(coverImageUrl)
                     }
 
-                    val hasBook = when (bookSourceType) {
-                        SourceType.FILE -> bookFileUri != null
-                        SourceType.GDRIVE -> bookFileUrl.isNotBlank() && (adminViewModel.supabaseService.isGoogleDriveLink(bookFileUrl) || bookFileUrl.startsWith("https://drive.google.com/uc"))
-                        SourceType.CDN -> {
-                            bookFileUrl.isNotBlank() && if (fileType == "pdf") {
-                                adminViewModel.supabaseService.isValidPdfUrl(bookFileUrl)
-                            } else {
-                                adminViewModel.supabaseService.isValidEpubUrl(bookFileUrl)
+                    val hasBook = if (isEditMode) {
+                        true
+                    } else {
+                        when (bookSourceType) {
+                            SourceType.FILE -> bookFileUri != null
+                            SourceType.GDRIVE -> bookFileUrl.isNotBlank() && (adminViewModel.supabaseService.isGoogleDriveLink(bookFileUrl) || bookFileUrl.startsWith("https://drive.google.com/uc"))
+                            SourceType.CDN -> {
+                                bookFileUrl.isNotBlank() && if (fileType == "pdf") {
+                                    adminViewModel.supabaseService.isValidPdfUrl(bookFileUrl)
+                                } else {
+                                    adminViewModel.supabaseService.isValidEpubUrl(bookFileUrl)
+                                }
                             }
+                            else -> false
                         }
-                        else -> false
                     }
 
                     val isFormValid = title.isNotBlank() && author.isNotBlank() && hasCover && hasBook
@@ -1090,7 +1142,11 @@ fun AddBookScreen(
                                 bookFileUri = if (bookSourceType == SourceType.FILE) bookFileUri else null,
                                 bookFileUrl = if (bookSourceType != SourceType.FILE) bookFileUrl else null
                             )
-                            adminViewModel.uploadBook(uploadData, authorBio = authorBio)
+                            if (isEditMode) {
+                                adminViewModel.updateBookDetailed(bookId!!, uploadData, authorBio = authorBio)
+                            } else {
+                                adminViewModel.uploadBook(uploadData, authorBio = authorBio)
+                            }
                         },
                         enabled = isFormValid,
                         colors = ButtonDefaults.buttonColors(
@@ -1103,10 +1159,14 @@ fun AddBookScreen(
                             .height(52.dp)
                             .testTag("submit_upload_book_button")
                     ) {
-                        Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
+                        Icon(
+                            imageVector = if (isEditMode) Icons.Default.Save else Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Publish Manuscript",
+                            text = if (isEditMode) "Save Changes" else "Publish Manuscript",
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )

@@ -63,6 +63,8 @@ class AdminViewModel(
     private val _adminCategories = MutableStateFlow<List<com.example.data.SupabaseCategory>>(emptyList())
     val adminCategories: StateFlow<List<com.example.data.SupabaseCategory>> = _adminCategories.asStateFlow()
 
+    private val localCategoriesOverride = mutableListOf<com.example.data.SupabaseCategory>()
+
     fun loadAdminData() {
         viewModelScope.launch {
             try {
@@ -76,7 +78,28 @@ class AdminViewModel(
                 android.util.Log.e("AdminViewModel", "Error loading admin authors: ${e.message}")
             }
             try {
-                _adminCategories.value = supabaseService.getCategories()
+                val dbCategories = supabaseService.getCategories()
+                val merged = mutableListOf<com.example.data.SupabaseCategory>()
+                
+                dbCategories.forEach { dbCat ->
+                    val override = localCategoriesOverride.find { it.id == dbCat.id || it.name.trim().lowercase() == dbCat.name.trim().lowercase() }
+                    if (override != null) {
+                        if (!merged.any { it.name.trim().lowercase() == override.name.trim().lowercase() }) {
+                            merged.add(override)
+                        }
+                    } else {
+                        if (!merged.any { it.name.trim().lowercase() == dbCat.name.trim().lowercase() }) {
+                            merged.add(dbCat)
+                        }
+                    }
+                }
+                
+                localCategoriesOverride.forEach { locCat ->
+                    if (!merged.any { it.id == locCat.id || it.name.trim().lowercase() == locCat.name.trim().lowercase() }) {
+                        merged.add(locCat)
+                    }
+                }
+                _adminCategories.value = merged.sortedBy { it.name }
             } catch (e: Exception) {
                 android.util.Log.e("AdminViewModel", "Error loading admin categories: ${e.message}")
             }
@@ -88,6 +111,93 @@ class AdminViewModel(
             supabaseService.updateBook(id, title, author, category, coverImageUrl, fileUrl)
             loadAdminData()
             getTotalBooksCount()
+        }
+    }
+
+    fun updateBookDetailed(id: String, data: BookUploadData, authorBio: String? = null) {
+        _uiState.value = UploadState.Uploading(10)
+        android.util.Log.d("AdminViewModel", "Starting update for $id with data: $data")
+        viewModelScope.launch {
+            try {
+                // Ensure the author exists first
+                ensureAuthorExists(data.author, authorBio)
+
+                val timestamp = System.currentTimeMillis()
+                val ext = data.fileType.lowercase()
+
+                // 1. Resolve Cover Image URL
+                _uiState.value = UploadState.Uploading(30)
+                val coverUrl = if (data.coverSourceType == SourceType.FILE) {
+                    if (data.coverImageUri != null) {
+                        android.util.Log.d("AdminViewModel", "Uploading new cover image file...")
+                        val coverPath = "covers/${timestamp}_$id.jpg"
+                        supabaseService.uploadToStorage("books", coverPath, data.coverImageUri)
+                    } else {
+                        null
+                    }
+                } else {
+                    if (!data.coverImageUrl.isNullOrBlank()) {
+                        android.util.Log.d("AdminViewModel", "Using cover image URL direct: ${data.coverImageUrl}")
+                        data.coverImageUrl
+                    } else {
+                        null
+                    }
+                }
+
+                // 2. Resolve Book File URL
+                _uiState.value = UploadState.Uploading(60)
+                val bookUrl = when (data.bookSourceType) {
+                    SourceType.FILE -> {
+                        if (data.bookFileUri != null) {
+                            android.util.Log.d("AdminViewModel", "Uploading new book file to Supabase storage...")
+                            val bookPath = "files/${timestamp}_$id.$ext"
+                            supabaseService.uploadToStorage("books", bookPath, data.bookFileUri)
+                        } else {
+                            null
+                        }
+                    }
+                    SourceType.GDRIVE -> {
+                        val rawUrl = data.bookFileUrl
+                        if (!rawUrl.isNullOrBlank()) {
+                            val converted = supabaseService.convertGoogleDriveLink(rawUrl)
+                            android.util.Log.d("AdminViewModel", "Converting GDrive link: $rawUrl -> $converted")
+                            converted
+                        } else {
+                            null
+                        }
+                    }
+                    SourceType.CDN -> {
+                        val rawUrl = data.bookFileUrl
+                        if (!rawUrl.isNullOrBlank()) {
+                            android.util.Log.d("AdminViewModel", "Using CDN URL direct: $rawUrl")
+                            rawUrl
+                        } else {
+                            null
+                        }
+                    }
+                    else -> null
+                }
+
+                // 3. Update metadata in public.books table
+                _uiState.value = UploadState.Uploading(90)
+                android.util.Log.d("AdminViewModel", "Updating book $id in database: coverUrl=$coverUrl, bookUrl=$bookUrl")
+                supabaseService.updateBook(
+                    id = id,
+                    title = data.title,
+                    author = data.author,
+                    category = data.category,
+                    coverImageUrl = coverUrl,
+                    fileUrl = bookUrl,
+                    fileType = ext
+                )
+
+                _uiState.value = UploadState.Success
+                loadAdminData()
+                getTotalBooksCount()
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Update failed", e)
+                _uiState.value = UploadState.Error(e.localizedMessage ?: "Update failed")
+            }
         }
     }
 
@@ -116,9 +226,20 @@ class AdminViewModel(
     fun saveCategory(id: String?, name: String) {
         viewModelScope.launch {
             if (id == null) {
+                val newId = "local_${java.util.UUID.randomUUID()}"
+                val newCat = com.example.data.SupabaseCategory(id = newId, name = name)
+                localCategoriesOverride.add(newCat)
                 supabaseService.addCategory(name)
             } else {
-                supabaseService.updateCategory(id, name)
+                val index = localCategoriesOverride.indexOfFirst { it.id == id }
+                if (index != -1) {
+                    localCategoriesOverride[index] = localCategoriesOverride[index].copy(name = name)
+                } else {
+                    localCategoriesOverride.add(com.example.data.SupabaseCategory(id = id, name = name))
+                }
+                if (!id.startsWith("local_")) {
+                    supabaseService.updateCategory(id, name)
+                }
             }
             loadAdminData()
         }
@@ -126,7 +247,10 @@ class AdminViewModel(
 
     fun deleteCategory(id: String) {
         viewModelScope.launch {
-            supabaseService.deleteCategory(id)
+            localCategoriesOverride.removeAll { it.id == id }
+            if (!id.startsWith("local_")) {
+                supabaseService.deleteCategory(id)
+            }
             loadAdminData()
         }
     }

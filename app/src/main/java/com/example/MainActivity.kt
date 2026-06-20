@@ -412,6 +412,9 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToAddBook = {
                                         navController.navigate("add_book")
                                     },
+                                    onNavigateToEditBook = { bookId ->
+                                        navController.navigate("add_book?bookId=$bookId")
+                                    },
                                     userEmail = userEmail,
                                     onLogoutClick = {
                                         authViewModel.logout()
@@ -430,11 +433,22 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Add Book Route with Admin authorization check guard
-                        composable("add_book") {
+                        composable(
+                            route = "add_book?bookId={bookId}",
+                            arguments = listOf(
+                                navArgument("bookId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val bookId = backStackEntry.arguments?.getString("bookId")
                             val userRole by authViewModel.userRole.collectAsState()
                             if (userRole.lowercase() == "admin") {
                                 AddBookScreen(
                                     adminViewModel = adminViewModel,
+                                    bookId = bookId,
                                     onBackClick = {
                                         navController.popBackStack()
                                     }

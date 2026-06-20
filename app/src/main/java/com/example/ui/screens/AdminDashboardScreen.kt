@@ -36,6 +36,7 @@ import com.example.ui.viewmodel.AdminViewModel
 fun AdminDashboardScreen(
     adminViewModel: AdminViewModel,
     onNavigateToAddBook: () -> Unit,
+    onNavigateToEditBook: (String) -> Unit,
     userEmail: String = "admin@muslimslibrary.org",
     onLogoutClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -152,8 +153,8 @@ fun AdminDashboardScreen(
                 1 -> BooksTabContent(
                     books = adminBooks,
                     categories = adminCategories,
-                    onUpdateBook = { id, title, author, category, coverUrl, fileUrl ->
-                        adminViewModel.updateBook(id, title, author, category, coverUrl, fileUrl)
+                    onEditBook = { book ->
+                        onNavigateToEditBook(book.id)
                     },
                     onDeleteBook = { id ->
                         adminViewModel.deleteBook(id)
@@ -444,11 +445,10 @@ fun DashboardTabContent(
 fun BooksTabContent(
     books: List<SupabaseBook>,
     categories: List<SupabaseCategory>,
-    onUpdateBook: (String, String, String, String, String?, String?) -> Unit,
+    onEditBook: (SupabaseBook) -> Unit,
     onDeleteBook: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var editingBook by remember { mutableStateOf<SupabaseBook?>(null) }
     var showDeleteConfirmBook by remember { mutableStateOf<SupabaseBook?>(null) }
 
     val filteredBooks = remember(books, searchQuery) {
@@ -539,7 +539,7 @@ fun BooksTabContent(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 IconButton(
-                                    onClick = { editingBook = book },
+                                    onClick = { onEditBook(book) },
                                     modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
@@ -567,150 +567,6 @@ fun BooksTabContent(
                 }
             }
         }
-    }
-
-    // Edit Book Dialog
-    editingBook?.let { book ->
-        var editTitle by remember { mutableStateOf(book.title) }
-        var editAuthor by remember { mutableStateOf(book.author) }
-        var editCategory by remember { mutableStateOf(book.category) }
-        var editCoverUrl by remember { mutableStateOf(book.coverImageUrl ?: "") }
-        var editFileUrl by remember { mutableStateOf(book.fileUrl ?: "") }
-        var isDropdownExpanded by remember { mutableStateOf(false) }
-
-        val systemCategories = categories.map { it.name }
-        val predefinedList = if (systemCategories.isEmpty()) {
-            listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
-        } else {
-            systemCategories
-        }
-
-        AlertDialog(
-            onDismissRequest = { editingBook = null },
-            title = { Text("বইয়ের তথ্য পরিবর্তন করুন", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = editTitle,
-                        onValueChange = { editTitle = it },
-                        label = { Text("বইয়ের নাম") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = editAuthor,
-                        onValueChange = { editAuthor = it },
-                        label = { Text("লেখক") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Category selection with chips support
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = editCategory,
-                            onValueChange = { editCategory = it },
-                            label = { Text("ক্যাটেগরি (কমা দিয়ে একাধিক)") },
-                            trailingIcon = {
-                                IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }) {
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        DropdownMenu(
-                            expanded = isDropdownExpanded,
-                            onDismissRequest = { isDropdownExpanded = false }
-                        ) {
-                            predefinedList.forEach { cat ->
-                                DropdownMenuItem(
-                                    text = { Text(cat) },
-                                    onClick = {
-                                        val currentList = editCategory.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
-                                        if (currentList.contains(cat)) {
-                                            currentList.remove(cat)
-                                        } else {
-                                            currentList.add(cat)
-                                        }
-                                        editCategory = currentList.joinToString(", ")
-                                        isDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            predefinedList.forEach { cat ->
-                                val isSelected = editCategory.split(",").map { it.trim() }.contains(cat)
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        val currentList = editCategory.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
-                                        if (currentList.contains(cat)) {
-                                            currentList.remove(cat)
-                                        } else {
-                                            currentList.add(cat)
-                                        }
-                                        editCategory = currentList.joinToString(", ")
-                                    },
-                                    label = { Text(cat, fontSize = 10.sp) }
-                                )
-                            }
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = editCoverUrl,
-                        onValueChange = { editCoverUrl = it },
-                        label = { Text("কভার ফটো ইউআরএল") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = editFileUrl,
-                        onValueChange = { editFileUrl = it },
-                        label = { Text("বইয়ের ফাইল ইউআরএল") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onUpdateBook(
-                            book.id,
-                            editTitle,
-                            editAuthor,
-                            editCategory,
-                            if (editCoverUrl.isBlank()) null else editCoverUrl,
-                            if (editFileUrl.isBlank()) null else editFileUrl
-                        )
-                        editingBook = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38))
-                ) {
-                    Text("সংরক্ষণ করুন")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingBook = null }) {
-                    Text("বাতিল")
-                }
-            }
-        )
     }
 
     // Delete confirm dialog
@@ -872,8 +728,8 @@ fun AuthorsTabContent(
     // Add / Edit Author Dialog
     if (isAddingAuthor || editingAuthor != null) {
         val author = editingAuthor
-        var name by remember { mutableStateOf(author?.name ?: "") }
-        var bio by remember { mutableStateOf(author?.bio ?: "") }
+        var name by remember(author, isAddingAuthor) { mutableStateOf(author?.name ?: "") }
+        var bio by remember(author, isAddingAuthor) { mutableStateOf(author?.bio ?: "") }
 
         AlertDialog(
             onDismissRequest = {
@@ -1081,7 +937,7 @@ fun CategoriesTabContent(
     // Add / Edit Category Dialog
     if (isAddingCategory || editingCategory != null) {
         val category = editingCategory
-        var name by remember { mutableStateOf(category?.name ?: "") }
+        var name by remember(category, isAddingCategory) { mutableStateOf(category?.name ?: "") }
 
         AlertDialog(
             onDismissRequest = {

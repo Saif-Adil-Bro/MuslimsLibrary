@@ -958,7 +958,8 @@ class SupabaseService(
         author: String,
         category: String,
         coverImageUrl: String? = null,
-        fileUrl: String? = null
+        fileUrl: String? = null,
+        fileType: String? = null
     ): Unit = withContext(Dispatchers.IO) {
         try {
             val jsonObject = buildJsonObject {
@@ -968,6 +969,7 @@ class SupabaseService(
                 put("category", category)
                 if (coverImageUrl != null) put("cover_image_url", coverImageUrl)
                 if (fileUrl != null) put("file_url", fileUrl)
+                if (fileType != null) put("file_type", fileType)
             }
             supabaseClient.postgrest["books"].update(jsonObject) {
                 filter {
