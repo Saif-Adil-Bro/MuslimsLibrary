@@ -242,7 +242,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("post_detail/$postId")
                                 },
                                 onNavigateToProfile = {
-                                    navController.navigate("profile")
+                                    navController.navigate("edit_profile")
                                 },
                                 onNavigateToDownloads = {
                                     navController.navigate("downloaded_books")

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
 import com.example.data.SupabaseBook
 import com.example.ui.components.*
 import com.example.ui.viewmodel.AdminViewModel
@@ -49,14 +51,31 @@ fun DashboardScreen(
     onToggleDebug: () -> Unit = {},
     backupManager: com.example.data.backup.BackupManager? = null
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
-    var drawerScreenTitle by remember { mutableStateOf("") }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
+    var tabHistory by rememberSaveable { mutableStateOf(listOf<Int>()) }
+    var drawerScreenTitle by rememberSaveable { mutableStateOf("") }
     val searchQuery by homeViewModel.searchQuery.collectAsState()
 
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     val nameFromEmail = userEmail.split("@").first().replaceFirstChar { it.uppercase() }
+
+    val isBackHandlerEnabled = drawerState.isOpen || drawerScreenTitle.isNotEmpty() || selectedTab != 0 || tabHistory.isNotEmpty()
+
+    BackHandler(enabled = isBackHandlerEnabled) {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else if (drawerScreenTitle.isNotEmpty()) {
+            drawerScreenTitle = ""
+        } else if (tabHistory.isNotEmpty()) {
+            val last = tabHistory.last()
+            tabHistory = tabHistory.dropLast(1)
+            selectedTab = last
+        } else if (selectedTab != 0) {
+            selectedTab = 0
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -142,7 +161,10 @@ fun DashboardScreen(
                     selectedTab = if (drawerScreenTitle.isNotEmpty()) -1 else selectedTab,
                     onTabSelected = { tab ->
                         drawerScreenTitle = "" // Clear drawer placeholders on tab switches
-                        selectedTab = tab
+                        if (selectedTab != tab) {
+                            tabHistory = tabHistory.filter { it != selectedTab } + selectedTab
+                            selectedTab = tab
+                        }
                     }
                 )
             }
@@ -199,7 +221,10 @@ fun DashboardScreen(
                                     )
                                 },
                                 onGoToHomeClick = {
-                                    selectedTab = 0
+                                    if (selectedTab != 0) {
+                                        tabHistory = tabHistory.filter { it != selectedTab } + selectedTab
+                                        selectedTab = 0
+                                    }
                                 }
                             )
                         }
@@ -217,7 +242,15 @@ fun DashboardScreen(
                             AuthorScreen(
                                 viewModel = authorViewModel,
                                 onBookClick = onBookClick,
-                                onBackClick = { selectedTab = 0 }
+                                onBackClick = {
+                                    if (tabHistory.isNotEmpty()) {
+                                        val last = tabHistory.last()
+                                        tabHistory = tabHistory.dropLast(1)
+                                        selectedTab = last
+                                    } else {
+                                        selectedTab = 0
+                                    }
+                                }
                             )
                         }
                         4 -> {
@@ -230,7 +263,13 @@ fun DashboardScreen(
                                 },
                                 onLogoutClick = onLogoutClick,
                                 onBackClick = {
-                                    selectedTab = 0
+                                    if (tabHistory.isNotEmpty()) {
+                                        val last = tabHistory.last()
+                                        tabHistory = tabHistory.dropLast(1)
+                                        selectedTab = last
+                                    } else {
+                                        selectedTab = 0
+                                    }
                                 },
                                 onAdminDashboardClick = onNavigateToAdminDashboard
                             )

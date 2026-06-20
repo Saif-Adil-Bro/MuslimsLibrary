@@ -44,78 +44,79 @@ fun LibraryScreen(
     val stats by libraryViewModel.stats.collectAsState()
     val books by libraryViewModel.libraryBooks.collectAsState()
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "লাইব্রেরী",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2D3748)
-                    )
-                },
-                actions = {
-                    IconButton(
-                        onClick = { libraryViewModel.toggleViewMode() },
-                        modifier = Modifier.testTag("library_view_toggle")
-                    ) {
-                        Icon(
-                            imageVector = if (isGridView) Icons.Default.List else Icons.Default.GridOn,
-                            contentDescription = "Toggle View Layout",
-                            tint = Color(0xFF667EEA)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        },
-        containerColor = Color(0xFFF8F9FA)
-    ) { innerPadding ->
-        Column(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
+        // Compact title and layout toggle row (removes double header and reduces margin)
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Stats Card at top
-            LibraryStatsCard(
-                stats = stats,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            Text(
+                text = "লাইব্রেরী",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2D3748)
             )
-
-            // Search Bar Row
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { libraryViewModel.updateSearchQuery(it) },
-                placeholder = { Text("লাইব্রেরী থেকে খুঁজুন...", fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color(0xFF718096)
-                    )
-                },
+            IconButton(
+                onClick = { libraryViewModel.toggleViewMode() },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .testTag("library_search_input"),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF667EEA),
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                ),
-                singleLine = true
-            )
+                    .size(36.dp)
+                    .testTag("library_view_toggle")
+            ) {
+                Icon(
+                    imageVector = if (isGridView) Icons.Default.List else Icons.Default.GridOn,
+                    contentDescription = "Toggle View Layout",
+                    tint = Color(0xFF667EEA),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
-            // Tab Filters with horizontal scrolling
-            LibraryTabFilter(
-                selectedTab = selectedTab,
-                onTabSelected = { libraryViewModel.selectTab(it) },
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+        // Stats Card at top
+        LibraryStatsCard(
+            stats = stats,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+        )
+
+        // Search Bar Row
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { libraryViewModel.updateSearchQuery(it) },
+            placeholder = { Text("লাইব্রেরী থেকে খুঁজুন...", fontSize = 14.sp) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = Color(0xFF718096)
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .testTag("library_search_input"),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF667EEA),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            ),
+            singleLine = true
+        )
+
+        // Tab Filters with horizontal scrolling
+        LibraryTabFilter(
+            selectedTab = selectedTab,
+            onTabSelected = { libraryViewModel.selectTab(it) },
+            modifier = Modifier.padding(vertical = 2.dp)
+        )
 
             // Main Book Display list/grid or empty state
             if (books.isEmpty()) {
@@ -199,5 +200,4 @@ fun LibraryScreen(
                 }
             }
         }
-    }
 }

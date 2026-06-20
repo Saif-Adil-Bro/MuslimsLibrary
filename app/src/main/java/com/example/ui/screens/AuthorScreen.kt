@@ -72,30 +72,16 @@ fun AuthorScreen(
                         colors = listOf(AppGradientStart, AppGradientEnd)
                     )
                 )
-                .statusBarsPadding()
-                .padding(horizontal = 15.dp, vertical = 15.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
                 .testTag("author_header_box")
         ) {
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .testTag("author_back_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "ফিরে যান",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
             Text(
                 text = "লেখকবৃন্দ",
                 color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center)
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.align(Alignment.CenterStart)
             )
         }
 
