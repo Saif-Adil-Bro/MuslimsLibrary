@@ -52,7 +52,43 @@ class AuthorViewModel(
         viewModelScope.launch {
             try {
                 val books = supabaseService.fetchPublicBooks()
-                allAuthors = extractAuthors(books)
+                val dbAuthors = supabaseService.getAllAuthors()
+                
+                // Group books by author (case-insensitive for robust matching)
+                val booksByAuthor = books.groupBy { it.author.trim().lowercase() }
+                
+                // 1. Convert DB authors to UI Author objects
+                val mappedDbAuthors = dbAuthors.map { dbAuthor ->
+                    val authorKey = dbAuthor.name.trim().lowercase()
+                    val authorBooks = booksByAuthor[authorKey] ?: emptyList()
+                    val displayName = dbAuthor.name
+                    Author(
+                        id = dbAuthor.id,
+                        name = displayName,
+                        initial = displayName.trim().firstOrNull()?.toString() ?: "?",
+                        booksCount = authorBooks.size,
+                        books = authorBooks,
+                        bio = dbAuthor.bio ?: getPredefinedBio(displayName)
+                    )
+                }
+                
+                // 2. See if there are any authors in Books that are NOT in dbAuthors
+                val dbAuthorNamesLower = dbAuthors.map { it.name.trim().lowercase() }.toSet()
+                val legacyAuthors = books
+                    .filter { it.author.isNotBlank() && !dbAuthorNamesLower.contains(it.author.trim().lowercase()) }
+                    .groupBy { it.author }
+                    .map { (authorName, authorBooks) ->
+                        Author(
+                            id = authorName.hashCode().toString(),
+                            name = authorName,
+                            initial = authorName.trim().firstOrNull()?.toString() ?: "?",
+                            booksCount = authorBooks.size,
+                            books = authorBooks,
+                            bio = getPredefinedBio(authorName)
+                        )
+                    }
+                
+                allAuthors = (mappedDbAuthors + legacyAuthors).distinctBy { it.name.trim().lowercase() }
                 applyFiltersAndPublish()
             } catch (e: Exception) {
                 _uiState.value = AuthorUiState.Error(e.localizedMessage ?: "লেখকদের ডাটা লোড করতে ব্যর্থ হয়েছে")

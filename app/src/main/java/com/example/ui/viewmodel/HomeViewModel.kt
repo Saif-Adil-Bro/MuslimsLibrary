@@ -102,7 +102,7 @@ class HomeViewModel(
             val matchesCategory = if (category == "সব") {
                 true
             } else {
-                book.category.equals(category, ignoreCase = true)
+                book.category.split(",").map { it.trim() }.any { it.equals(category, ignoreCase = true) }
             }
             
             matchesQuery && matchesCategory

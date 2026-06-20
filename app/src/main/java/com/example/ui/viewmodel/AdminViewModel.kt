@@ -15,6 +15,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.util.UUID
 
 sealed interface UploadState {
@@ -52,6 +54,83 @@ class AdminViewModel(
     private val _totalBooksCount = MutableStateFlow(0)
     val totalBooksCount: StateFlow<Int> = _totalBooksCount.asStateFlow()
 
+    private val _adminBooks = MutableStateFlow<List<com.example.data.SupabaseBook>>(emptyList())
+    val adminBooks: StateFlow<List<com.example.data.SupabaseBook>> = _adminBooks.asStateFlow()
+
+    private val _adminAuthors = MutableStateFlow<List<com.example.data.SupabaseAuthor>>(emptyList())
+    val adminAuthors: StateFlow<List<com.example.data.SupabaseAuthor>> = _adminAuthors.asStateFlow()
+
+    private val _adminCategories = MutableStateFlow<List<com.example.data.SupabaseCategory>>(emptyList())
+    val adminCategories: StateFlow<List<com.example.data.SupabaseCategory>> = _adminCategories.asStateFlow()
+
+    fun loadAdminData() {
+        viewModelScope.launch {
+            try {
+                _adminBooks.value = supabaseService.fetchPublicBooks().sortedBy { it.title }
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error loading admin books: ${e.message}")
+            }
+            try {
+                _adminAuthors.value = supabaseService.getAllAuthors()
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error loading admin authors: ${e.message}")
+            }
+            try {
+                _adminCategories.value = supabaseService.getCategories()
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error loading admin categories: ${e.message}")
+            }
+        }
+    }
+
+    fun updateBook(id: String, title: String, author: String, category: String, coverImageUrl: String?, fileUrl: String?) {
+        viewModelScope.launch {
+            supabaseService.updateBook(id, title, author, category, coverImageUrl, fileUrl)
+            loadAdminData()
+            getTotalBooksCount()
+        }
+    }
+
+    fun deleteBook(id: String) {
+        viewModelScope.launch {
+            supabaseService.deleteBook(id)
+            loadAdminData()
+            getTotalBooksCount()
+        }
+    }
+
+    fun saveAuthor(name: String, bio: String?) {
+        viewModelScope.launch {
+            supabaseService.upsertAuthor(name, bio)
+            loadAdminData()
+        }
+    }
+
+    fun deleteAuthor(id: String) {
+        viewModelScope.launch {
+            supabaseService.deleteAuthor(id)
+            loadAdminData()
+        }
+    }
+
+    fun saveCategory(id: String?, name: String) {
+        viewModelScope.launch {
+            if (id == null) {
+                supabaseService.addCategory(name)
+            } else {
+                supabaseService.updateCategory(id, name)
+            }
+            loadAdminData()
+        }
+    }
+
+    fun deleteCategory(id: String) {
+        viewModelScope.launch {
+            supabaseService.deleteCategory(id)
+            loadAdminData()
+        }
+    }
+
     // NEW: Author suggestion states
     private val _authorSuggestions = MutableStateFlow<List<AuthorSuggestion>>(emptyList())
     val authorSuggestions: StateFlow<List<AuthorSuggestion>> = _authorSuggestions.asStateFlow()
@@ -83,9 +162,13 @@ class AdminViewModel(
             delay(300)
             try {
                 val authors = supabaseService.searchAuthors(query, limit = 5)
-                val suggestions = authors.map { author ->
-                    val bookCount = supabaseService.getAuthorBookCount(author.name)
-                    AuthorSuggestion(author, bookCount)
+                val suggestions = withContext(Dispatchers.IO) {
+                    authors.map { author ->
+                        async {
+                            val bookCount = supabaseService.getAuthorBookCount(author.name)
+                            AuthorSuggestion(author, bookCount)
+                        }
+                    }.awaitAll()
                 }
                 _authorSuggestions.value = suggestions
                 _showAuthorSuggestions.value = true
@@ -109,14 +192,10 @@ class AdminViewModel(
     suspend fun ensureAuthorExists(authorName: String, authorBio: String? = null): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val existing = supabaseService.searchAuthors(authorName, limit = 100)
-                    .find { it.name.equals(authorName, ignoreCase = true) }
-
-                if (existing != null) {
-                    return@withContext true
+                val exists = supabaseService.checkAuthorExistsInAuthorsTable(authorName)
+                if (!exists) {
+                    supabaseService.addAuthor(authorName, authorBio)
                 }
-
-                supabaseService.addAuthor(authorName, authorBio)
                 true
             } catch (e: Exception) {
                 android.util.Log.e("AdminViewModel", "Error ensuring author exists: ${e.message}")

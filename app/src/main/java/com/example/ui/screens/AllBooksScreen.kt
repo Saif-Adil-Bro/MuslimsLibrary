@@ -43,7 +43,9 @@ fun AllBooksScreen(
         if (categoryFilter == null || categoryFilter.equals("all", ignoreCase = true)) {
             books
         } else {
-            books.filter { it.category.equals(categoryFilter, ignoreCase = true) }
+            books.filter { book ->
+                book.category.split(",").map { it.trim() }.any { it.equals(categoryFilter, ignoreCase = true) }
+            }
         }
     }
 

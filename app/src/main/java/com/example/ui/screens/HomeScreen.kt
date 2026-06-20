@@ -143,9 +143,11 @@ fun HomeScreen(
                     }
 
                     // 3. Dynamic Category Sections
-                    val categoriesWithBooks = books.map { it.category }.distinct().filter { it.isNotBlank() }
+                    val categoriesWithBooks = books.flatMap { it.category.split(",") }.map { it.trim() }.distinct().filter { it.isNotBlank() }
                     categoriesWithBooks.forEach { category ->
-                        val categoryBooks = books.filter { it.category.equals(category, ignoreCase = true) }
+                        val categoryBooks = books.filter { book ->
+                            book.category.split(",").map { it.trim() }.any { it.equals(category, ignoreCase = true) }
+                        }
                         if (categoryBooks.isNotEmpty()) {
                             item {
                                 CategorySectionHeader(

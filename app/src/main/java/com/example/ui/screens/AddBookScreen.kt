@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +48,7 @@ import com.example.ui.components.AddNewAuthorDialog
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.window.PopupProperties
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -210,7 +212,7 @@ fun AddBookScreen(
                     )
 
                     // Author with Autocomplete dropdown of suggestions
-                    Box(modifier = Modifier.fillMaxWidth().zIndex(100f)) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = author,
                             onValueChange = { newValue ->
@@ -242,20 +244,26 @@ fun AddBookScreen(
                             )
                         )
 
-                        // Suggestions dropdown layout card
-                        if (showSuggestions) {
+                        // Suggestions custom inline list with zIndexed absolute overlay layout
+                        AnimatedVisibility(
+                            visible = showSuggestions,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 66.dp)
-                                    .zIndex(101f),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                                shape = RoundedCornerShape(12.dp)
+                                    .padding(top = 4.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                             ) {
                                 Column(
                                     modifier = Modifier
-                                        .background(Color.White)
-                                        .padding(vertical = 8.dp)
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
                                 ) {
                                     if (authorSuggestions.isNotEmpty()) {
                                         authorSuggestions.take(5).forEach { suggestion ->
@@ -314,13 +322,13 @@ fun AddBookScreen(
                         }
                     }
 
-                    // Category Selector Dropdown
-                    Box(modifier = Modifier.fillMaxWidth()) {
+                    // Category Selector Box with custom multiple toggle chips
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
                             value = category,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Category") },
+                            onValueChange = { category = it },
+                            label = { Text("Category (একাধিক ক্যাটাগরি কমা দিয়ে লিখুন)") },
+                            placeholder = { Text("যেমন: কুরআন, হাদিস, ফিকহ") },
                             leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = Color(0xFF0A4E38)) },
                             trailingIcon = {
                                 IconButton(onClick = { expandedDropdown = !expandedDropdown }) {
@@ -332,7 +340,6 @@ fun AddBookScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { expandedDropdown = !expandedDropdown }
                                 .testTag("add_book_category_input"),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color(0xFF1E293B),
@@ -352,9 +359,45 @@ fun AddBookScreen(
                                 DropdownMenuItem(
                                     text = { Text(cat) },
                                     onClick = {
-                                        category = cat
+                                        val currentList = category.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+                                        if (currentList.contains(cat)) {
+                                            currentList.remove(cat)
+                                        } else {
+                                            currentList.add(cat)
+                                        }
+                                        category = currentList.joinToString(", ")
                                         expandedDropdown = false
                                     }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            categories.forEach { cat ->
+                                val isSelected = category.split(",").map { it.trim() }.contains(cat)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        val currentList = category.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+                                        if (currentList.contains(cat)) {
+                                            currentList.remove(cat)
+                                        } else {
+                                            currentList.add(cat)
+                                        }
+                                        category = currentList.joinToString(", ")
+                                    },
+                                    label = { Text(cat, fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFFEAF4F0),
+                                        selectedLabelColor = Color(0xFF0A4E38)
+                                    )
                                 )
                             }
                         }

@@ -49,6 +49,12 @@ data class SupabaseAuthor(
 )
 
 @Serializable
+data class SupabaseCategory(
+    val id: String = "",
+    val name: String = ""
+)
+
+@Serializable
 data class ForumPost(
     val id: String = "",
     @SerialName("user_id") val userId: String? = null,
@@ -808,6 +814,207 @@ class SupabaseService(
             books.size
         } catch (e: Exception) {
             0
+        }
+    }
+
+    suspend fun checkAuthorExistsInAuthorsTable(authorName: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val existing = supabaseClient.postgrest["authors"]
+                .select {
+                    filter {
+                        eq("name", authorName)
+                    }
+                }
+                .decodeList<SupabaseAuthor>()
+            existing.isNotEmpty()
+        } catch (e: Exception) {
+            android.util.Log.w("SupabaseService", "Error checking checkAuthorExistsInAuthorsTable: ${e.message}")
+            false
+        }
+    }
+
+    // Fetch all authors from 'authors' table
+    suspend fun getAllAuthors(): List<SupabaseAuthor> = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["authors"]
+                .select()
+                .decodeList<SupabaseAuthor>()
+                .sortedBy { it.name }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error loading all authors from authors table (falling back to book authors): ${e.message}", e)
+            try {
+                val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+                books.map { it.author }
+                    .distinct()
+                    .map { authorName ->
+                        SupabaseAuthor(
+                            id = authorName.hashCode().toString(),
+                            name = authorName,
+                            bio = null
+                        )
+                    }
+                    .sortedBy { it.name }
+            } catch (ex: Exception) {
+                android.util.Log.e("SupabaseService", "Error fallback authors fetching: ${ex.message}", ex)
+                emptyList()
+            }
+        }
+    }
+
+    // Upsert Author (Update if exists, add if not)
+    suspend fun upsertAuthor(name: String, bio: String? = null): Unit = withContext(Dispatchers.IO) {
+        try {
+            val existing = supabaseClient.postgrest["authors"]
+                .select {
+                    filter {
+                        eq("name", name)
+                    }
+                }
+                .decodeList<SupabaseAuthor>()
+
+            if (existing.isNotEmpty()) {
+                val existingAuthor = existing.first()
+                val jsonObject = buildJsonObject {
+                    put("id", existingAuthor.id)
+                    put("name", name)
+                    if (bio != null) put("bio", bio) else put("bio", JsonNull)
+                }
+                supabaseClient.postgrest["authors"].update(jsonObject) {
+                    filter {
+                        eq("id", existingAuthor.id)
+                    }
+                }
+            } else {
+                val id = java.util.UUID.randomUUID().toString()
+                val jsonObject = buildJsonObject {
+                    put("id", id)
+                    put("name", name)
+                    if (bio != null) put("bio", bio) else put("bio", JsonNull)
+                }
+                supabaseClient.postgrest["authors"].insert(jsonObject)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error upserting author: ${e.message}", e)
+        }
+    }
+
+    // Get categories from 'categories' table with a fallback using books or default list elements
+    suspend fun getCategories(): List<SupabaseCategory> = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["categories"]
+                .select()
+                .decodeList<SupabaseCategory>()
+                .sortedBy { it.name }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error loading categories from categories table (using fallback): ${e.message}")
+            val defaultList = listOf("কুরআন", "হাদিস", "ফিকহ", "তাফসীর", "সীরাত", "অন্যান্য")
+            try {
+                val books = supabaseClient.postgrest["books"].select().decodeList<SupabaseBook>()
+                val bookCategories = books.flatMap { it.category.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }
+                (defaultList + bookCategories).distinct().map {
+                    SupabaseCategory(id = it.hashCode().toString(), name = it)
+                }.sortedBy { it.name }
+            } catch (ex: Exception) {
+                defaultList.map { SupabaseCategory(id = it.hashCode().toString(), name = it) }.sortedBy { it.name }
+            }
+        }
+    }
+
+    // Add category as Supabase element
+    suspend fun addCategory(name: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            val id = java.util.UUID.randomUUID().toString()
+            val jsonObject = buildJsonObject {
+                put("id", id)
+                put("name", name)
+            }
+            supabaseClient.postgrest["categories"].insert(jsonObject)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error adding category to table: ${e.message}", e)
+        }
+    }
+
+    // Update Category name
+    suspend fun updateCategory(id: String, name: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            val jsonObject = buildJsonObject {
+                put("id", id)
+                put("name", name)
+            }
+            supabaseClient.postgrest["categories"].update(jsonObject) {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error updating category: ${e.message}", e)
+        }
+    }
+
+    // Update Book details in Postgrest
+    suspend fun updateBook(
+        id: String,
+        title: String,
+        author: String,
+        category: String,
+        coverImageUrl: String? = null,
+        fileUrl: String? = null
+    ): Unit = withContext(Dispatchers.IO) {
+        try {
+            val jsonObject = buildJsonObject {
+                put("id", id)
+                put("title", title)
+                put("author", author)
+                put("category", category)
+                if (coverImageUrl != null) put("cover_image_url", coverImageUrl)
+                if (fileUrl != null) put("file_url", fileUrl)
+            }
+            supabaseClient.postgrest["books"].update(jsonObject) {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error updating book: ${e.message}", e)
+        }
+    }
+
+    // Delete Book detail
+    suspend fun deleteBook(id: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["books"].delete {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error deleting book: ${e.message}", e)
+        }
+    }
+
+    // Delete Author detail
+    suspend fun deleteAuthor(id: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["authors"].delete {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error deleting author: ${e.message}", e)
+        }
+    }
+
+    // Delete Category detail
+    suspend fun deleteCategory(id: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["categories"].delete {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error deleting category: ${e.message}", e)
         }
     }
 
