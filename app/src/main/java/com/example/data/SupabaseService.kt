@@ -114,6 +114,34 @@ data class ForumStats(
     @SerialName("active_users") val activeUsers: Int
 )
 
+@Serializable
+data class SupabaseNotification(
+    val id: String = "",
+    @SerialName("user_id") val userId: String,
+    val title: String,
+    val body: String,
+    val type: String = "general",
+    @SerialName("is_read") val isRead: Boolean = false,
+    @SerialName("sent_at") val sentAt: String? = null
+)
+
+@Serializable
+data class SupabaseDeviceToken(
+    @SerialName("user_id") val userId: String,
+    val token: String,
+    val platform: String = "android",
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+data class SupabaseNotificationPrefs(
+    @SerialName("user_id") val userId: String,
+    @SerialName("prayer_reminders") val prayerReminders: Boolean = true,
+    @SerialName("reading_reminders") val readingReminders: Boolean = true,
+    @SerialName("daily_hadith") val dailyHadith: Boolean = true,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
 class SupabaseService(
     val supabaseClient: SupabaseClient,
     private val context: Context? = null
@@ -1401,6 +1429,135 @@ class SupabaseService(
             supabaseClient.postgrest["authors"].insert(jsonObject)
         } catch (e: Exception) {
             android.util.Log.w("SupabaseService", "Error adding author to authors table (ignoring as fallback if table missing): ${e.message}", e)
+        }
+    }
+
+    private fun getSafeIsoTimestamp(): String {
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        return dateFormat.format(java.util.Date())
+    }
+
+    suspend fun saveDeviceToken(userId: String, token: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            val tokenObj = buildJsonObject {
+                put("user_id", userId)
+                put("token", token)
+                put("platform", "android")
+                put("updated_at", getSafeIsoTimestamp())
+            }
+            supabaseClient.postgrest["device_tokens"].upsert(tokenObj)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error saving device token: ${e.message}")
+        }
+    }
+
+    suspend fun fetchNotifications(userId: String): List<SupabaseNotification> = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["notifications"]
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                    }
+                }
+                .decodeList<SupabaseNotification>()
+                .sortedByDescending { it.sentAt }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error fetching notifications: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    suspend fun markNotificationAsRead(notificationId: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            val updateObj = buildJsonObject {
+                put("is_read", true)
+            }
+            supabaseClient.postgrest["notifications"].update(updateObj) {
+                filter {
+                    eq("id", notificationId)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error marking notification as read: ${e.message}")
+        }
+    }
+
+    suspend fun deleteNotification(notificationId: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["notifications"].delete {
+                filter {
+                    eq("id", notificationId)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error deleting notification: ${e.message}")
+        }
+    }
+
+    suspend fun clearAllNotifications(userId: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["notifications"].delete {
+                filter {
+                    eq("user_id", userId)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error clearing all notifications: ${e.message}")
+        }
+    }
+
+    suspend fun saveNotificationPrefs(prefs: SupabaseNotificationPrefs): Unit = withContext(Dispatchers.IO) {
+        try {
+            val prefsObj = buildJsonObject {
+                put("user_id", prefs.userId)
+                put("prayer_reminders", prefs.prayerReminders)
+                put("reading_reminders", prefs.readingReminders)
+                put("daily_hadith", prefs.dailyHadith)
+                put("updated_at", getSafeIsoTimestamp())
+            }
+            supabaseClient.postgrest["notification_prefs"].upsert(prefsObj)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error saving notification prefs: ${e.message}")
+        }
+    }
+
+    suspend fun fetchNotificationPrefs(userId: String): SupabaseNotificationPrefs? = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["notification_prefs"]
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                    }
+                }
+                .decodeSingleOrNull<SupabaseNotificationPrefs>()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error fetching notification prefs: ${e.message}")
+            null
+        }
+    }
+
+    suspend fun addNotificationLocallyAndRemotely(
+        userId: String,
+        title: String,
+        body: String,
+        type: String
+    ): Unit = withContext(Dispatchers.IO) {
+        try {
+            val id = java.util.UUID.randomUUID().toString()
+            val notifyObj = buildJsonObject {
+                put("id", id)
+                put("user_id", userId)
+                put("title", title)
+                put("body", body)
+                put("type", type)
+                put("is_read", false)
+                put("sent_at", getSafeIsoTimestamp())
+            }
+            supabaseClient.postgrest["notifications"].insert(notifyObj)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error inserting notification: ${e.message}")
         }
     }
 }

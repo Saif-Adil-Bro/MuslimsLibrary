@@ -46,6 +46,7 @@ fun AuthScreen(
     showGuestOption: Boolean = true,
     onCloseClick: (() -> Unit)? = null
 ) {
+    val brandColor = Color(0xFF764BA2)
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -112,12 +113,11 @@ fun AuthScreen(
         }
     }
 
-    // Emerald to Teal breathtaking gradient for premium atmospheric feel
+    // Beautiful Purple Gradient for premium aesthetic theme
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF04261C), // Deep Islamic Pine Green
-            Color(0xFF0A4E38), // Emerald Green accent
-            Color(0xFF0E694C)  // Pure Mint Green
+            Color(0xFF667EEA), // Purple Gradient Start
+            Color(0xFF764BA2)  // Purple Gradient End
         )
     )
 
@@ -175,7 +175,7 @@ fun AuthScreen(
                     modifier = Modifier
                         .size(68.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF0A4E38).copy(alpha = 0.8f))
+                        .background(brandColor.copy(alpha = 0.8f))
                         .border(1.5.dp, Color(0xFFC7F3E2).copy(alpha = 0.3f), RoundedCornerShape(20.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -236,7 +236,7 @@ fun AuthScreen(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (!isSignUp) Color(0xFF0A4E38) else Color.Transparent)
+                                .background(if (!isSignUp) brandColor else Color.Transparent)
                                 .clickable {
                                     isSignUp = false
                                     emailError = null
@@ -247,7 +247,7 @@ fun AuthScreen(
                         ) {
                             Text(
                                 text = "Sign In",
-                                color = if (!isSignUp) Color.White else Color(0xFF0A4E38),
+                                color = if (!isSignUp) Color.White else brandColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
@@ -258,7 +258,7 @@ fun AuthScreen(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSignUp) Color(0xFF0A4E38) else Color.Transparent)
+                                .background(if (isSignUp) brandColor else Color.Transparent)
                                 .clickable {
                                     isSignUp = true
                                     emailError = null
@@ -269,7 +269,7 @@ fun AuthScreen(
                         ) {
                             Text(
                                 text = "Sign Up",
-                                color = if (isSignUp) Color.White else Color(0xFF0A4E38),
+                                color = if (isSignUp) Color.White else brandColor,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
@@ -290,7 +290,7 @@ fun AuthScreen(
                             Icon(
                                 imageVector = Icons.Default.Email, 
                                 contentDescription = "Email Icon",
-                                tint = Color(0xFF0A4E38)
+                                tint = brandColor
                             ) 
                         },
                         isError = emailError != null,
@@ -299,13 +299,13 @@ fun AuthScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF1C1917),
                             unfocusedTextColor = Color(0xFF1C1917),
-                            focusedLabelColor = Color(0xFF0A4E38),
+                            focusedLabelColor = brandColor,
                             unfocusedLabelColor = Color(0xFF57534E),
-                            focusedBorderColor = Color(0xFF0A4E38),
+                            focusedBorderColor = brandColor,
                             unfocusedBorderColor = Color(0xFFD6D3D1),
-                            cursorColor = Color(0xFF0A4E38),
+                            cursorColor = brandColor,
                             errorBorderColor = Color.Red,
-                            focusedLeadingIconColor = Color(0xFF0A4E38),
+                            focusedLeadingIconColor = brandColor,
                             unfocusedLeadingIconColor = Color(0xFF78716C)
                         ),
                         modifier = Modifier
@@ -326,7 +326,7 @@ fun AuthScreen(
                             Icon(
                                 imageVector = Icons.Default.Lock, 
                                 contentDescription = "Password Icon",
-                                tint = Color(0xFF0A4E38)
+                                tint = brandColor
                             ) 
                         },
                         trailingIcon = {
@@ -342,13 +342,13 @@ fun AuthScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF1C1917),
                             unfocusedTextColor = Color(0xFF1C1917),
-                            focusedLabelColor = Color(0xFF0A4E38),
+                            focusedLabelColor = brandColor,
                             unfocusedLabelColor = Color(0xFF57534E),
-                            focusedBorderColor = Color(0xFF0A4E38),
+                            focusedBorderColor = brandColor,
                             unfocusedBorderColor = Color(0xFFD6D3D1),
-                            cursorColor = Color(0xFF0A4E38),
+                            cursorColor = brandColor,
                             errorBorderColor = Color.Red,
-                            focusedLeadingIconColor = Color(0xFF0A4E38),
+                            focusedLeadingIconColor = brandColor,
                             unfocusedLeadingIconColor = Color(0xFF78716C)
                         ),
                         modifier = Modifier
@@ -369,7 +369,7 @@ fun AuthScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 CircularProgressIndicator(
-                                    color = Color(0xFF0A4E38),
+                                    color = brandColor,
                                     modifier = Modifier.size(32.dp)
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
@@ -377,7 +377,7 @@ fun AuthScreen(
                                     text = stateValue.message,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF0A4E38)
+                                    color = brandColor
                                 )
                             }
                         } else {
@@ -392,7 +392,7 @@ fun AuthScreen(
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF0A4E38)
+                                    containerColor = brandColor
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -437,9 +437,9 @@ fun AuthScreen(
                             }
                         },
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF0A4E38)
+                            contentColor = brandColor
                         ),
-                        border = BorderStroke(1.5.dp, Color(0xFF0A4E38).copy(alpha = 0.4f)),
+                        border = BorderStroke(1.5.dp, brandColor.copy(alpha = 0.4f)),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -476,7 +476,7 @@ fun AuthScreen(
                         ) {
                             Text(
                                 text = "গেস্ট হিসেবে চালিয়ে যান (বুকশেলফ)",
-                                color = Color(0xFF0A4E38),
+                                color = brandColor,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center

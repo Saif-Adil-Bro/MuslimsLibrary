@@ -40,17 +40,34 @@ import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.EditProfileScreen
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
+import com.example.ui.viewmodel.NotificationViewModel
+import com.example.ui.screens.NotificationCenterScreen
+import com.example.ui.screens.NotificationSettingsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Request notification permission if Android 13+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
                 // Obtain AppContainer dependencies
                 val appContainer = (application as MuslimsLibraryApplication).container
-                
+                val context = androidx.compose.ui.platform.LocalContext.current
+
                 // Inject via native factories
+                val notificationViewModel: NotificationViewModel = viewModel(
+                    factory = NotificationViewModel.Factory(
+                        appContainer.supabaseService,
+                        appContainer.guestModeManager,
+                        context
+                    )
+                )
                 val authViewModel: AuthViewModel = viewModel(
                     factory = AuthViewModel.Factory(appContainer.authRepository)
                 )
@@ -89,7 +106,6 @@ class MainActivity : ComponentActivity() {
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
                 
                 val toastMessage by authViewModel.toastMessage.collectAsState()
-                val context = androidx.compose.ui.platform.LocalContext.current
                 val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
                 var showRestoreDialogForUser by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
                 var isRestoring by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -231,6 +247,7 @@ class MainActivity : ComponentActivity() {
                             val userRole by authViewModel.userRole.collectAsState()
                             val debugInfo by authViewModel.debugInfo.collectAsState()
                             val isDebugMode by authViewModel.isDebugMode.collectAsState()
+                            val unreadNotificationsCount by notificationViewModel.unreadCount.collectAsState()
                             DashboardScreen(
                                 libraryViewModel = libraryViewModel,
                                 homeViewModel = homeViewModel,
@@ -283,7 +300,14 @@ class MainActivity : ComponentActivity() {
                                 isDebugMode = isDebugMode,
                                 onToggleDebug = { authViewModel.toggleDebugMode(context) },
                                 backupManager = appContainer.backupManager,
-                                isGuestMode = appContainer.guestModeManager.isGuestMode()
+                                isGuestMode = appContainer.guestModeManager.isGuestMode(),
+                                onNotificationsClick = {
+                                    navController.navigate("notification_center")
+                                },
+                                onNavigateToNotificationSettings = {
+                                    navController.navigate("notification_settings")
+                                },
+                                unreadNotificationsCount = unreadNotificationsCount
                             )
                         }
 
@@ -519,6 +543,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onAdminDashboardClick = {
                                     navController.navigate("admin_dashboard")
+                                },
+                                onNotificationSettingsClick = {
+                                    navController.navigate("notification_settings")
                                 }
                             )
                         }
@@ -548,6 +575,30 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("dashboard") {
                                         popUpTo("dashboard") { inclusive = true }
                                     }
+                                }
+                            )
+                        }
+
+                        // Notification Center Route
+                        composable("notification_center") {
+                            val isGuest = appContainer.guestModeManager.isGuestMode()
+                            NotificationCenterScreen(
+                                viewModel = notificationViewModel,
+                                isGuest = isGuest,
+                                onBackClick = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        // Notification Settings Route
+                        composable("notification_settings") {
+                            val isGuest = appContainer.guestModeManager.isGuestMode()
+                            NotificationSettingsScreen(
+                                viewModel = notificationViewModel,
+                                isGuest = isGuest,
+                                onBackClick = {
+                                    navController.popBackStack()
                                 }
                             )
                         }

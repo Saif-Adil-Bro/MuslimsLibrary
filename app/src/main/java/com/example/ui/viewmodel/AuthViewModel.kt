@@ -48,9 +48,7 @@ class AuthViewModel(
 
     fun setFromGuestMode(fromGuest: Boolean) {
         _isFromGuestMode.value = fromGuest
-        if (fromGuest) {
-            _uiState.value = AuthState.Idle
-        }
+        _uiState.value = AuthState.Idle
     }
 
     fun initDebugMode(context: Context) {
@@ -345,11 +343,11 @@ class AuthViewModel(
     }
 
     fun logout() {
+        _isLoggedIn.value = false
+        _uiState.value = AuthState.Idle
+        _userRole.value = "user"
         viewModelScope.launch {
             authRepository.logout()
-            _isLoggedIn.value = false
-            _uiState.value = AuthState.Idle
-            _userRole.value = "user"
         }
     }
 

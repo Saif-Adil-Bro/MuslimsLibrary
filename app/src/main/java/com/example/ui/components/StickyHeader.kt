@@ -31,7 +31,8 @@ fun StickyHeader(
     onFavoriteClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    isGuestMode: Boolean = false
+    isGuestMode: Boolean = false,
+    unreadCount: Int = 0
 ) {
     Box(
         modifier = modifier
@@ -126,12 +127,23 @@ fun StickyHeader(
                     onClick = onNotificationsClick,
                     modifier = Modifier.size(36.dp).testTag("header_notifications_button")
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        if (unreadCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 1.dp, end = 1.dp)
+                                    .size(8.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.Red)
+                            )
+                        }
+                    }
                 }
             }
         }

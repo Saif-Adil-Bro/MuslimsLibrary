@@ -50,7 +50,10 @@ fun DashboardScreen(
     isDebugMode: Boolean = false,
     onToggleDebug: () -> Unit = {},
     backupManager: com.example.data.backup.BackupManager? = null,
-    isGuestMode: Boolean = false
+    isGuestMode: Boolean = false,
+    onNotificationsClick: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {},
+    unreadNotificationsCount: Int = 0
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var tabHistory by rememberSaveable { mutableStateOf(listOf<Int>()) }
@@ -144,10 +147,9 @@ fun DashboardScreen(
                         onFavoriteClick = {
                             drawerScreenTitle = "🚧 প্রিয় বই"
                         },
-                        onNotificationsClick = {
-                            drawerScreenTitle = "🚧 সাহায্য"
-                        },
-                        isGuestMode = isGuestMode
+                        onNotificationsClick = onNotificationsClick,
+                        isGuestMode = isGuestMode,
+                        unreadCount = unreadNotificationsCount
                     )
                     // Sticky search bar is only visible on standard Home tab content
                     if (selectedTab == 0 && drawerScreenTitle.isEmpty()) {
@@ -317,6 +319,7 @@ fun DashboardScreen(
                                     }
                                 },
                                 onAdminDashboardClick = onNavigateToAdminDashboard,
+                                onNotificationSettingsClick = onNavigateToNotificationSettings,
                                 isGuestMode = isGuestMode
                             )
                         }

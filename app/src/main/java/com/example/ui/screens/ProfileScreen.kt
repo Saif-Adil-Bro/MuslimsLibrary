@@ -44,6 +44,7 @@ fun ProfileScreen(
     onLogoutClick: () -> Unit,
     onBackClick: () -> Unit,
     onAdminDashboardClick: () -> Unit = {},
+    onNotificationSettingsClick: () -> Unit = {},
     isGuestMode: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -398,6 +399,15 @@ fun ProfileScreen(
                                     }
                                 }
                             }
+
+                            // Notification and reminders settings entry
+                            ElegantGradientButton(
+                                onClick = onNotificationSettingsClick,
+                                text = "নোটিফিকেশন এবং রিমাইন্ডার সেটিংস",
+                                icon = Icons.Default.Notifications,
+                                gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             // Admin Panel Navigation Click
                             if (user.role.equals("admin", ignoreCase = true)) {
