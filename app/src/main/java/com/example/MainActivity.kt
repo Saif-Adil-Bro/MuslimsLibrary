@@ -107,8 +107,8 @@ class MainActivity : ComponentActivity() {
                 
                 val toastMessage by authViewModel.toastMessage.collectAsState()
                 val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-                var showRestoreDialogForUser by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
                 var isRestoring by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                var restoreMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("ক্লাউড থেকে তথ্য পরীক্ষা করা হচ্ছে...") }
 
                 val authState by authViewModel.uiState.collectAsState()
 
@@ -116,62 +116,68 @@ class MainActivity : ComponentActivity() {
                     val currentAuthState = authState
                     if (currentAuthState is com.example.ui.viewmodel.AuthState.Success) {
                         val userUid = currentAuthState.uid
-                        if (userUid.isNotBlank()) {
+                        val userEmail = currentAuthState.email
+                        if (userUid.isNotBlank() || userEmail.isNotBlank()) {
                             val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                            val key = "restore_prompt_shown_$userUid"
-                            val hasShownPrompt = prefs.getBoolean(key, false)
-                            if (!hasShownPrompt) {
-                                // Mark as shown IMMEDIATELY to prevent repeat triggers on recomposition
+                            val key = "auto_restore_completed_$userUid"
+                            val hasAutoRestored = prefs.getBoolean(key, false)
+                            if (!hasAutoRestored) {
+                                // Prevent double triggering while launching async jobs
                                 prefs.edit().putBoolean(key, true).apply()
-                                // Now check if backup exists on the cloud
                                 try {
-                                    val exists = appContainer.backupManager.backupExistsOnCloud(userUid)
-                                    if (exists) {
-                                        showRestoreDialogForUser = userUid
+                                    android.util.Log.d("MainActivity", "Logged in successfully. Checking backup... UID: $userUid, Email: $userEmail")
+                                    var exists = false
+                                    var backupIdToUse = ""
+                                    
+                                    if (userEmail.isNotBlank()) {
+                                        exists = appContainer.backupManager.backupExistsOnCloud(userEmail)
+                                        if (exists) {
+                                            backupIdToUse = userEmail
+                                        }
+                                    }
+                                    if (!exists && userUid.isNotBlank()) {
+                                        exists = appContainer.backupManager.backupExistsOnCloud(userUid)
+                                        if (exists) {
+                                            backupIdToUse = userUid
+                                        }
+                                    }
+
+                                    if (exists && backupIdToUse.isNotBlank()) {
+                                        isRestoring = true
+                                        restoreMessage = "ক্লাউড ব্যাকআপ পাওয়া গেছে! ডাটা রিস্টোর করা হচ্ছে..."
+                                        
+                                        // Launch restore operation
+                                        coroutineScope.launch {
+                                            try {
+                                                restoreMessage = "ডাটাবেজে তথ্য ইম্পোর্ট করা হচ্ছে, অনুগ্রহ করে একটু অপেক্ষা করুন..."
+                                                appContainer.backupManager.downloadBackup(
+                                                    cloudBackupUserId = backupIdToUse,
+                                                    roomUserId = userEmail
+                                                )
+                                                
+                                                // Refresh stats on profile screen immediately
+                                                try {
+                                                    profileViewModel.loadStatistics(userEmail)
+                                                } catch (ex: Exception) {
+                                                    android.util.Log.e("MainActivity", "Failed to force reload profile stats: ${ex.message}")
+                                                }
+                                                
+                                                android.widget.Toast.makeText(context, "ক্লাউড থেকে আপনার সকল ডাটা সফলভাবে রিস্টোর করা হয়েছে!", android.widget.Toast.LENGTH_LONG).show()
+                                            } catch (e: Exception) {
+                                                val errMsg = e.localizedMessage ?: e.message ?: ""
+                                                android.util.Log.e("MainActivity", "Automated restore failed: $errMsg", e)
+                                                android.widget.Toast.makeText(context, "অটো রিস্টোর ব্যর্থ হয়েছে: $errMsg", android.widget.Toast.LENGTH_LONG).show()
+                                            } finally {
+                                                isRestoring = false
+                                            }
+                                        }
                                     }
                                 } catch (e: Exception) {
-                                    android.util.Log.e("MainActivity", "Error checking backup exists on cloud", e)
+                                    android.util.Log.e("MainActivity", "Error checking automated backup availability: ${e.message}", e)
                                 }
                             }
                         }
                     }
-                }
-
-                if (showRestoreDialogForUser != null) {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { showRestoreDialogForUser = null },
-                        title = { androidx.compose.material3.Text("ব্যাকআপ পাওয়া গেছে", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = androidx.compose.ui.graphics.Color(0xFF043B2B)) },
-                        text = { androidx.compose.material3.Text("আপনার আগের ডিভাইস থেকে ডাটা রিস্টোর করতে চান?") },
-                        confirmButton = {
-                            androidx.compose.material3.Button(
-                                onClick = {
-                                    showRestoreDialogForUser = null
-                                    isRestoring = true
-                                    coroutineScope.launch {
-                                        try {
-                                            appContainer.backupManager.downloadBackup()
-                                            android.widget.Toast.makeText(context, "রিস্টোর সফল হয়েছে!", android.widget.Toast.LENGTH_LONG).show()
-                                        } catch (e: Exception) {
-                                            val errMsg = e.localizedMessage ?: e.message ?: ""
-                                            android.widget.Toast.makeText(context, "রিস্টোর ব্যর্থ হয়েছে: $errMsg", android.widget.Toast.LENGTH_LONG).show()
-                                        } finally {
-                                            isRestoring = false
-                                        }
-                                    }
-                                },
-                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF043B2B))
-                            ) {
-                                androidx.compose.material3.Text("রিস্টোর করুন", color = androidx.compose.ui.graphics.Color.White)
-                            }
-                        },
-                        dismissButton = {
-                            androidx.compose.material3.TextButton(
-                                onClick = { showRestoreDialogForUser = null }
-                            ) {
-                                androidx.compose.material3.Text("এখন নয়", color = androidx.compose.ui.graphics.Color.Gray)
-                            }
-                        }
-                    )
                 }
 
                 if (isRestoring) {
@@ -179,13 +185,19 @@ class MainActivity : ComponentActivity() {
                         onDismissRequest = {},
                         confirmButton = {},
                         title = {
-                            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            androidx.compose.foundation.layout.Row(
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
                                 androidx.compose.material3.CircularProgressIndicator(color = androidx.compose.ui.graphics.Color(0xFF043B2B))
-                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(6.dp))
-                                androidx.compose.material3.Text("অপেক্ষা করুন...", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
+                                androidx.compose.material3.Text(
+                                    "ডাটা রিস্টোর হচ্ছে...", 
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = androidx.compose.ui.graphics.Color(0xFF043B2B)
+                                )
                             }
                         },
-                        text = { androidx.compose.material3.Text("আপনার ব্যাকআপ ফাইলটি ডাউনলোড এবং রিস্টোর করা হচ্ছে। অনুগ্রহ করে অ্যাপস বন্ধ করবেন না।") }
+                        text = { androidx.compose.material3.Text(restoreMessage) }
                     )
                 }
 
@@ -263,6 +275,11 @@ class MainActivity : ComponentActivity() {
                                     val wasGuest = appContainer.guestModeManager.isGuestMode()
                                     authViewModel.setFromGuestMode(wasGuest)
                                     if (!wasGuest) {
+                                        try {
+                                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Error clearing preferences on logout", e)
+                                        }
                                         authViewModel.logout()
                                         navController.navigate("auth?fromGuest=$wasGuest") {
                                             popUpTo("dashboard") { inclusive = true }
@@ -467,6 +484,11 @@ class MainActivity : ComponentActivity() {
                                     },
                                     userEmail = userEmail,
                                     onLogoutClick = {
+                                        try {
+                                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Error clearing preferences on logout", e)
+                                        }
                                         authViewModel.logout()
                                         navController.navigate("auth") {
                                             popUpTo("dashboard") { inclusive = true }
@@ -530,6 +552,11 @@ class MainActivity : ComponentActivity() {
                                 onLogoutClick = {
                                     authViewModel.setFromGuestMode(isGuest)
                                     if (!isGuest) {
+                                        try {
+                                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Error clearing preferences on logout", e)
+                                        }
                                         authViewModel.logout()
                                         navController.navigate("auth?fromGuest=$isGuest") {
                                             popUpTo("dashboard") { inclusive = true }

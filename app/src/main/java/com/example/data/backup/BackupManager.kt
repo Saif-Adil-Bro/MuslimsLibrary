@@ -89,20 +89,28 @@ class BackupManager(
         uploadBackupToCloud(userId, roomUserId)
     }
 
-    suspend fun downloadBackup(roomUserId: String? = null) {
+    suspend fun downloadBackup(cloudBackupUserId: String? = null, roomUserId: String? = null) {
         if (guestModeManager.isGuestMode()) {
             throw SecurityException("গেস্ট মোডে রিস্টোর উপলব্ধ নয়। অনুগ্রহ করে লগইন করুন।")
         }
-        val userId = firebaseAuth.currentUser?.uid 
-            ?: throw SecurityException("User not authenticated")
-        if (userId.length < 10) {
-            throw SecurityException("Invalid user ID")
+        val currentUid = firebaseAuth.currentUser?.uid
+        val userId = when {
+            !cloudBackupUserId.isNullOrBlank() -> cloudBackupUserId
+            !currentUid.isNullOrBlank() -> currentUid
+            else -> throw SecurityException("User not authenticated")
         }
-        val exists = backupExistsOnCloud(userId)
+        
+        var finalUserId = userId
+        var exists = backupExistsOnCloud(finalUserId)
+        if (!exists && !currentUid.isNullOrBlank() && finalUserId != currentUid) {
+            finalUserId = currentUid
+            exists = backupExistsOnCloud(finalUserId)
+        }
+        
         if (!exists) {
             throw Exception("No backup found for this account")
         }
-        val success = downloadAndRestoreFromCloud(userId, roomUserId)
+        val success = downloadAndRestoreFromCloud(finalUserId, roomUserId ?: currentUid)
         if (!success) {
             throw Exception("No backup found for this account")
         }
@@ -314,7 +322,7 @@ class BackupManager(
             // Map backup objects back to Room entity models using activeUserId
             val localProgress = backupData.progress.map {
                 LocalBookProgress(
-                    id = it.id,
+                    id = "${activeUserId}_${it.bookId}",
                     userId = activeUserId,
                     bookId = it.bookId,
                     currentPage = it.currentPage,
@@ -330,7 +338,7 @@ class BackupManager(
 
             val localFavorites = backupData.favorites.map {
                 LocalFavoriteBook(
-                    id = it.id,
+                    id = "${activeUserId}_${it.bookId}",
                     userId = activeUserId,
                     bookId = it.bookId,
                     timestamp = it.timestamp,
@@ -341,7 +349,7 @@ class BackupManager(
 
             val localPins = backupData.pins.map {
                 LocalPinnedBook(
-                    id = it.id,
+                    id = "${activeUserId}_${it.bookId}",
                     userId = activeUserId,
                     bookId = it.bookId,
                     timestamp = it.timestamp,

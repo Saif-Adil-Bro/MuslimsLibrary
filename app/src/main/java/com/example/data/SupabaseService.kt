@@ -485,20 +485,84 @@ class SupabaseService(
     }
 
     suspend fun downloadBackupFile(path: String, destinationFile: java.io.File): Unit = withContext(Dispatchers.IO) {
-        val bytes = supabaseClient.storage.from("user_backups").downloadAuthenticated(path)
-        destinationFile.writeBytes(bytes)
+        try {
+            val bytes = supabaseClient.storage.from("user_backups").downloadAuthenticated(path)
+            destinationFile.writeBytes(bytes)
+        } catch (e: Exception) {
+            android.util.Log.w("SupabaseService", "downloadAuthenticated failed, trying public URL fallback... Error: ${e.message}")
+            val publicUrl = "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/user_backups/$path"
+            val url = java.net.URL(publicUrl)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+            connection.connect()
+            
+            if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                connection.inputStream.use { input ->
+                    destinationFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                android.util.Log.d("SupabaseService", "Public URL fallback download succeeded!")
+            } else {
+                throw Exception("Failed to download backup: HTTP ${connection.responseCode} inside backup bucket")
+            }
+        }
     }
 
     suspend fun backupExists(path: String): Boolean = withContext(Dispatchers.IO) {
+        // Method 1: Try downloadAuthenticated - if it successfully downloads, the backup definitely exists.
+        try {
+            val bytes = supabaseClient.storage.from("user_backups").downloadAuthenticated(path)
+            if (bytes.isNotEmpty()) {
+                android.util.Log.d("SupabaseService", "backupExists: downloadAuthenticated found the file successfully.")
+                return@withContext true
+            }
+        } catch (e: Exception) {
+            val msg = e.message ?: ""
+            android.util.Log.d("SupabaseService", "backupExists: downloadAuthenticated failed with: $msg")
+            if (msg.contains("404") || msg.contains("not found", ignoreCase = true) || msg.contains("FileNotFound", ignoreCase = true)) {
+                android.util.Log.d("SupabaseService", "backupExists: File definitely does not exist (404/not found).")
+                return@withContext false
+            }
+        }
+
+        // Method 2: GET request with Range bytes=0-0 to public URL fallback
+        try {
+            val publicUrl = "${BuildConfig.SUPABASE_URL}/storage/v1/object/public/user_backups/$path"
+            val url = java.net.URL(publicUrl)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Range", "bytes=0-0")
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.connect()
+            val code = connection.responseCode
+            android.util.Log.d("SupabaseService", "backupExists: Range GET request to public URL returned $code")
+            if (code == java.net.HttpURLConnection.HTTP_OK || code == java.net.HttpURLConnection.HTTP_PARTIAL) {
+                return@withContext true
+            } else if (code >= 400) {
+                return@withContext false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "backupExists: Range GET request failed: ${e.message}", e)
+        }
+
+        // Method 3: Original list fallback
         try {
             val parts = path.split("/")
             val parentDir = if (parts.size > 1) parts.dropLast(1).joinToString("/") else ""
             val fileName = parts.last()
             val files = supabaseClient.storage.from("user_backups").list(parentDir)
-            files.any { it.name == fileName }
+            val found = files.any { it.name == fileName }
+            android.util.Log.d("SupabaseService", "backupExists: list fallback returned found=$found")
+            return@withContext found
         } catch (e: Exception) {
-            false
+            android.util.Log.e("SupabaseService", "backupExists: list fallback failed: ${e.message}", e)
         }
+
+        false
     }
 
     /**

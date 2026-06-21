@@ -8,9 +8,7 @@ import com.example.data.SupabaseService
 import com.example.data.SupabaseUser
 import com.example.data.repository.AuthRepository
 import com.example.data.local.AppDatabase
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 sealed interface ProfileUiState {
@@ -60,13 +58,16 @@ class ProfileViewModel(
     private val _stats = MutableStateFlow(ProfileStats())
     val stats: StateFlow<ProfileStats> = _stats.asStateFlow()
 
+    private var statsJob: kotlinx.coroutines.Job? = null
+
     fun loadStatistics(userId: String) {
-        viewModelScope.launch {
-            if (userId.isBlank()) {
-                android.util.Log.w("ProfileStats", "User ID is blank!")
-                return@launch
-            }
-            
+        if (userId.isBlank()) {
+            android.util.Log.w("ProfileStats", "User ID is blank!")
+            return
+        }
+
+        statsJob?.cancel()
+        statsJob = viewModelScope.launch {
             try {
                 // Determine the correct identifier used for local sync data (which is userEmail)
                 val userEmail = authRepository.getCurrentUserEmail()
@@ -85,37 +86,44 @@ class ProfileViewModel(
                     else -> userId
                 }
                 
-                android.util.Log.d("ProfileStats", "Using UID/Email for Room queries: $uidToUse")
+                android.util.Log.d("ProfileStats", "Using UID/Email for Room queries reactively: $uidToUse")
                 
-                // Fetch from Room Database using correct UID
-                val progress = appDatabase.progressDao().getAllProgressForUser(uidToUse)
-                val favorites = appDatabase.favoriteDao().getAllFavoritesForUser(uidToUse)
-                val pins = appDatabase.pinDao().getAllPinsForUser(uidToUse)
-                val notes = appDatabase.noteDao().getAllNotesForUser(uidToUse)
-
-                android.util.Log.d("ProfileStats", "Progress count: ${progress.size}")
-                android.util.Log.d("ProfileStats", "Favorites count: ${favorites.size}")
-                android.util.Log.d("ProfileStats", "Pins count: ${pins.size}")
-                android.util.Log.d("ProfileStats", "Notes count: ${notes.size}")
-
-                val booksCompleted = progress.count { it.status.lowercase() == "completed" }
-                val booksReading = progress.count { it.status.lowercase() == "reading" }
-
-                android.util.Log.d("ProfileStats", "Books completed: $booksCompleted")
-                android.util.Log.d("ProfileStats", "Books reading: $booksReading")
-
-                _stats.value = ProfileStats(
-                    booksRead = booksCompleted,
-                    booksInProgress = booksReading,
-                    totalFavorites = favorites.count { !it.isDeleted },
-                    totalNotes = notes.count { !it.isDeleted },
-                    totalPins = pins.count { !it.isDeleted }
-                )
-                
-                android.util.Log.d("ProfileStats", "Final stats updated: ${_stats.value}")
+                // Set up visual reactive flow combination of database progress, favorites, pins and notes tables
+                // Catch errors on individual flows to ensure subscription doesn't drop due to any single table query mismatch
+                combine(
+                    appDatabase.progressDao().getAllProgressFlow(uidToUse).catch { e ->
+                        android.util.Log.e("ProfileStats", "Error resolving progress flow: ${e.message}", e)
+                        emit(emptyList())
+                    },
+                    appDatabase.favoriteDao().getFavoritesFlow(uidToUse).catch { e ->
+                        android.util.Log.e("ProfileStats", "Error resolving favorites flow: ${e.message}", e)
+                        emit(emptyList())
+                    },
+                    appDatabase.pinDao().getPinnedBooksFlow(uidToUse).catch { e ->
+                        android.util.Log.e("ProfileStats", "Error resolving pins flow: ${e.message}", e)
+                        emit(emptyList())
+                    },
+                    appDatabase.noteDao().getNotesForUserFlow(uidToUse).catch { e ->
+                        android.util.Log.e("ProfileStats", "Error resolving notes flow: ${e.message}", e)
+                        emit(emptyList())
+                    }
+                ) { progress, favorites, pins, notes ->
+                    val booksCompleted = progress.count { it.status.lowercase() == "completed" || it.progressPercentage >= 100.0 }
+                    val booksReading = progress.count { it.status.lowercase() == "reading" || (it.progressPercentage > 0.0 && it.progressPercentage < 100.0) }
+                    
+                    ProfileStats(
+                        booksRead = booksCompleted,
+                        booksInProgress = booksReading,
+                        totalFavorites = favorites.count { !it.isDeleted },
+                        totalNotes = notes.count { !it.isDeleted },
+                        totalPins = pins.count { !it.isDeleted }
+                    )
+                }.collect { updatedStats ->
+                    _stats.value = updatedStats
+                    android.util.Log.d("ProfileStats", "Reactive stats stream updated: $updatedStats")
+                }
             } catch (e: Exception) {
-                android.util.Log.e("ProfileStats", "Error loading stats: ${e.message}", e)
-                e.printStackTrace()
+                android.util.Log.e("ProfileStats", "Error holding reactive stats stream: ${e.message}", e)
             }
         }
     }
@@ -282,8 +290,10 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 _backupStatus.value = BackupUiState.Loading
-                backupManager.downloadBackup(userId)
+                backupManager.downloadBackup(cloudBackupUserId = userId, roomUserId = userId)
                 _backupStatus.value = BackupUiState.Success
+                // Reload statistics after successful restore to update the screen counts instantly
+                loadStatistics(userId)
             } catch (e: SecurityException) {
                 _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
             } catch (e: Exception) {
