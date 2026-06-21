@@ -195,6 +195,41 @@ class MainActivity : ComponentActivity() {
                             val debugInfo by authViewModel.debugInfo.collectAsState()
                             val isDebugMode by authViewModel.isDebugMode.collectAsState()
                             val unreadNotificationsCount by notificationViewModel.unreadCount.collectAsState()
+                            
+                            // 🆕 AUTO-RESTORE HACK - Dashboard লোড হওয়ার পর ৫ সেকেন্ড ডিলে
+                            val hasAutoRestored = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                            
+                            androidx.compose.runtime.LaunchedEffect(Unit) {
+                                if (!hasAutoRestored.value && userEmail.isNotBlank() && userEmail != "User@muslimslibrary.org") {
+                                    // ৫ সেকেন্ড অপেক্ষা করুন ড্যাশবোর্ড পেজ সম্পূর্ণ লোড হওয়ার জন্য
+                                    kotlinx.coroutines.delay(5000)
+                                    
+                                    // SharedPreferences চেক করুন এই সেশনে আগে রিস্টোর হয়েছে কিনা
+                                    val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                                    val key = "auto_restore_done_$userEmail"
+                                    val alreadyDone = prefs.getBoolean(key, false)
+                                    
+                                    if (!alreadyDone) {
+                                        try {
+                                            // ক্লাউডে ব্যাকআপ আছে কিনা চেক করুন
+                                            val backupExists = appContainer.backupManager.backupExistsOnCloud(userEmail)
+                                            if (backupExists) {
+                                                // ডুপ্লিকেট কল আটকাতে ফ্ল্যাগ সেট করুন
+                                                hasAutoRestored.value = true
+                                                prefs.edit().putBoolean(key, true).apply()
+                                                
+                                                android.util.Log.d("MainActivity", "Auto-restore triggered from dashboard after 5s delay")
+                                                
+                                                // ম্যানুয়াল রিস্টোর বাটনের একই ফাংশন কল করুন
+                                                profileViewModel.performRestore(userEmail)
+                                            }
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Auto-restore check failed: ${e.message}")
+                                        }
+                                    }
+                                }
+                            }
+                            
                             DashboardScreen(
                                 libraryViewModel = libraryViewModel,
                                 homeViewModel = homeViewModel,
@@ -476,38 +511,6 @@ class MainActivity : ComponentActivity() {
                             val authState = authViewModel.uiState.collectAsState().value
                             val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
                             val isGuest = appContainer.guestModeManager.isGuestMode()
-                            
-                            // ADD THIS: Auto-restore trigger
-                            val hasAutoRestored = remember { mutableStateOf(false) }
-                            
-                            LaunchedEffect(Unit) {
-                                if (!hasAutoRestored.value && !isGuest && userEmail.isNotBlank()) {
-                                    // Wait for screen to fully load (5 second delay)
-                                    kotlinx.coroutines.delay(5000)
-                                    
-                                    // Check if auto-restore was already done in this session
-                                    val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                                    val key = "auto_restore_done_$userEmail"
-                                    val alreadyDone = prefs.getBoolean(key, false)
-                                    
-                                    if (!alreadyDone) {
-                                        // Check if backup exists
-                                        try {
-                                            val backupExists = appContainer.backupManager.backupExistsOnCloud(userEmail)
-                                            if (backupExists) {
-                                                // Mark as done immediately to prevent duplicate calls
-                                                hasAutoRestored.value = true
-                                                prefs.edit().putBoolean(key, true).apply()
-                                                
-                                                // Trigger the same restore function
-                                                profileViewModel.performRestore(userEmail)
-                                            }
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("MainActivity", "Auto-restore check failed: ${e.message}")
-                                        }
-                                    }
-                                }
-                            }
                             
                             ProfileScreen(
                                 viewModel = profileViewModel,

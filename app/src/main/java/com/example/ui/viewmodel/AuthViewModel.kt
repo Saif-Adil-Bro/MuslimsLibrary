@@ -221,50 +221,7 @@ class AuthViewModel(
                 updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
             }
 
-            // AUTO-RESTORE CHECK AND PROCESS
-            if (context != null) {
-                val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                val key = "auto_restore_completed_$uid"
-                val hasAutoRestored = prefs.getBoolean(key, false)
-                if (!hasAutoRestored) {
-                    android.util.Log.d("AuthViewModel", "Checking for automated backup availability for UID: $uid, Email: $email")
-                    _debugInfo.value = "Checking backup existence..."
-                    var exists = false
-                    var backupIdToUse = ""
-                    try {
-                        if (!email.isBlank() && email != "Guest User" && email != "guest_user") {
-                            exists = backupManager.backupExistsOnCloud(email)
-                            if (exists) {
-                                backupIdToUse = email
-                            }
-                        }
-                        if (!exists) {
-                            exists = backupManager.backupExistsOnCloud(uid)
-                            if (exists) {
-                                backupIdToUse = uid
-                            }
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("AuthViewModel", "Error checking backup exists: ${e.message}", e)
-                    }
-
-                    if (exists && backupIdToUse.isNotBlank()) {
-                        _uiState.value = AuthState.Restoring
-                        prefs.edit().putBoolean(key, true).apply()
-                        try {
-                            android.util.Log.d("AuthViewModel", "Auto-triggering downloadBackup with backupId: $backupIdToUse")
-                            _debugInfo.value = "Downloading and restoring data..."
-                            backupManager.downloadBackup(cloudBackupUserId = backupIdToUse, roomUserId = email)
-                            android.util.Log.d("AuthViewModel", "Auto-restore successful!")
-                            _toastMessage.value = "আপনার ডাটা সফলভাবে রিস্টোর হয়েছে!"
-                        } catch (e: Exception) {
-                            val errMsg = e.localizedMessage ?: e.message ?: ""
-                            android.util.Log.e("AuthViewModel", "Auto-restore failed: $errMsg", e)
-                            _toastMessage.value = "রিস্টোর ব্যর্থ হয়েছে: $errMsg"
-                        }
-                    }
-                }
-            }
+            // Role checked and loaded successfully, no auto-restore check here anymore
         } else {
             _userRole.value = "user"
             _debugInfo.value = "UID is null"
