@@ -26,7 +26,8 @@ class SyncManager(
     private val context: Context,
     private val database: AppDatabase,
     private val supabaseService: SupabaseService,
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val guestModeManager: com.example.data.util.GuestModeManager
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
     
@@ -52,6 +53,10 @@ class SyncManager(
      * 2. PULL the latest server state from Supabase to local Room database.
      */
     suspend fun syncNow(userId: String) = withContext(Dispatchers.IO) {
+        if (guestModeManager.isGuestMode()) {
+            Log.d("SyncManager", "Guest mode - skipping cloud sync")
+            return@withContext
+        }
         if (userId.isEmpty()) return@withContext
         
         // Prevent concurrent sync cycles

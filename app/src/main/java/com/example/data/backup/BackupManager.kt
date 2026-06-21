@@ -68,7 +68,8 @@ class BackupManager(
     private val context: Context,
     private val appDatabase: AppDatabase,
     private val supabaseService: SupabaseService,
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    private val guestModeManager: com.example.data.util.GuestModeManager
 ) {
     private val json = Json {
         prettyPrint = true
@@ -77,6 +78,9 @@ class BackupManager(
     }
 
     suspend fun uploadBackup(roomUserId: String? = null) {
+        if (guestModeManager.isGuestMode()) {
+            throw SecurityException("গেস্ট মোডে ব্যাকআপ উপলব্ধ নয়। অনুগ্রহ করে লগইন করুন।")
+        }
         val userId = firebaseAuth.currentUser?.uid 
             ?: throw SecurityException("User not authenticated")
         if (userId.length < 10) {
@@ -86,6 +90,9 @@ class BackupManager(
     }
 
     suspend fun downloadBackup(roomUserId: String? = null) {
+        if (guestModeManager.isGuestMode()) {
+            throw SecurityException("গেস্ট মোডে রিস্টোর উপলব্ধ নয়। অনুগ্রহ করে লগইন করুন।")
+        }
         val userId = firebaseAuth.currentUser?.uid 
             ?: throw SecurityException("User not authenticated")
         if (userId.length < 10) {

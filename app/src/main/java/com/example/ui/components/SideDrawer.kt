@@ -31,7 +31,8 @@ fun SideDrawer(
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier,
     userDisplayName: String = "ব্যবহারকারী",
-    userRole: String = ""
+    userRole: String = "",
+    isGuestMode: Boolean = false
 ) {
     val initialLetter = if (userDisplayName.isNotBlank()) {
         userDisplayName.first().uppercase()
@@ -166,19 +167,21 @@ fun SideDrawer(
                     testTag = "drawer_item_admin"
                 )
             }
-            Divider(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 16.dp),
-                color = Color(0xFFF1F1F1)
-            )
-            DrawerMenuItem(
-                icon = Icons.Default.ExitToApp,
-                label = "লগআউট",
-                onClick = onLogoutClick,
-                testTag = "drawer_item_logout",
-                textColor = Color(0xFFE53E3E)
-            )
+            if (!isGuestMode) {
+                Divider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 16.dp),
+                    color = Color(0xFFF1F1F1)
+                )
+                DrawerMenuItem(
+                    icon = Icons.Default.ExitToApp,
+                    label = "লগআউট",
+                    onClick = onLogoutClick,
+                    testTag = "drawer_item_logout",
+                    textColor = Color(0xFFE53E3E)
+                )
+            }
         }
     }
 }

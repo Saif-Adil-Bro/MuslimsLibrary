@@ -43,6 +43,16 @@ class AuthViewModel(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
+    private val _isFromGuestMode = MutableStateFlow(false)
+    val isFromGuestMode: StateFlow<Boolean> = _isFromGuestMode.asStateFlow()
+
+    fun setFromGuestMode(fromGuest: Boolean) {
+        _isFromGuestMode.value = fromGuest
+        if (fromGuest) {
+            _uiState.value = AuthState.Idle
+        }
+    }
+
     fun initDebugMode(context: Context) {
         val prefs = context.getSharedPreferences("app_debug_prefs", Context.MODE_PRIVATE)
         _isDebugMode.value = prefs.getBoolean("debug_mode_enabled", false)

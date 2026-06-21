@@ -30,7 +30,8 @@ fun StickyHeader(
     onMenuClick: () -> Unit,
     onFavoriteClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isGuestMode: Boolean = false
 ) {
     Box(
         modifier = modifier
@@ -85,13 +86,23 @@ fun StickyHeader(
                     )
                 }
 
-                Text(
-                    text = "MuslimsLibrary",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.5).sp
-                )
+                Column {
+                    Text(
+                        text = "MuslimsLibrary",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
+                    )
+                    if (isGuestMode) {
+                        Text(
+                            text = "গেস্ট মোড",
+                            color = Color(0xFFFFEB3B), // Soft yellow for highlighted info
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
 
             // Right: Hearts and notifications icons

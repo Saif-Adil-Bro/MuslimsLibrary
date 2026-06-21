@@ -51,7 +51,8 @@ interface LocalSyncRepository {
 class LocalSyncRepositoryImpl(
     private val database: AppDatabase,
     private val syncManager: SyncManager,
-    private val backupManager: com.example.data.backup.BackupManager
+    private val backupManager: com.example.data.backup.BackupManager,
+    private val guestModeManager: com.example.data.util.GuestModeManager
 ) : LocalSyncRepository {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -240,6 +241,10 @@ class LocalSyncRepositoryImpl(
     }
 
     override suspend fun syncNow(userId: String) {
+        if (guestModeManager.isGuestMode()) {
+            Log.d("LocalSyncRepository", "Guest mode - skipping manual sync")
+            return
+        }
         syncManager.syncNow(userId)
         try {
             Log.d("LocalSyncRepository", "Manual sync completed. Initiating automatic cloud backup for user... Room ID: $userId")
@@ -250,6 +255,10 @@ class LocalSyncRepositoryImpl(
     }
 
     private fun triggerBackgroundSync(userId: String) {
+        if (guestModeManager.isGuestMode()) {
+            Log.d("LocalSyncRepository", "Guest mode - skipping background sync")
+            return
+        }
         coroutineScope.launch {
             try {
                 syncManager.syncNow(userId)

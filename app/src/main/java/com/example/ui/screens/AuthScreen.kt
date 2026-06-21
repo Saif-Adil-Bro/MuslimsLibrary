@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import com.example.ui.viewmodel.AuthState
 import com.example.ui.viewmodel.AuthViewModel
 
@@ -39,7 +42,9 @@ import com.example.ui.viewmodel.AuthViewModel
 fun AuthScreen(
     viewModel: AuthViewModel,
     onAuthSuccess: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showGuestOption: Boolean = true,
+    onCloseClick: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -101,6 +106,12 @@ fun AuthScreen(
         }
     }
 
+    if (onCloseClick != null) {
+        BackHandler {
+            onCloseClick()
+        }
+    }
+
     // Emerald to Teal breathtaking gradient for premium atmospheric feel
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -117,6 +128,23 @@ fun AuthScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing),
         contentAlignment = Alignment.Center
     ) {
+        if (onCloseClick != null) {
+            IconButton(
+                onClick = onCloseClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "বন্ধ করুন",
+                    tint = Color.White
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -436,22 +464,24 @@ fun AuthScreen(
                     }
 
                     // Subtle "Continue as Guest" selection
-                    TextButton(
-                        onClick = {
-                            viewModel.signInAnonymously()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 40.dp)
-                            .testTag("switch_auth_mode_button")
-                    ) {
-                        Text(
-                            text = "Continue on Guest Bookshelf",
-                            color = Color(0xFF0A4E38),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center
-                        )
+                    if (showGuestOption) {
+                        TextButton(
+                            onClick = {
+                                viewModel.signInAnonymously()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 40.dp)
+                                .testTag("switch_auth_mode_button")
+                        ) {
+                            Text(
+                                text = "গেস্ট হিসেবে চালিয়ে যান (বুকশেলফ)",
+                                color = Color(0xFF0A4E38),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }

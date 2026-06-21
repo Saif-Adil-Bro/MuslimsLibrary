@@ -7,6 +7,8 @@ import android.net.Uri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceError
 import android.widget.Toast
 import android.util.Log
 import android.view.ScaleGestureDetector
@@ -542,12 +544,13 @@ fun BookReaderScreen(
 
                                               override fun onReceivedError(
                                                   view: WebView?,
-                                                  errorCode: Int,
-                                                  description: String?,
-                                                  failingUrl: String?
+                                                  request: WebResourceRequest?,
+                                                  error: WebResourceError?
                                               ) {
-                                                  super.onReceivedError(view, errorCode, description, failingUrl)
-                                                  hasError = true
+                                                  super.onReceivedError(view, request, error)
+                                                  if (request?.isForMainFrame == true) {
+                                                      hasError = true
+                                                  }
                                               }
                                           }
                                           webChromeClient = WebChromeClient()

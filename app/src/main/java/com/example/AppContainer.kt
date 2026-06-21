@@ -90,16 +90,20 @@ class AppContainer(val context: Context) {
         LiveNetworkMonitor(context)
     }
 
+    val guestModeManager: com.example.data.util.GuestModeManager by lazy {
+        com.example.data.util.GuestModeManager(firebaseAuth)
+    }
+
     val syncManager: SyncManager by lazy {
-        SyncManager(context, appDatabase, supabaseService, networkMonitor)
+        SyncManager(context, appDatabase, supabaseService, networkMonitor, guestModeManager)
     }
 
     val localSyncRepository: LocalSyncRepository by lazy {
-        LocalSyncRepositoryImpl(appDatabase, syncManager, backupManager)
+        LocalSyncRepositoryImpl(appDatabase, syncManager, backupManager, guestModeManager)
     }
 
     val backupManager: com.example.data.backup.BackupManager by lazy {
-        com.example.data.backup.BackupManager(context, appDatabase, supabaseService, firebaseAuth)
+        com.example.data.backup.BackupManager(context, appDatabase, supabaseService, firebaseAuth, guestModeManager)
     }
 
     val downloadManager: com.example.data.download.DownloadManager by lazy {

@@ -43,7 +43,8 @@ fun ProfileScreen(
     onEditProfileClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onBackClick: () -> Unit,
-    onAdminDashboardClick: () -> Unit = {}
+    onAdminDashboardClick: () -> Unit = {},
+    isGuestMode: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val backupStatus by viewModel.backupStatus.collectAsState()
@@ -136,7 +137,7 @@ fun ProfileScreen(
                                             .clip(CircleShape)
                                             .background(Color.White)
                                             .border(4.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                                            .clickable { onEditProfileClick() },
+                                            .clickable { if (!isGuestMode) onEditProfileClick() },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (!user.avatarUrl.isNullOrBlank()) {
@@ -156,22 +157,24 @@ fun ProfileScreen(
                                         }
                                     }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .align(Alignment.BottomEnd)
-                                            .clip(CircleShape)
-                                            .background(Color.White)
-                                            .border(1.dp, Color(0xFFE5E7EB), CircleShape)
-                                            .clickable { onEditProfileClick() },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "প্রোফাইল ছবি সম্পাদন",
-                                            tint = Color(0xFF6366F1),
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                    if (!isGuestMode) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .align(Alignment.BottomEnd)
+                                                .clip(CircleShape)
+                                                .background(Color.White)
+                                                .border(1.dp, Color(0xFFE5E7EB), CircleShape)
+                                                .clickable { onEditProfileClick() },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "প্রোফাইল ছবি সম্পাদন",
+                                                tint = Color(0xFF6366F1),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
 
@@ -300,50 +303,97 @@ fun ProfileScreen(
                                 }
                             }
 
-                            // Backup & Restore Card
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.dp, Color(0xFFBBF7D0))
-                            ) {
-                                Box(
+                            // Backup & Restore Card / Guest banner
+                            if (isGuestMode) {
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFFFFDE7) // Warm premium cream
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFFFEB3B).copy(alpha = 0.5f)),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(
-                                            Brush.linearGradient(
-                                                colors = listOf(Color(0xFFF0FDF4), Color(0xFFDCFCE7))
-                                            )
-                                        )
-                                        .padding(20.dp)
+                                        .padding(bottom = 16.dp)
                                 ) {
-                                    Column {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
                                         Text(
-                                            text = "ডাটা ব্যাকআপ ও রিস্টোর",
-                                            fontSize = 16.sp,
+                                            text = "গেস্ট মোড সক্রিয় আছে ⚠️",
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1F2937),
-                                            modifier = Modifier.padding(bottom = 16.dp)
+                                            fontSize = 16.sp,
+                                            color = Color(0xFF5D4037)
                                         )
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        Text(
+                                            text = "আপনার পড়ার রেকর্ড, প্রিয় তালিকা বা পিন বুকমার্ক শুধুমাত্র আপনার ডিভাইসেই সংরক্ষিত থাকবে। একটি স্থায়ী অ্যাকাউন্ট ছাড়া এটি ক্লাউড ব্যাকআপ করা সম্ভব নয়।",
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF795548)
+                                        )
+                                        Button(
+                                            onClick = onLogoutClick,
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFF0A4E38)
+                                            ),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.fillMaxWidth().height(48.dp)
                                         ) {
-                                            ElegantGradientButton(
-                                                onClick = { viewModel.performBackup(userId) },
-                                                text = "ব্যাকআপ",
-                                                icon = Icons.Default.CloudUpload,
-                                                gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
-                                                modifier = Modifier.weight(1f)
+                                            Text(
+                                                text = "নিবন্ধন / লগইন করুন",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
                                             )
-                                            ElegantSecondaryButton(
-                                                onClick = { viewModel.performRestore(userId) },
-                                                text = "রিস্টোর",
-                                                icon = Icons.Default.CloudDownload,
-                                                borderColor = Color(0xFF6366F1),
-                                                textColor = Color(0xFF6366F1),
-                                                modifier = Modifier.weight(1f)
+                                        }
+                                    }
+                                }
+                            } else {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                Brush.linearGradient(
+                                                    colors = listOf(Color(0xFFF0FDF4), Color(0xFFDCFCE7))
+                                                )
                                             )
+                                            .padding(20.dp)
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = "ডাটা ব্যাকআপ ও রিস্টোর",
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF1F2937),
+                                                modifier = Modifier.padding(bottom = 16.dp)
+                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                ElegantGradientButton(
+                                                    onClick = { viewModel.performBackup(userId) },
+                                                    text = "ব্যাকআপ",
+                                                    icon = Icons.Default.CloudUpload,
+                                                    gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                ElegantSecondaryButton(
+                                                    onClick = { viewModel.performRestore(userId) },
+                                                    text = "রিস্টোর",
+                                                    icon = Icons.Default.CloudDownload,
+                                                    borderColor = Color(0xFF6366F1),
+                                                    textColor = Color(0xFF6366F1),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -362,23 +412,25 @@ fun ProfileScreen(
                                 )
                             }
 
-                            // Action buttons
-                            ElegantGradientButton(
-                                onClick = onEditProfileClick,
-                                text = "প্রোফাইল পরিবর্তন করুন",
-                                icon = Icons.Default.Edit,
-                                gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            if (!isGuestMode) {
+                                // Action buttons
+                                ElegantGradientButton(
+                                    onClick = onEditProfileClick,
+                                    text = "প্রোফাইল পরিবর্তন করুন",
+                                    icon = Icons.Default.Edit,
+                                    gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
 
-                            ElegantSecondaryButton(
-                                onClick = onLogoutClick,
-                                text = "লগআউট করুন",
-                                icon = Icons.Default.ExitToApp,
-                                borderColor = Color(0xFFEF4444),
-                                textColor = Color(0xFFEF4444),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                ElegantSecondaryButton(
+                                    onClick = onLogoutClick,
+                                    text = "লগআউট করুন",
+                                    icon = Icons.Default.ExitToApp,
+                                    borderColor = Color(0xFFEF4444),
+                                    textColor = Color(0xFFEF4444),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }

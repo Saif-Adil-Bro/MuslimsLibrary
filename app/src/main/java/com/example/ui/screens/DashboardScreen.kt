@@ -49,7 +49,8 @@ fun DashboardScreen(
     debugInfo: String = "",
     isDebugMode: Boolean = false,
     onToggleDebug: () -> Unit = {},
-    backupManager: com.example.data.backup.BackupManager? = null
+    backupManager: com.example.data.backup.BackupManager? = null,
+    isGuestMode: Boolean = false
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var tabHistory by rememberSaveable { mutableStateOf(listOf<Int>()) }
@@ -86,8 +87,8 @@ fun DashboardScreen(
                 modifier = Modifier.width(280.dp)
             ) {
                 SideDrawer(
-                    userDisplayName = nameFromEmail,
-                    userEmail = userEmail,
+                    userDisplayName = if (isGuestMode) "গেস্ট ইউজার" else nameFromEmail,
+                    userEmail = if (isGuestMode) "গেস্ট মোড (অফলাইন)" else userEmail,
                     userRole = userRole,
                     onCloseClick = {
                         scope.launch { drawerState.close() }
@@ -122,7 +123,8 @@ fun DashboardScreen(
                     onLogoutClick = {
                         scope.launch { drawerState.close() }
                         onLogoutClick()
-                    }
+                    },
+                    isGuestMode = isGuestMode
                 )
             }
         },
@@ -133,7 +135,7 @@ fun DashboardScreen(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 Column {
-                    StickyHeader(
+                     StickyHeader(
                         onMenuClick = {
                             scope.launch {
                                 if (drawerState.isClosed) drawerState.open() else drawerState.close()
@@ -144,7 +146,8 @@ fun DashboardScreen(
                         },
                         onNotificationsClick = {
                             drawerScreenTitle = "🚧 সাহায্য"
-                        }
+                        },
+                        isGuestMode = isGuestMode
                     )
                     // Sticky search bar is only visible on standard Home tab content
                     if (selectedTab == 0 && drawerScreenTitle.isEmpty()) {
@@ -153,6 +156,48 @@ fun DashboardScreen(
                             onQueryChange = { homeViewModel.onSearchQueryChanged(it) },
                             onSearchClick = { homeViewModel.refreshBooks() }
                         )
+                    }
+                    if (isGuestMode && selectedTab == 0 && drawerScreenTitle.isEmpty()) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFFDE7) // Warm premium cream
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "গেস্ট সেশন সচল আছে 📖",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF5D4037)
+                                    )
+                                    Text(
+                                        text = "লগইন করুন এবং আপনার পড়াশোনার রেকর্ড ক্লাউডে সুরক্ষিত করুন!",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF795548)
+                                    )
+                                }
+                                Button(
+                                    onClick = onLogoutClick,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF0A4E38)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text("লগইন করুন", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -271,7 +316,8 @@ fun DashboardScreen(
                                         selectedTab = 0
                                     }
                                 },
-                                onAdminDashboardClick = onNavigateToAdminDashboard
+                                onAdminDashboardClick = onNavigateToAdminDashboard,
+                                isGuestMode = isGuestMode
                             )
                         }
                     }

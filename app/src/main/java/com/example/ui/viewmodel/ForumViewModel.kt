@@ -30,7 +30,8 @@ sealed interface PostDetailUiState {
 }
 
 class ForumViewModel(
-    private val supabaseService: SupabaseService
+    private val supabaseService: SupabaseService,
+    private val guestModeManager: com.example.data.util.GuestModeManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ForumUiState>(ForumUiState.Loading)
@@ -169,8 +170,17 @@ class ForumViewModel(
         loadPosts()
     }
 
+    private suspend fun isGuestBlocked(): Boolean {
+        if (guestModeManager.isGuestMode()) {
+            _errorMessage.emit("গেস্ট মোডে এই সুবিধাটি উপলব্ধ নয়। দয়া করে লগইন করুন।")
+            return true
+        }
+        return false
+    }
+
     fun createPost(userId: String, email: String, title: String, content: String, category: String, role: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 if (!canCreatePost()) {
                     return@launch
@@ -216,6 +226,7 @@ class ForumViewModel(
 
     fun addComment(postId: String, userId: String, email: String, content: String, role: String) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 supabaseService.createForumComment(postId, userId, content, email, role)
                 _successMessage.emit("মন্তব্য যুক্ত করা হয়েছে!")
@@ -240,6 +251,7 @@ class ForumViewModel(
 
     fun deletePost(postId: String, userId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 val success = supabaseService.deletePost(postId, userId)
                 if (success) {
@@ -265,6 +277,7 @@ class ForumViewModel(
 
     fun reportPost(postId: String, reason: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 supabaseService.reportPost(postId, reason)
                 _successMessage.emit("পোস্টটি সফলভাবে রিপোর্ট করা হয়েছে!")
@@ -288,6 +301,7 @@ class ForumViewModel(
 
     fun toggleLike(postId: String, userId: String) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             val currentList = (_uiState.value as? ForumUiState.Success)?.posts ?: emptyList()
             val wasLiked = _likedPostIds.value.contains(postId)
             
@@ -350,6 +364,7 @@ class ForumViewModel(
 
     fun editPost(postId: String, userId: String, newTitle: String, newContent: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 val success = supabaseService.editPost(postId, userId, newTitle, newContent)
                 if (success) {
@@ -393,6 +408,7 @@ class ForumViewModel(
 
     fun editComment(commentId: String, userId: String, newContent: String, postId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 val success = supabaseService.editComment(commentId, userId, newContent)
                 if (success) {
@@ -426,6 +442,7 @@ class ForumViewModel(
 
     fun deleteComment(commentId: String, userId: String, postId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            if (isGuestBlocked()) return@launch
             try {
                 val success = supabaseService.deleteComment(commentId, userId)
                 if (success) {
@@ -474,11 +491,14 @@ class ForumViewModel(
         }
     }
 
-    class Factory(private val supabaseService: SupabaseService) : ViewModelProvider.Factory {
+    class Factory(
+        private val supabaseService: SupabaseService,
+        private val guestModeManager: com.example.data.util.GuestModeManager
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ForumViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ForumViewModel(supabaseService) as T
+                return ForumViewModel(supabaseService, guestModeManager) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

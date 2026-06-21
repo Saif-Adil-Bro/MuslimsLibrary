@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     factory = AdminViewModel.Factory(appContainer.supabaseClient, appContainer.supabaseService)
                 )
                 val forumViewModel: ForumViewModel = viewModel(
-                    factory = ForumViewModel.Factory(appContainer.supabaseService)
+                    factory = ForumViewModel.Factory(appContainer.supabaseService, appContainer.guestModeManager)
                 )
                 val authorViewModel: com.example.ui.viewmodel.AuthorViewModel = viewModel(
                     factory = com.example.ui.viewmodel.AuthorViewModel.Factory(appContainer.supabaseService)
@@ -193,12 +193,31 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         // Registration & login route
-                        composable("auth") {
+                        composable(
+                            route = "auth?fromGuest={fromGuest}",
+                            arguments = listOf(
+                                navArgument("fromGuest") {
+                                    type = NavType.BoolType
+                                    defaultValue = false
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val fromGuestArg = backStackEntry.arguments?.getBoolean("fromGuest") ?: false
+                            val isFromGuestVM = authViewModel.isFromGuestMode.collectAsState().value
+                            val fromGuest = fromGuestArg || isFromGuestVM
                             AuthScreen(
                                 viewModel = authViewModel,
+                                showGuestOption = !fromGuest,
+                                onCloseClick = if (fromGuest) {
+                                    {
+                                        authViewModel.setFromGuestMode(false)
+                                        navController.popBackStack()
+                                    }
+                                } else null,
                                 onAuthSuccess = {
+                                    authViewModel.setFromGuestMode(false)
                                     navController.navigate("dashboard") {
-                                        popUpTo("auth") { inclusive = true }
+                                        popUpTo("auth?fromGuest={fromGuest}") { inclusive = true }
                                     }
                                 }
                             )
@@ -224,9 +243,15 @@ class MainActivity : ComponentActivity() {
                                 userUid = userUid,
                                 userRole = userRole,
                                 onLogoutClick = {
-                                    authViewModel.logout()
-                                    navController.navigate("auth") {
-                                        popUpTo("dashboard") { inclusive = true }
+                                    val wasGuest = appContainer.guestModeManager.isGuestMode()
+                                    authViewModel.setFromGuestMode(wasGuest)
+                                    if (!wasGuest) {
+                                        authViewModel.logout()
+                                        navController.navigate("auth?fromGuest=$wasGuest") {
+                                            popUpTo("dashboard") { inclusive = true }
+                                        }
+                                    } else {
+                                        navController.navigate("auth?fromGuest=$wasGuest")
                                     }
                                 },
                                 onBookClick = { book ->
@@ -257,7 +282,8 @@ class MainActivity : ComponentActivity() {
                                 debugInfo = debugInfo,
                                 isDebugMode = isDebugMode,
                                 onToggleDebug = { authViewModel.toggleDebugMode(context) },
-                                backupManager = appContainer.backupManager
+                                backupManager = appContainer.backupManager,
+                                isGuestMode = appContainer.guestModeManager.isGuestMode()
                             )
                         }
 
@@ -468,17 +494,24 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             val authState = authViewModel.uiState.collectAsState().value
                             val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
+                            val isGuest = appContainer.guestModeManager.isGuestMode()
                             ProfileScreen(
                                 viewModel = profileViewModel,
                                 localSyncRepository = appContainer.localSyncRepository,
                                 userId = userEmail,
+                                isGuestMode = isGuest,
                                 onEditProfileClick = {
                                     navController.navigate("edit_profile")
                                 },
                                 onLogoutClick = {
-                                    authViewModel.logout()
-                                    navController.navigate("auth") {
-                                        popUpTo("dashboard") { inclusive = true }
+                                    authViewModel.setFromGuestMode(isGuest)
+                                    if (!isGuest) {
+                                        authViewModel.logout()
+                                        navController.navigate("auth?fromGuest=$isGuest") {
+                                            popUpTo("dashboard") { inclusive = true }
+                                        }
+                                    } else {
+                                        navController.navigate("auth?fromGuest=$isGuest")
                                     }
                                 },
                                 onBackClick = {
