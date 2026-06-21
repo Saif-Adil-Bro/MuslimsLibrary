@@ -63,7 +63,30 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
+    LaunchedEffect(Unit) {
+        if (!isGuestMode) {
+            profileViewModel.loadProfile()
+        }
+    }
+
+    val profileUiState by profileViewModel.uiState.collectAsState()
     val nameFromEmail = userEmail.split("@").first().replaceFirstChar { it.uppercase() }
+    val realDisplayName = if (isGuestMode) {
+        "গেস্ট ইউজার"
+    } else {
+        when (val state = profileUiState) {
+            is com.example.ui.viewmodel.ProfileUiState.Success -> state.user.displayName ?: nameFromEmail
+            else -> nameFromEmail
+        }
+    }
+    val realEmail = if (isGuestMode) {
+        "গেস্ট মোড (অফলাইন)"
+    } else {
+        when (val state = profileUiState) {
+            is com.example.ui.viewmodel.ProfileUiState.Success -> state.user.email
+            else -> userEmail
+        }
+    }
 
     val isBackHandlerEnabled = drawerState.isOpen || drawerScreenTitle.isNotEmpty() || selectedTab != 0 || tabHistory.isNotEmpty()
 
@@ -90,8 +113,8 @@ fun DashboardScreen(
                 modifier = Modifier.width(280.dp)
             ) {
                 SideDrawer(
-                    userDisplayName = if (isGuestMode) "গেস্ট ইউজার" else nameFromEmail,
-                    userEmail = if (isGuestMode) "গেস্ট মোড (অফলাইন)" else userEmail,
+                    userDisplayName = realDisplayName,
+                    userEmail = realEmail,
                     userRole = userRole,
                     onCloseClick = {
                         scope.launch { drawerState.close() }

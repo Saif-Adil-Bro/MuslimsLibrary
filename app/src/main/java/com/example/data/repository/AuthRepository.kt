@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface AuthRepository {
     fun getCurrentUserEmail(): String?
     fun getCurrentUserUid(): String?
+    fun getCurrentUser(): com.google.firebase.auth.FirebaseUser?
     fun getSupabaseUid(): String?
     suspend fun getUserRole(uid: String): String
     fun getLastQueryJson(): String

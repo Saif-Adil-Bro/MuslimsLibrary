@@ -125,6 +125,8 @@ class MainActivity : ComponentActivity() {
                                 // Prevent double triggering while launching async jobs
                                 prefs.edit().putBoolean(key, true).apply()
                                 try {
+                                    isRestoring = true
+                                    restoreMessage = "ক্লাউড ব্যাকআপ পরীক্ষা করা হচ্ছে..."
                                     android.util.Log.d("MainActivity", "Logged in successfully. Checking backup... UID: $userUid, Email: $userEmail")
                                     var exists = false
                                     var backupIdToUse = ""
@@ -143,37 +145,34 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     if (exists && backupIdToUse.isNotBlank()) {
-                                        isRestoring = true
-                                        restoreMessage = "ক্লাউড ব্যাকআপ পাওয়া গেছে! ডাটা রিস্টোর করা হচ্ছে..."
-                                        
-                                        // Launch restore operation
-                                        coroutineScope.launch {
+                                        restoreMessage = "আপনার ডাটা রিস্টোর হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন"
+                                        try {
+                                            appContainer.backupManager.downloadBackup(
+                                                cloudBackupUserId = backupIdToUse,
+                                                roomUserId = userEmail
+                                            )
+                                            
+                                            // Refresh stats on profile screen immediately
                                             try {
-                                                restoreMessage = "ডাটাবেজে তথ্য ইম্পোর্ট করা হচ্ছে, অনুগ্রহ করে একটু অপেক্ষা করুন..."
-                                                appContainer.backupManager.downloadBackup(
-                                                    cloudBackupUserId = backupIdToUse,
-                                                    roomUserId = userEmail
-                                                )
-                                                
-                                                // Refresh stats on profile screen immediately
-                                                try {
-                                                    profileViewModel.loadStatistics(userEmail)
-                                                } catch (ex: Exception) {
-                                                    android.util.Log.e("MainActivity", "Failed to force reload profile stats: ${ex.message}")
-                                                }
-                                                
-                                                android.widget.Toast.makeText(context, "ক্লাউড থেকে আপনার সকল ডাটা সফলভাবে রিস্টোর করা হয়েছে!", android.widget.Toast.LENGTH_LONG).show()
-                                            } catch (e: Exception) {
-                                                val errMsg = e.localizedMessage ?: e.message ?: ""
-                                                android.util.Log.e("MainActivity", "Automated restore failed: $errMsg", e)
-                                                android.widget.Toast.makeText(context, "অটো রিস্টোর ব্যর্থ হয়েছে: $errMsg", android.widget.Toast.LENGTH_LONG).show()
-                                            } finally {
-                                                isRestoring = false
+                                                profileViewModel.loadStatistics(userEmail)
+                                            } catch (ex: Exception) {
+                                                android.util.Log.e("MainActivity", "Failed to force reload profile stats: ${ex.message}")
                                             }
+                                            
+                                            android.widget.Toast.makeText(context, "আপনার ডাটা সফলভাবে রিস্টোর হয়েছে!", android.widget.Toast.LENGTH_LONG).show()
+                                        } catch (e: Exception) {
+                                            val errMsg = e.localizedMessage ?: e.message ?: ""
+                                            android.util.Log.e("MainActivity", "Automated restore failed: $errMsg", e)
+                                            android.widget.Toast.makeText(context, "রিস্টোর ব্যর্থ হয়েছে: $errMsg", android.widget.Toast.LENGTH_LONG).show()
+                                        } finally {
+                                            isRestoring = false
                                         }
+                                    } else {
+                                        isRestoring = false
                                     }
                                 } catch (e: Exception) {
                                     android.util.Log.e("MainActivity", "Error checking automated backup availability: ${e.message}", e)
+                                    isRestoring = false
                                 }
                             }
                         }

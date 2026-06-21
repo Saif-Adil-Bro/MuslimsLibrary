@@ -69,41 +69,24 @@ class ProfileViewModel(
         statsJob?.cancel()
         statsJob = viewModelScope.launch {
             try {
-                // Determine the correct identifier used for local sync data (which is userEmail)
-                val userEmail = authRepository.getCurrentUserEmail()
-                val firebaseUid = authRepository.getCurrentUserUid()
-                
-                android.util.Log.d("ProfileStats", "Current user email from AuthRepository: $userEmail")
-                android.util.Log.d("ProfileStats", "Firebase UID: $firebaseUid")
-                android.util.Log.d("ProfileStats", "Passed user identifier: $userId")
-                
-                // Since local DB entries are stored under 'userEmail' (or fallback), prioritize userEmail,
-                // falling back to passed userId or Firebase UID if email is blank.
-                val uidToUse = when {
-                    !userEmail.isNullOrBlank() -> userEmail
-                    userId.contains("@") -> userId
-                    !firebaseUid.isNullOrBlank() -> firebaseUid
-                    else -> userId
-                }
-                
-                android.util.Log.d("ProfileStats", "Using UID/Email for Room queries reactively: $uidToUse")
+                android.util.Log.d("ProfileStats", "Querying reactively for user: $userId")
                 
                 // Set up visual reactive flow combination of database progress, favorites, pins and notes tables
                 // Catch errors on individual flows to ensure subscription doesn't drop due to any single table query mismatch
                 combine(
-                    appDatabase.progressDao().getAllProgressFlow(uidToUse).catch { e ->
+                    appDatabase.progressDao().getAllProgressFlow(userId).catch { e ->
                         android.util.Log.e("ProfileStats", "Error resolving progress flow: ${e.message}", e)
                         emit(emptyList())
                     },
-                    appDatabase.favoriteDao().getFavoritesFlow(uidToUse).catch { e ->
+                    appDatabase.favoriteDao().getFavoritesFlow(userId).catch { e ->
                         android.util.Log.e("ProfileStats", "Error resolving favorites flow: ${e.message}", e)
                         emit(emptyList())
                     },
-                    appDatabase.pinDao().getPinnedBooksFlow(uidToUse).catch { e ->
+                    appDatabase.pinDao().getPinnedBooksFlow(userId).catch { e ->
                         android.util.Log.e("ProfileStats", "Error resolving pins flow: ${e.message}", e)
                         emit(emptyList())
                     },
-                    appDatabase.noteDao().getNotesForUserFlow(uidToUse).catch { e ->
+                    appDatabase.noteDao().getNotesForUserFlow(userId).catch { e ->
                         android.util.Log.e("ProfileStats", "Error resolving notes flow: ${e.message}", e)
                         emit(emptyList())
                     }

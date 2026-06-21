@@ -55,6 +55,10 @@ class AuthRepositoryImpl(
         return firebaseAuth.currentUser?.uid
     }
 
+    override fun getCurrentUser(): com.google.firebase.auth.FirebaseUser? {
+        return firebaseAuth.currentUser
+    }
+
     override fun getSupabaseUid(): String? {
         return try {
             supabaseClient.auth.currentUserOrNull()?.id ?: supabaseClient.auth.currentSessionOrNull()?.user?.id
