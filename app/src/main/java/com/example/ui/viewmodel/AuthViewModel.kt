@@ -27,6 +27,8 @@ class AuthViewModel(
     private val backupManager: com.example.data.backup.BackupManager
 ) : ViewModel() {
 
+    private var isLoginFlowActive = false
+
     private val _uiState = MutableStateFlow<AuthState>(AuthState.Idle)
     val uiState: StateFlow<AuthState> = _uiState.asStateFlow()
 
@@ -47,8 +49,6 @@ class AuthViewModel(
 
     private val _isFromGuestMode = MutableStateFlow(false)
     val isFromGuestMode: StateFlow<Boolean> = _isFromGuestMode.asStateFlow()
-    // 🆕 NEW FLAG: Prevents init block from overriding state during login/restore
-    private var isLoginFlowActive = false
 
     fun setFromGuestMode(fromGuest: Boolean) {
         _isFromGuestMode.value = fromGuest
@@ -65,7 +65,7 @@ class AuthViewModel(
         val newValue = !prefs.getBoolean("debug_mode_enabled", false)
         prefs.edit().putBoolean("debug_mode_enabled", newValue).apply()
         _isDebugMode.value = newValue
-        _toastMessage.value = if (newValue) "️ Debug Mode Enabled!" else "🛠️ Debug Mode Disabled."
+        _toastMessage.value = if (newValue) "🛠️ Debug Mode Enabled!" else "🛠️ Debug Mode Disabled."
     }
 
     fun clearToastMessage() {
@@ -76,14 +76,16 @@ class AuthViewModel(
         val firebaseUid = authRepository.getCurrentUserUid() ?: "None"
         val supabaseUid = authRepository.getSupabaseUid() ?: "None"
         val queryDetails = authRepository.getLastQueryJson()
+        
         _debugInfo.value = """
-Firebase UID: $firebaseUid
-Supabase UID: $supabaseUid
-Query UID: $queryUid
-Parsed Role: $role
-Final Role: $finalRole
-Database Response / Query Details:
-$queryDetails
+            Firebase UID: $firebaseUid
+            Supabase UID: $supabaseUid
+            Query UID: $queryUid
+            Parsed Role: $role
+            Final Role: $finalRole
+            
+            Database Response / Query Details:
+            $queryDetails
         """.trimIndent()
     }
 
@@ -91,14 +93,17 @@ $queryDetails
         val firebaseUid = authRepository.getCurrentUserUid() ?: "None"
         val supabaseUid = authRepository.getSupabaseUid() ?: "None"
         val queryDetails = authRepository.getLastQueryJson()
+        
         _debugInfo.value = """
-Firebase UID: $firebaseUid
-Supabase UID: $supabaseUid
-Query UID: $queryUid
-Parsed Role: Error
-Final Role: userError: $errorMsg
-Database Response / Query Details:
-$queryDetails
+            Firebase UID: $firebaseUid
+            Supabase UID: $supabaseUid
+            Query UID: $queryUid
+            Parsed Role: Error
+            Final Role: user
+            Error: $errorMsg
+            
+            Database Response / Query Details:
+            $queryDetails
         """.trimIndent()
     }
 
@@ -143,9 +148,8 @@ $queryDetails
                             _toastMessage.value = "UID is null"
                         }
                     }
-                    
-                    // ️ FIX: Only set Success state if we are NOT currently in the middle of a login/restore flow
-                    if (!isLoginFlowActive) {                        _uiState.value = AuthState.Success(email, uid ?: "")
+                    if (!isLoginFlowActive) {
+                        _uiState.value = AuthState.Success(email, uid ?: "")
                     }
                     _isLoggedIn.value = true
                 } else {
@@ -188,17 +192,18 @@ $queryDetails
     private suspend fun onAuthenticationSuccess(email: String, context: Context? = null) {
         val uid = authRepository.getCurrentUserUid()
         android.util.Log.d("AuthViewModel", "Login success, UID: $uid")
-        
         if (uid != null) {
             try {
                 authRepository.ensureProfileSynced()
             } catch (e: Exception) {
                 android.util.Log.e("AuthViewModel", "Login profile sync error", e)
-            }            _debugInfo.value = "Fetching role for UID: $uid..."
+            }
+            _debugInfo.value = "Fetching role for UID: $uid..."
             if (_isDebugMode.value) {
                 _toastMessage.value = "Fetching Role..."
             }
             try {
+                // Add timeout to prevent hanging
                 val role = withTimeout(15_000) {
                     authRepository.getUserRole(uid)
                 }
@@ -210,6 +215,7 @@ $queryDetails
                 }
             } catch (e: Exception) {
                 android.util.Log.e("AuthViewModel", "Error fetching user role", e)
+                // If role fetch fails, default to 'user' but still allow login
                 _userRole.value = "user"
                 _toastMessage.value = "Login successful (using default role)"
                 updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
@@ -220,13 +226,11 @@ $queryDetails
                 val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                 val key = "auto_restore_completed_$uid"
                 val hasAutoRestored = prefs.getBoolean(key, false)
-                
                 if (!hasAutoRestored) {
                     android.util.Log.d("AuthViewModel", "Checking for automated backup availability for UID: $uid, Email: $email")
                     _debugInfo.value = "Checking backup existence..."
                     var exists = false
                     var backupIdToUse = ""
-                    
                     try {
                         if (!email.isBlank() && email != "Guest User" && email != "guest_user") {
                             exists = backupManager.backupExistsOnCloud(email)
@@ -243,23 +247,20 @@ $queryDetails
                     } catch (e: Exception) {
                         android.util.Log.e("AuthViewModel", "Error checking backup exists: ${e.message}", e)
                     }
+
                     if (exists && backupIdToUse.isNotBlank()) {
                         _uiState.value = AuthState.Restoring
                         prefs.edit().putBoolean(key, true).apply()
-                        
                         try {
                             android.util.Log.d("AuthViewModel", "Auto-triggering downloadBackup with backupId: $backupIdToUse")
                             _debugInfo.value = "Downloading and restoring data..."
-                            
-                            //  ACTUAL RESTORE CALL
                             backupManager.downloadBackup(cloudBackupUserId = backupIdToUse, roomUserId = email)
-                            
                             android.util.Log.d("AuthViewModel", "Auto-restore successful!")
-                            _toastMessage.value = "আপনার ডাটা সফলভাবে রিস্টোর হয়েছে!"
+                            _toastMessage.value = "আপনার ডাটা সফলভাবে রিস্টোর হয়েছে!"
                         } catch (e: Exception) {
                             val errMsg = e.localizedMessage ?: e.message ?: ""
                             android.util.Log.e("AuthViewModel", "Auto-restore failed: $errMsg", e)
-                            _toastMessage.value = "রিস্টোর ব্যর্থ হয়েছে: $errMsg"
+                            _toastMessage.value = "রিস্টোর ব্যর্থ হয়েছে: $errMsg"
                         }
                     }
                 }
@@ -271,15 +272,13 @@ $queryDetails
                 _toastMessage.value = "UID is null"
             }
         }
-        
-        // ️ FIX: Deactivate flag and set Success state ONLY after restore is fully complete
         isLoginFlowActive = false
         _uiState.value = AuthState.Success(email, uid ?: "")
         _isLoggedIn.value = true
     }
 
     private fun isNetworkAvailable(context: Context?): Boolean {
-        if (context == null) return true
+        if (context == null) return true // assume true if not supplied to prevent blocking
         return try {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             @Suppress("DEPRECATION")
@@ -287,12 +286,13 @@ $queryDetails
             @Suppress("DEPRECATION")
             activeNetwork != null && activeNetwork.isConnected
         } catch (e: Exception) {
-            true
+            true // fallback to true to prevent locking users out if permission checks etc. fail
         }
     }
 
     fun login(email: String, passwordState: String, context: Context? = null) {
-        android.util.Log.d("AuthViewModel", "Login started for: $email")        if (!isNetworkAvailable(context)) {
+        android.util.Log.d("AuthViewModel", "Login started for: $email")
+        if (!isNetworkAvailable(context)) {
             _uiState.value = AuthState.Error("No internet connection. Please check your network status and try again.")
             _toastMessage.value = "No internet connection."
             return
@@ -301,8 +301,6 @@ $queryDetails
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return
         }
-        
-        // 🛡️ FIX: Activate flag to prevent init block from overriding state
         isLoginFlowActive = true
         _uiState.value = AuthState.Loading("Signing in...")
         
@@ -313,13 +311,13 @@ $queryDetails
                         onAuthenticationSuccess(email, context)
                     }
                     .onFailure { error ->
-                        isLoginFlowActive = false // Reset flag on failure
+                        isLoginFlowActive = false
                         android.util.Log.e("AuthViewModel", "Login failed for: $email", error)
                         _uiState.value = AuthState.Error(error.message ?: "Login failed")
                         _toastMessage.value = "Login failed: ${error.message}"
                     }
             } catch (e: Exception) {
-                isLoginFlowActive = false // Reset flag on exception
+                isLoginFlowActive = false
                 android.util.Log.e("AuthViewModel", "Unexpected login exception", e)
                 _uiState.value = AuthState.Error("Unexpected error: ${e.message}")
             }
@@ -337,11 +335,9 @@ $queryDetails
             _uiState.value = AuthState.Error("Email must be valid and password must be at least 6 characters")
             return
         }
-        
-        // 🛡️ FIX: Activate flag
         isLoginFlowActive = true
         _uiState.value = AuthState.Loading("Creating account...")
-                viewModelScope.launch {
+        viewModelScope.launch {
             try {
                 authRepository.signUp(email, passwordState)
                     .onSuccess {
@@ -362,10 +358,8 @@ $queryDetails
     }
 
     fun signInWithGoogle(context: Context, activity: ComponentActivity) {
-        // 🛡️ FIX: Activate flag
         isLoginFlowActive = true
         _uiState.value = AuthState.Loading("Connecting Google...")
-        
         viewModelScope.launch {
             authRepository.signInWithGoogle(context, activity)
                 .onSuccess {
@@ -380,6 +374,7 @@ $queryDetails
     }
 
     fun signInAnonymously() {
+        isLoginFlowActive = true
         _uiState.value = AuthState.Loading("Signing in as Guest...")
         viewModelScope.launch {
             authRepository.signInAnonymously()
@@ -388,9 +383,11 @@ $queryDetails
                     onAuthenticationSuccess(email, null)
                 }
                 .onFailure {
+                    isLoginFlowActive = false
                     _uiState.value = AuthState.Error(it.localizedMessage ?: "Anonymous sign-in failed")
                 }
-        }    }
+        }
+    }
 
     fun deleteAccount() {
         _uiState.value = AuthState.Loading("Deleting account...")

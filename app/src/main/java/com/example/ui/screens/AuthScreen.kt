@@ -50,6 +50,8 @@ fun AuthScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     val debugInfo by viewModel.debugInfo.collectAsState()
     val isDebugMode by viewModel.isDebugMode.collectAsState()
@@ -363,7 +365,7 @@ fun AuthScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         val stateValue = uiState
-                        if (stateValue is AuthState.Loading) {
+                        if (stateValue is AuthState.Loading || stateValue is AuthState.Restoring) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.fillMaxWidth()
@@ -374,7 +376,7 @@ fun AuthScreen(
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
-                                    text = stateValue.message,
+                                    text = if (stateValue is AuthState.Restoring) "আপনার ডাটা রিস্টোর হচ্ছে... অনুগ্রহ করে একটু অপেক্ষা করুন" else (stateValue as AuthState.Loading).message,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = brandColor
@@ -383,6 +385,8 @@ fun AuthScreen(
                         } else {
                             Button(
                                 onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
                                     if (validateInputs()) {
                                         if (isSignUp) {
                                             viewModel.signUp(email, password, context)
@@ -429,6 +433,8 @@ fun AuthScreen(
                     // Modern "Continue with Google" Button
                     OutlinedButton(
                         onClick = {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
                             if (activity != null) {
                                 viewModel.signInWithGoogle(context, activity)
                             } else {
@@ -467,6 +473,8 @@ fun AuthScreen(
                     if (showGuestOption) {
                         TextButton(
                             onClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
                                 viewModel.signInAnonymously()
                             },
                             modifier = Modifier

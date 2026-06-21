@@ -10,6 +10,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -69,7 +71,10 @@ class MainActivity : ComponentActivity() {
                     )
                 )
                 val authViewModel: AuthViewModel = viewModel(
-                    factory = AuthViewModel.Factory(appContainer.authRepository)
+                    factory = AuthViewModel.Factory(
+                        appContainer.authRepository,
+                        appContainer.backupManager
+                    )
                 )
                 val libraryViewModel: LibraryViewModel = viewModel(
                     factory = LibraryViewModel.Factory(appContainer.appDatabase, appContainer.supabaseService)
@@ -107,79 +112,10 @@ class MainActivity : ComponentActivity() {
                 
                 val toastMessage by authViewModel.toastMessage.collectAsState()
                 val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-                var isRestoring by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                var restoreMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("ক্লাউড থেকে তথ্য পরীক্ষা করা হচ্ছে...") }
 
                 val authState by authViewModel.uiState.collectAsState()
 
-                LaunchedEffect(authState) {
-                    val currentAuthState = authState
-                    if (currentAuthState is com.example.ui.viewmodel.AuthState.Success) {
-                        val userUid = currentAuthState.uid
-                        val userEmail = currentAuthState.email
-                        if (userUid.isNotBlank() || userEmail.isNotBlank()) {
-                            val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                            val key = "auto_restore_completed_$userUid"
-                            val hasAutoRestored = prefs.getBoolean(key, false)
-                            if (!hasAutoRestored) {
-                                // Prevent double triggering while launching async jobs
-                                prefs.edit().putBoolean(key, true).apply()
-                                try {
-                                    isRestoring = true
-                                    restoreMessage = "ক্লাউড ব্যাকআপ পরীক্ষা করা হচ্ছে..."
-                                    android.util.Log.d("MainActivity", "Logged in successfully. Checking backup... UID: $userUid, Email: $userEmail")
-                                    var exists = false
-                                    var backupIdToUse = ""
-                                    
-                                    if (userEmail.isNotBlank()) {
-                                        exists = appContainer.backupManager.backupExistsOnCloud(userEmail)
-                                        if (exists) {
-                                            backupIdToUse = userEmail
-                                        }
-                                    }
-                                    if (!exists && userUid.isNotBlank()) {
-                                        exists = appContainer.backupManager.backupExistsOnCloud(userUid)
-                                        if (exists) {
-                                            backupIdToUse = userUid
-                                        }
-                                    }
-
-                                    if (exists && backupIdToUse.isNotBlank()) {
-                                        restoreMessage = "আপনার ডাটা রিস্টোর হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন"
-                                        try {
-                                            appContainer.backupManager.downloadBackup(
-                                                cloudBackupUserId = backupIdToUse,
-                                                roomUserId = userEmail
-                                            )
-                                            
-                                            // Refresh stats on profile screen immediately
-                                            try {
-                                                profileViewModel.loadStatistics(userEmail)
-                                            } catch (ex: Exception) {
-                                                android.util.Log.e("MainActivity", "Failed to force reload profile stats: ${ex.message}")
-                                            }
-                                            
-                                            android.widget.Toast.makeText(context, "আপনার ডাটা সফলভাবে রিস্টোর হয়েছে!", android.widget.Toast.LENGTH_LONG).show()
-                                        } catch (e: Exception) {
-                                            val errMsg = e.localizedMessage ?: e.message ?: ""
-                                            android.util.Log.e("MainActivity", "Automated restore failed: $errMsg", e)
-                                            android.widget.Toast.makeText(context, "রিস্টোর ব্যর্থ হয়েছে: $errMsg", android.widget.Toast.LENGTH_LONG).show()
-                                        } finally {
-                                            isRestoring = false
-                                        }
-                                    } else {
-                                        isRestoring = false
-                                    }
-                                } catch (e: Exception) {
-                                    android.util.Log.e("MainActivity", "Error checking automated backup availability: ${e.message}", e)
-                                    isRestoring = false
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (isRestoring) {
+                if (authState is com.example.ui.viewmodel.AuthState.Restoring) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = {},
                         confirmButton = {},
@@ -196,7 +132,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
-                        text = { androidx.compose.material3.Text(restoreMessage) }
+                        text = { androidx.compose.material3.Text("আপনার ডাটা ক্লাউড থেকে ডাউনলোড এবং রিস্টোর করা হচ্ছে। অনুগ্রহ করে একটু অপেক্ষা করুন...") }
                     )
                 }
 
@@ -540,6 +476,39 @@ class MainActivity : ComponentActivity() {
                             val authState = authViewModel.uiState.collectAsState().value
                             val userEmail = if (authState is com.example.ui.viewmodel.AuthState.Success) authState.email else ""
                             val isGuest = appContainer.guestModeManager.isGuestMode()
+                            
+                            // ADD THIS: Auto-restore trigger
+                            val hasAutoRestored = remember { mutableStateOf(false) }
+                            
+                            LaunchedEffect(Unit) {
+                                if (!hasAutoRestored.value && !isGuest && userEmail.isNotBlank()) {
+                                    // Wait for screen to fully load (5 second delay)
+                                    kotlinx.coroutines.delay(5000)
+                                    
+                                    // Check if auto-restore was already done in this session
+                                    val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                                    val key = "auto_restore_done_$userEmail"
+                                    val alreadyDone = prefs.getBoolean(key, false)
+                                    
+                                    if (!alreadyDone) {
+                                        // Check if backup exists
+                                        try {
+                                            val backupExists = appContainer.backupManager.backupExistsOnCloud(userEmail)
+                                            if (backupExists) {
+                                                // Mark as done immediately to prevent duplicate calls
+                                                hasAutoRestored.value = true
+                                                prefs.edit().putBoolean(key, true).apply()
+                                                
+                                                // Trigger the same restore function
+                                                profileViewModel.performRestore(userEmail)
+                                            }
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("MainActivity", "Auto-restore check failed: ${e.message}")
+                                        }
+                                    }
+                                }
+                            }
+                            
                             ProfileScreen(
                                 viewModel = profileViewModel,
                                 localSyncRepository = appContainer.localSyncRepository,
