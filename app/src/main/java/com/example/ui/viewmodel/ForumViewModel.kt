@@ -196,6 +196,17 @@ class ForumViewModel(
 
                 supabaseService.createForumPost(userId, title, content, category, email, role)
                 
+                try {
+                    supabaseService.addNotificationLocallyAndRemotely(
+                        userId = "global",
+                        title = "নতুন ফোরাম পোস্ট",
+                        body = "ফোরামে নতুন একটি আলোচনা শুরু হয়েছে: '$title'",
+                        type = "forum"
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("ForumViewModel", "Failed to insert global forum post notification", e)
+                }
+                
                 _userPostsCount.value++
                 _lastPostTime.value = System.currentTimeMillis()
 
@@ -230,6 +241,24 @@ class ForumViewModel(
             try {
                 supabaseService.createForumComment(postId, userId, content, email, role)
                 _successMessage.emit("মন্তব্য যুক্ত করা হয়েছে!")
+                
+                // Get post author to send notification
+                val currentList = (_uiState.value as? ForumUiState.Success)?.posts ?: emptyList()
+                val postAuthorId = currentList.find { it.id == postId }?.userId
+                val postTitle = currentList.find { it.id == postId }?.title ?: "একটি ফোরাম পোস্ট"
+                if (postAuthorId != null && postAuthorId != userId) {
+                    try {
+                        supabaseService.addNotificationLocallyAndRemotely(
+                            userId = postAuthorId,
+                            title = "নতুন মন্তব্য",
+                            body = "আপনার '$postTitle' পোস্টে কেউ একজন নতুন মন্তব্য করেছেন।",
+                            type = "forum"
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e("ForumViewModel", "Failed to send comment notification", e)
+                    }
+                }
+
                 loadPostDetails(postId)
                 
                 // Refresh list of posts as well to update comments count representation
@@ -343,6 +372,22 @@ class ForumViewModel(
 
             try {
                 supabaseService.toggleLike(postId, userId)
+                if (!wasLiked) {
+                    val postAuthorId = currentList.find { it.id == postId }?.userId
+                    val postTitle = currentList.find { it.id == postId }?.title ?: "একটি ফোরাম পোস্ট"
+                    if (postAuthorId != null && postAuthorId != userId) {
+                        try {
+                            supabaseService.addNotificationLocallyAndRemotely(
+                                userId = postAuthorId,
+                                title = "নতুন লাইক",
+                                body = "আপনার '$postTitle' পোস্টে কেউ একজন লাইক করেছেন।",
+                                type = "forum"
+                            )
+                        } catch (e: Exception) {
+                            android.util.Log.e("ForumViewModel", "Failed to send like notification", e)
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 android.util.Log.e("ForumViewModel", "Failed to toggle like: ${e.message}")
                 // Rollback State

@@ -1519,14 +1519,27 @@ class SupabaseService(
 
     suspend fun fetchNotifications(userId: String): List<SupabaseNotification> = withContext(Dispatchers.IO) {
         try {
-            supabaseClient.postgrest["notifications"]
+            val userNotifs = supabaseClient.postgrest["notifications"]
                 .select {
                     filter {
                         eq("user_id", userId)
                     }
                 }
                 .decodeList<SupabaseNotification>()
-                .sortedByDescending { it.sentAt }
+                
+            val globalNotifs = try {
+                supabaseClient.postgrest["notifications"]
+                    .select {
+                        filter {
+                            eq("user_id", "global")
+                        }
+                    }
+                    .decodeList<SupabaseNotification>()
+            } catch (e: Exception) {
+                emptyList()
+            }
+                
+            (userNotifs + globalNotifs).distinctBy { it.id }.sortedByDescending { it.sentAt }
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error fetching notifications: ${e.message}", e)
             emptyList()

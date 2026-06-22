@@ -26,13 +26,45 @@ class ReadingReminderWorker(
                 "জ্ঞান অর্জন করা প্রত্যেক মুসলমানের উপর ফরজ। মুসলমানদের লাইব্রেরিতে আপনার পড়াশোনা বজায় রাখুন।"
             )
             val selectedMessage = messages.random()
+            val title = "ইসলামিক রিডিং রিমাইন্ডার"
 
             notificationManager.showSimpleNotification(
                 id = LocalNotificationManager.READING_NOTIFICATION_ID,
-                title = "ইসলামিক রিডিং রিমাইন্ডার",
+                title = title,
                 body = selectedMessage,
                 channelId = LocalNotificationManager.CHANNEL_READING_ID
             )
+
+            // Save to internal app Notification Center
+            val appContainer = (applicationContext as? com.example.MuslimsLibraryApplication)?.container
+            val userId = appContainer?.authRepository?.let { it.getSupabaseUid() ?: it.getCurrentUserUid() } 
+                ?: applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getString("user_id", null)
+
+            if (userId != null) {
+                try {
+                    val db = com.example.data.local.AppDatabase.getDatabase(applicationContext)
+                    val notificationEntity = com.example.data.local.entities.NotificationEntity(
+                        id = "local_reading_" + System.currentTimeMillis().toString(),
+                        userId = userId,
+                        title = title,
+                        message = selectedMessage,
+                        type = "reminder",
+                        data = "{}",
+                        isRead = false,
+                        createdAt = System.currentTimeMillis()
+                    )
+                    db.notificationDao().insertNotification(notificationEntity)
+                    
+                    appContainer?.supabaseService?.addNotificationLocallyAndRemotely(
+                        userId = userId,
+                        title = title,
+                        body = selectedMessage,
+                        type = "reminder"
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("ReadingWorker", "Failed to insert local notification", e)
+                }
+            }
         }
 
         return Result.success()

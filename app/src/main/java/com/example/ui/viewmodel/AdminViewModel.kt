@@ -423,6 +423,17 @@ class AdminViewModel(
                     "is_public" to true
                 )
                 supabaseService.insertBook(bookData)
+                
+                try {
+                    supabaseService.addNotificationLocallyAndRemotely(
+                        userId = "global",
+                        title = "নতুন ভান্ডার",
+                        body = "মুসলমানদের লাইব্রেরিতে একটি নতুন বই যুক্ত হয়েছে: '${data.title}'",
+                        type = "book"
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("AdminViewModel", "Failed to send global book notification", e)
+                }
 
                 _uiState.value = UploadState.Success
                 getTotalBooksCount()
