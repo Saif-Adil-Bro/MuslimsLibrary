@@ -408,4 +408,8 @@ class BackupManager(
     suspend fun backupExistsOnCloud(userId: String): Boolean = withContext(Dispatchers.IO) {
         supabaseService.backupExists("$userId/backup.json")
     }
+
+    suspend fun clearLocalData() = withContext(Dispatchers.IO) {
+        appDatabase.clearAllTables()
+    }
 }

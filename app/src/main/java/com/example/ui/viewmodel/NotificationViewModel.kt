@@ -31,7 +31,8 @@ class NotificationViewModel(
     private val supabaseService: SupabaseService,
     private val guestModeManager: GuestModeManager,
     private val context: Context,
-    private val appDatabase: AppDatabase
+    private val appDatabase: AppDatabase,
+    private val authRepository: com.example.data.repository.AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NotificationUiState>(NotificationUiState.Loading)
@@ -76,7 +77,7 @@ class NotificationViewModel(
         // If not a guest user, pull cloud prefs
         viewModelScope.launch {
             if (!guestModeManager.isGuestMode()) {
-                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                val uid = authRepository.getSupabaseUid() ?: authRepository.getCurrentUserUid() ?: return@launch
                 val prefs = supabaseService.fetchNotificationPrefs(uid)
                 if (prefs != null) {
                     _pushedNotificationsEnabled.value = prefs.prayerReminders // using prayerReminders field as general push placeholder
@@ -93,7 +94,7 @@ class NotificationViewModel(
             return
         }
 
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        val uid = authRepository.getSupabaseUid() ?: authRepository.getCurrentUserUid()
         if (uid == null) {
             _uiState.value = NotificationUiState.Success(emptyList())
             _unreadCount.value = 0
@@ -186,7 +187,7 @@ class NotificationViewModel(
     }
 
     fun clearAllNotifications() {
-        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val uid = authRepository.getSupabaseUid() ?: authRepository.getCurrentUserUid() ?: return
         viewModelScope.launch {
             try {
                 appDatabase.notificationDao().deleteAllNotifications(uid)
@@ -203,7 +204,7 @@ class NotificationViewModel(
 
         viewModelScope.launch {
             if (!guestModeManager.isGuestMode()) {
-                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                val uid = authRepository.getSupabaseUid() ?: authRepository.getCurrentUserUid() ?: return@launch
                 supabaseService.saveNotificationPrefs(
                     SupabaseNotificationPrefs(
                         userId = uid,
@@ -228,7 +229,7 @@ class NotificationViewModel(
 
         viewModelScope.launch {
             if (!guestModeManager.isGuestMode()) {
-                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+                val uid = authRepository.getSupabaseUid() ?: authRepository.getCurrentUserUid() ?: return@launch
                 supabaseService.saveNotificationPrefs(
                     SupabaseNotificationPrefs(
                         userId = uid,
@@ -287,12 +288,13 @@ class NotificationViewModel(
         private val supabaseService: SupabaseService,
         private val guestModeManager: GuestModeManager,
         private val context: Context,
-        private val appDatabase: AppDatabase
+        private val appDatabase: AppDatabase,
+        private val authRepository: com.example.data.repository.AuthRepository
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(NotificationViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return NotificationViewModel(supabaseService, guestModeManager, context, appDatabase) as T
+                return NotificationViewModel(supabaseService, guestModeManager, context, appDatabase, authRepository) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

@@ -127,8 +127,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     private fun saveNotificationToDatabase(title: String, body: String, data: Map<String, String>) {
         serviceScope.launch {
             try {
+                val appContainer = (application as? com.example.MuslimsLibraryApplication)?.container
+                
                 // Determine user uid
-                val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                val userId = appContainer?.authRepository?.let { it.getSupabaseUid() ?: it.getCurrentUserUid() }
                     ?: getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getString("user_id", null)
                     ?: return@launch
                 

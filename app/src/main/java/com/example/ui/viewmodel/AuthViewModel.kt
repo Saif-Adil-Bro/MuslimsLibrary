@@ -189,6 +189,13 @@ class AuthViewModel(
         }
     }
 
+    private val _shouldAutoRestore = MutableStateFlow(false)
+    val shouldAutoRestore: StateFlow<Boolean> = _shouldAutoRestore.asStateFlow()
+
+    fun onAutoRestoreHandled() {
+        _shouldAutoRestore.value = false
+    }
+
     private suspend fun onAuthenticationSuccess(email: String, context: Context? = null) {
         val uid = authRepository.getCurrentUserUid()
         android.util.Log.d("AuthViewModel", "Login success, UID: $uid")
@@ -221,7 +228,17 @@ class AuthViewModel(
                 updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
             }
 
-            // Role checked and loaded successfully, no auto-restore check here anymore
+            // Prepare for auto-restore triggered by UI after navigation
+            try {
+                if (email != "User@muslimslibrary.org" && email != "Guest User") {
+                    // Always clear previous loose local data on fresh login to prevent mixing
+                    backupManager.clearLocalData()
+                    _shouldAutoRestore.value = true
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Error preparing auto-restore", e)
+            }
+
         } else {
             _userRole.value = "user"
             _debugInfo.value = "UID is null"
@@ -351,6 +368,7 @@ class AuthViewModel(
         viewModelScope.launch {
             authRepository.deleteAccount()
                 .onSuccess {
+                    backupManager.clearLocalData()
                     _uiState.value = AuthState.Idle
                     _isLoggedIn.value = false
                     _userRole.value = "user"
@@ -366,6 +384,7 @@ class AuthViewModel(
         _uiState.value = AuthState.Idle
         _userRole.value = "user"
         viewModelScope.launch {
+            backupManager.clearLocalData()
             authRepository.logout()
         }
     }
