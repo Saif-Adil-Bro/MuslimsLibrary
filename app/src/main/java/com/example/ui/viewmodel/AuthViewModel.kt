@@ -200,6 +200,12 @@ class AuthViewModel(
         val uid = authRepository.getCurrentUserUid()
         android.util.Log.d("AuthViewModel", "Login success, UID: $uid")
         if (uid != null) {
+            context?.let {
+                it.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("user_id", uid)
+                    .apply()
+            }
             try {
                 authRepository.ensureProfileSynced()
             } catch (e: Exception) {
