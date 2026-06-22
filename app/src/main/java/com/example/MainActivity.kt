@@ -45,6 +45,11 @@ import kotlinx.coroutines.launch
 import com.example.ui.viewmodel.NotificationViewModel
 import com.example.ui.screens.NotificationCenterScreen
 import com.example.ui.screens.NotificationSettingsScreen
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.foundation.layout.fillMaxWidth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +72,8 @@ class MainActivity : ComponentActivity() {
                     factory = NotificationViewModel.Factory(
                         appContainer.supabaseService,
                         appContainer.guestModeManager,
-                        context
+                        context,
+                        appContainer.appDatabase
                     )
                 )
                 val authViewModel: AuthViewModel = viewModel(
@@ -196,13 +202,13 @@ class MainActivity : ComponentActivity() {
                             val isDebugMode by authViewModel.isDebugMode.collectAsState()
                             val unreadNotificationsCount by notificationViewModel.unreadCount.collectAsState()
                             
-                            // 🆕 AUTO-RESTORE HACK - Dashboard লোড হওয়ার পর ৫ সেকেন্ড ডিলে
+                            // 🆕 AUTO-RESTORE HACK - Dashboard লোড হওয়ার পর ৩ সেকেন্ড ডিলে
                             val hasAutoRestored = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
                             
-                            androidx.compose.runtime.LaunchedEffect(Unit) {
+                            androidx.compose.runtime.LaunchedEffect(userEmail) {
                                 if (!hasAutoRestored.value && userEmail.isNotBlank() && userEmail != "User@muslimslibrary.org") {
-                                    // ৫ সেকেন্ড অপেক্ষা করুন ড্যাশবোর্ড পেজ সম্পূর্ণ লোড হওয়ার জন্য
-                                    kotlinx.coroutines.delay(5000)
+                                    // ৩ সেকেন্ড অপেক্ষা করুন ড্যাশবোর্ড পেজ সম্পূর্ণ লোড হওয়ার জন্য
+                                    kotlinx.coroutines.delay(3000)
                                     
                                     // SharedPreferences চেক করুন এই সেশনে আগে রিস্টোর হয়েছে কিনা
                                     val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
@@ -218,7 +224,7 @@ class MainActivity : ComponentActivity() {
                                                 hasAutoRestored.value = true
                                                 prefs.edit().putBoolean(key, true).apply()
                                                 
-                                                android.util.Log.d("MainActivity", "Auto-restore triggered from dashboard after 5s delay")
+                                                android.util.Log.d("MainActivity", "Auto-restore triggered from dashboard after 3s delay")
                                                 
                                                 // ম্যানুয়াল রিস্টোর বাটনের একই ফাংশন কল করুন
                                                 profileViewModel.performRestore(userEmail)
@@ -228,6 +234,115 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
+                            }
+                            
+                            val backupStatus by profileViewModel.backupStatus.collectAsState()
+                            
+                            when (backupStatus) {
+                                is com.example.ui.viewmodel.BackupUiState.Loading -> {
+                                    androidx.compose.material3.AlertDialog(
+                                        onDismissRequest = {},
+                                        confirmButton = {},
+                                        dismissButton = {
+                                            androidx.compose.material3.TextButton(onClick = { profileViewModel.resetBackupStatus() }) {
+                                                androidx.compose.material3.Text("বাতিল করুন", color = androidx.compose.ui.graphics.Color(0xFF667EEA))
+                                            }
+                                        },
+                                        title = {
+                                            androidx.compose.foundation.layout.Row(
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                androidx.compose.material3.CircularProgressIndicator(color = androidx.compose.ui.graphics.Color(0xFF667EEA))
+                                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(8.dp))
+                                                androidx.compose.material3.Text("অপেক্ষা করুন...", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 18.sp)
+                                            }
+                                        },
+                                        text = {
+                                            androidx.compose.material3.Text("আপনার ডাটা ক্লাউডে অত্যন্ত নিরাপদে রিস্টোর করা হচ্ছে। অনুগ্রহ করে অ্যাপ বন্ধ করবেন না।")
+                                        }
+                                    )
+                                }
+                                is com.example.ui.viewmodel.BackupUiState.Success -> {
+                                    androidx.compose.material3.AlertDialog(
+                                        onDismissRequest = { profileViewModel.resetBackupStatus() },
+                                        confirmButton = {
+                                            androidx.compose.material3.Button(
+                                                onClick = { profileViewModel.resetBackupStatus() },
+                                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF667EEA))
+                                            ) {
+                                                androidx.compose.material3.Text("ঠিক আছে", color = androidx.compose.ui.graphics.Color.White)
+                                            }
+                                        },
+                                        title = {
+                                            androidx.compose.foundation.layout.Row(
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                androidx.compose.material3.Icon(
+                                                    imageVector = Icons.Default.CheckCircle, 
+                                                    contentDescription = null, 
+                                                    tint = androidx.compose.ui.graphics.Color(0xFF10B981)
+                                                )
+                                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
+                                                androidx.compose.material3.Text("সফল হয়েছে!", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 18.sp, color = androidx.compose.ui.graphics.Color(0xFF10B981))
+                                            }
+                                        },
+                                        text = {
+                                            androidx.compose.material3.Text("অভিনন্দন! আপনার ব্যাকআপ/রিস্টোর প্রক্রিয়াটি সফলভাবে সম্পন্ন হয়েছে।")
+                                        }
+                                    )
+                                }
+                                is com.example.ui.viewmodel.BackupUiState.Error -> {
+                                    val errorMessage = (backupStatus as com.example.ui.viewmodel.BackupUiState.Error).message
+                                    androidx.compose.material3.AlertDialog(
+                                        onDismissRequest = { profileViewModel.resetBackupStatus() },
+                                        confirmButton = {
+                                            androidx.compose.foundation.layout.Row(
+                                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                androidx.compose.material3.OutlinedButton(
+                                                    onClick = { profileViewModel.resetBackupStatus() },
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    androidx.compose.material3.Text("বন্ধ করুন", color = androidx.compose.ui.graphics.Color.Gray)
+                                                }
+                                                androidx.compose.material3.Button(
+                                                    onClick = {
+                                                        if (errorMessage.contains("রিস্টোর") || errorMessage.contains("রিস্টোর ")) {
+                                                            profileViewModel.performRestore(userEmail)
+                                                        } else {
+                                                            profileViewModel.performRestore(userEmail) // For auto-restore retry, perform restore too
+                                                        }
+                                                    },
+                                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF667EEA)),
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    androidx.compose.material3.Text("পুনরায় চেষ্টা করুন", color = androidx.compose.ui.graphics.Color.White)
+                                                }
+                                            }
+                                        },
+                                        title = {
+                                            androidx.compose.foundation.layout.Row(
+                                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                androidx.compose.material3.Icon(
+                                                    imageVector = Icons.Default.Error, 
+                                                    contentDescription = null, 
+                                                    tint = androidx.compose.ui.graphics.Color.Red
+                                                )
+                                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(4.dp))
+                                                androidx.compose.material3.Text("ত্রুটি ঘটেছে", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 18.sp, color = androidx.compose.ui.graphics.Color.Red)
+                                            }
+                                        },
+                                        text = {
+                                            androidx.compose.material3.Text(errorMessage)
+                                        }
+                                    )
+                                }
+                                else -> {}
                             }
                             
                             DashboardScreen(

@@ -10,6 +10,8 @@ import androidx.work.WorkManager
 import com.example.data.SupabaseNotification
 import com.example.data.SupabaseNotificationPrefs
 import com.example.data.SupabaseService
+import com.example.data.local.AppDatabase
+import com.example.data.local.entities.NotificationEntity
 import com.example.data.notification.ReadingReminderWorker
 import com.example.data.util.GuestModeManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +30,8 @@ sealed class NotificationUiState {
 class NotificationViewModel(
     private val supabaseService: SupabaseService,
     private val guestModeManager: GuestModeManager,
-    private val context: Context
+    private val context: Context,
+    private val appDatabase: AppDatabase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NotificationUiState>(NotificationUiState.Loading)
@@ -51,6 +54,8 @@ class NotificationViewModel(
     val reminderMinute: StateFlow<Int> = _reminderMinute.asStateFlow()
 
     private val sharedPrefs = context.getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
+
+    private var isObserving = false
 
     init {
         loadPreferences()
@@ -82,53 +87,100 @@ class NotificationViewModel(
     }
 
     fun refreshNotifications() {
-        _uiState.value = NotificationUiState.Loading
+        if (guestModeManager.isGuestMode()) {
+            _uiState.value = NotificationUiState.Success(emptyList())
+            _unreadCount.value = 0
+            return
+        }
+
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            _uiState.value = NotificationUiState.Success(emptyList())
+            _unreadCount.value = 0
+            return
+        }
+
+        // 1. Observe local notifications
+        observeLocalNotifications(uid)
+
+        // 2. Fetch from cloud in background and sync to local database
         viewModelScope.launch {
             try {
-                if (guestModeManager.isGuestMode()) {
-                    // Guests only have reading reminder, return empty notification center
-                    _uiState.value = NotificationUiState.Success(emptyList())
-                    _unreadCount.value = 0
-                } else {
-                    val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                    if (uid == null) {
-                        _uiState.value = NotificationUiState.Success(emptyList())
-                        _unreadCount.value = 0
-                    } else {
-                        val list = supabaseService.fetchNotifications(uid)
-                        _uiState.value = NotificationUiState.Success(list)
-                        _unreadCount.value = list.count { !it.isRead }
-                    }
+                val list = supabaseService.fetchNotifications(uid)
+                for (item in list) {
+                    val entity = NotificationEntity(
+                        id = item.id,
+                        userId = item.userId,
+                        title = item.title,
+                        message = item.body,
+                        type = item.type,
+                        data = "{}",
+                        isRead = item.isRead,
+                        createdAt = try {
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }
+                            item.sentAt?.let { sdf.parse(it)?.time } ?: System.currentTimeMillis()
+                        } catch (e: Exception) {
+                            System.currentTimeMillis()
+                        }
+                    )
+                    appDatabase.notificationDao().insertNotification(entity)
                 }
             } catch (e: Exception) {
-                _uiState.value = NotificationUiState.Error(e.message ?: "নোটিফিকেশন লোড করতে সমস্যা হয়েছে।")
+                android.util.Log.e("NotificationVM", "Cloud fetch / sync failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun observeLocalNotifications(uid: String) {
+        if (isObserving) return
+        isObserving = true
+
+        viewModelScope.launch {
+            appDatabase.notificationDao().getNotificationsForUser(uid).collect { entities ->
+                val list = entities.map { entity ->
+                    SupabaseNotification(
+                        id = entity.id,
+                        userId = entity.userId,
+                        title = entity.title,
+                        body = entity.message,
+                        type = entity.type,
+                        isRead = entity.isRead,
+                        sentAt = try {
+                            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                                timeZone = java.util.TimeZone.getTimeZone("UTC")
+                            }
+                            sdf.format(java.util.Date(entity.createdAt))
+                        } catch (e: Exception) {
+                            null
+                        }
+                    )
+                }
+                _uiState.value = NotificationUiState.Success(list)
+                _unreadCount.value = list.count { !it.isRead }
             }
         }
     }
 
     fun markAsRead(id: String) {
         viewModelScope.launch {
-            supabaseService.markNotificationAsRead(id)
-            // local update
-            val currentState = _uiState.value
-            if (currentState is NotificationUiState.Success) {
-                val updated = currentState.notifications.map {
-                    if (it.id == id) it.copy(isRead = true) else it
-                }
-                _uiState.value = NotificationUiState.Success(updated)
-                _unreadCount.value = updated.count { !it.isRead }
+            try {
+                appDatabase.notificationDao().markAsRead(id)
+                supabaseService.markNotificationAsRead(id)
+            } catch (e: Exception) {
+                android.util.Log.e("NotificationVM", "Error marking read: ${e.message}")
             }
         }
     }
 
     fun deleteNotification(id: String) {
         viewModelScope.launch {
-            supabaseService.deleteNotification(id)
-            val currentState = _uiState.value
-            if (currentState is NotificationUiState.Success) {
-                val updated = currentState.notifications.filter { it.id != id }
-                _uiState.value = NotificationUiState.Success(updated)
-                _unreadCount.value = updated.count { !it.isRead }
+            try {
+                appDatabase.notificationDao().deleteNotification(id)
+                supabaseService.deleteNotification(id)
+            } catch (e: Exception) {
+                android.util.Log.e("NotificationVM", "Error deleting notification: ${e.message}")
             }
         }
     }
@@ -136,9 +188,12 @@ class NotificationViewModel(
     fun clearAllNotifications() {
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
         viewModelScope.launch {
-            supabaseService.clearAllNotifications(uid)
-            _uiState.value = NotificationUiState.Success(emptyList())
-            _unreadCount.value = 0
+            try {
+                appDatabase.notificationDao().deleteAllNotifications(uid)
+                supabaseService.clearAllNotifications(uid)
+            } catch (e: Exception) {
+                android.util.Log.e("NotificationVM", "Error clearing notifications: ${e.message}")
+            }
         }
     }
 
@@ -231,12 +286,13 @@ class NotificationViewModel(
     class Factory(
         private val supabaseService: SupabaseService,
         private val guestModeManager: GuestModeManager,
-        private val context: Context
+        private val context: Context,
+        private val appDatabase: AppDatabase
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(NotificationViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return NotificationViewModel(supabaseService, guestModeManager, context) as T
+                return NotificationViewModel(supabaseService, guestModeManager, context, appDatabase) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
