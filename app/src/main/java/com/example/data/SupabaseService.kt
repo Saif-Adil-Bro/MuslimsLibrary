@@ -122,7 +122,7 @@ data class SupabaseNotification(
     val body: String,
     val type: String = "general",
     @SerialName("is_read") val isRead: Boolean = false,
-    @SerialName("sent_at") val sentAt: String? = null
+    @SerialName("created_at") val sentAt: String? = null
 )
 
 @Serializable
@@ -1630,7 +1630,7 @@ class SupabaseService(
                 put("body", body)
                 put("type", type)
                 put("is_read", false)
-                put("sent_at", getSafeIsoTimestamp())
+                put("created_at", getSafeIsoTimestamp())
             }
             supabaseClient.postgrest["notifications"].insert(notifyObj)
         } catch (e: Exception) {
