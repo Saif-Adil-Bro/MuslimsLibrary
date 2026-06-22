@@ -63,7 +63,7 @@ class AuthRepositoryImpl(
         return try {
             supabaseClient.auth.currentUserOrNull()?.id ?: supabaseClient.auth.currentSessionOrNull()?.user?.id
         } catch (e: Exception) {
-            "Error: ${e.message}"
+            null
         }
     }
 
