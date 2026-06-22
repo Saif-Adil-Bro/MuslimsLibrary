@@ -46,6 +46,12 @@ fun NotificationCenterScreen(
     val unreadCount by viewModel.unreadCount.collectAsState()
     val scope = rememberCoroutineScope()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (!isGuest) {
+            viewModel.refreshNotifications()
+        }
+    }
+
     val purpleGradient = Brush.verticalGradient(
         colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
     )
