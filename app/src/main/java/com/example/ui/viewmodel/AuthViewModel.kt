@@ -53,7 +53,9 @@ class AuthViewModel(
 
     fun setFromGuestMode(fromGuest: Boolean) {
         _isFromGuestMode.value = fromGuest
-        _uiState.value = AuthState.Idle
+        if (_uiState.value !is AuthState.Success) {
+            _uiState.value = AuthState.Idle
+        }
     }
 
     fun initDebugMode(context: Context) {
@@ -235,7 +237,7 @@ class AuthViewModel(
                 updateDebugConsoleError(queryUid = uid, errorMsg = e.message ?: "Unknown error")
             }
 
-            // Prepare for auto-restore triggered by UI after navigation
+            // Prepare for BackupManager clearing loose local data
             try {
                 if (email != "User@muslimslibrary.org" && email != "Guest User") {
                     // Always clear previous loose local data on fresh login to prevent mixing
@@ -243,7 +245,7 @@ class AuthViewModel(
                     _shouldAutoRestore.value = true
                 }
             } catch (e: Exception) {
-                android.util.Log.e("AuthViewModel", "Error preparing auto-restore", e)
+                android.util.Log.e("AuthViewModel", "Error preparing backup manager", e)
             }
 
         } else {

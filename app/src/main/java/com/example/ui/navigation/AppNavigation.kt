@@ -4,7 +4,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.core.content.edit
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -105,20 +120,14 @@ fun AppNavigation(
             val isDebugMode by authViewModel.isDebugMode.collectAsState()
             val unreadNotificationsCount by notificationViewModel.unreadCount.collectAsState()
             val shouldAutoRestore by authViewModel.shouldAutoRestore.collectAsState()
-
-            LaunchedEffect(shouldAutoRestore, userEmail) {
-                if (shouldAutoRestore && userEmail != "User@muslimslibrary.org" && userEmail != "Guest User") {
-                    profileViewModel.performRestore(userEmail)
+            
+            LaunchedEffect(shouldAutoRestore, userUid) {
+                if (shouldAutoRestore && userUid.isNotBlank() && userEmail != "User@muslimslibrary.org" && userEmail != "Guest User") {
+                    profileViewModel.performRestore(userId = userUid, localRoomUserId = userEmail)
                     authViewModel.onAutoRestoreHandled()
                 }
             }
-
-            // UI dialogs for Backup/Restore Process
-            BackupRestoreDialogs(
-                profileViewModel = profileViewModel,
-                userEmail = userEmail
-            )
-
+            
             DashboardScreen(
                 libraryViewModel = libraryViewModel,
                 homeViewModel = homeViewModel,
@@ -191,6 +200,13 @@ fun AppNavigation(
                 },
                 unreadNotificationsCount = unreadNotificationsCount
             )
+
+            // UI dialogs for Backup/Restore Process
+            BackupRestoreDialogs(
+                profileViewModel = profileViewModel,
+                userId = userUid
+            )
+
         }
 
         composable("category") {
@@ -214,13 +230,13 @@ fun AppNavigation(
                 onBackupClick = {
                     val authState = authViewModel.uiState.value
                     if (authState is AuthState.Success) {
-                        profileViewModel.performBackup(authState.uid)
+                        profileViewModel.performBackup(userId = authState.uid, localRoomUserId = authState.email)
                     }
                 },
                 onRestoreClick = {
                     val authState = authViewModel.uiState.value
                     if (authState is AuthState.Success) {
-                        profileViewModel.performRestore(authState.uid)
+                        profileViewModel.performRestore(userId = authState.uid, localRoomUserId = authState.email)
                     }
                 }
             )
@@ -347,16 +363,29 @@ fun AppNavigation(
             val userEmail = authViewModel.uiState.collectAsState().value.let { state ->
                 if (state is AuthState.Success) state.email else "User@muslimslibrary.org"
             }
-            BookReaderScreen(
-                bookId = bookId,
-                bookTitle = bookTitle,
-                fileUrl = fileUrl,
-                fileType = fileType,
-                userId = userEmail,
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
+            if (fileType.lowercase() == "epub") {
+                com.example.ui.screens.EpubReaderScreen(
+                    bookId = bookId,
+                    bookTitle = bookTitle,
+                    fileUrl = fileUrl,
+                    fileType = fileType,
+                    userId = userEmail,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                BookReaderScreen(
+                    bookId = bookId,
+                    bookTitle = bookTitle,
+                    fileUrl = fileUrl,
+                    fileType = fileType,
+                    userId = userEmail,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
 
         composable("admin_dashboard") {
@@ -482,7 +511,8 @@ fun AppNavigation(
                     val dbBook = downloadedBooksViewModel.downloadedBooks.value.find { it.bookId == bookId }
                     val encodedTitle = java.net.URLEncoder.encode(dbBook?.title ?: "বই", "UTF-8")
                     val encodedPath = java.net.URLEncoder.encode(dbBook?.localFilePath ?: "", "UTF-8")
-                    navController.navigate("reader/$bookId/$encodedTitle/$encodedPath/pdf")
+                    val fileType = if (dbBook?.localFilePath?.endsWith(".epub", ignoreCase = true) == true) "epub" else "pdf"
+                    navController.navigate("reader/$bookId/$encodedTitle/$encodedPath/$fileType")
                 },
                 onBackClick = { navController.popBackStack() },
                 onNavigateToHome = {

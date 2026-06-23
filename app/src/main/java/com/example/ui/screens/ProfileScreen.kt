@@ -136,8 +136,8 @@ fun ProfileScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(CircleShape)
-                                            .background(Color.White)
-                                            .border(4.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .border(4.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f), CircleShape)
                                             .clickable { if (!isGuestMode) onEditProfileClick() },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -164,7 +164,7 @@ fun ProfileScreen(
                                                 .size(36.dp)
                                                 .align(Alignment.BottomEnd)
                                                 .clip(CircleShape)
-                                                .background(Color.White)
+                                                .background(MaterialTheme.colorScheme.surface)
                                                 .border(1.dp, Color(0xFFE5E7EB), CircleShape)
                                                 .clickable { onEditProfileClick() },
                                             contentAlignment = Alignment.Center
@@ -184,7 +184,7 @@ fun ProfileScreen(
                                     text = displayName,
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     textAlign = TextAlign.Center
                                 )
 
@@ -192,7 +192,7 @@ fun ProfileScreen(
                                 Text(
                                     text = if (!user.bio.isNullOrBlank()) user.bio else "আসসালামু আলাইকুম! আমি MuslimsLibrary-এর একটি সদস্য।",
                                     fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.9f),
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                                     modifier = Modifier.widthIn(max = 280.dp),
                                     textAlign = TextAlign.Center,
                                     lineHeight = 22.sp
@@ -202,12 +202,12 @@ fun ProfileScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(20.dp))
-                                        .background(Color.White.copy(alpha = 0.25f))
+                                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
                                         .padding(horizontal = 20.dp, vertical = 6.dp)
                                 ) {
                                     Text(
                                         text = roleName,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp
                                     )
@@ -227,7 +227,7 @@ fun ProfileScreen(
                             // Stats Card
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                                 shape = RoundedCornerShape(20.dp)
                             ) {
@@ -380,14 +380,14 @@ fun ProfileScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
                                                 ElegantGradientButton(
-                                                    onClick = { viewModel.performBackup(userId) },
+                                                    onClick = { viewModel.performBackup(userId = "", localRoomUserId = userId) },
                                                     text = "ব্যাকআপ",
                                                     icon = Icons.Default.CloudUpload,
                                                     gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
                                                     modifier = Modifier.weight(1f)
                                                 )
                                                 ElegantSecondaryButton(
-                                                    onClick = { viewModel.performRestore(userId) },
+                                                    onClick = { viewModel.performRestore(userId = "", localRoomUserId = userId) },
                                                     text = "রিস্টোর",
                                                     icon = Icons.Default.CloudDownload,
                                                     borderColor = Color(0xFF6366F1),
@@ -518,9 +518,9 @@ fun ProfileScreen(
                         Button(
                             onClick = {
                                 if (errorMessage.contains("রিস্টোর") || errorMessage.contains("রিস্টোর ")) {
-                                    viewModel.performRestore(userId)
+                                    viewModel.performRestore(userId = "", localRoomUserId = userId)
                                 } else {
-                                    viewModel.performBackup(userId)
+                                    viewModel.performBackup(userId = "", localRoomUserId = userId)
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

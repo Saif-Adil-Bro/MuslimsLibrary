@@ -110,9 +110,10 @@ class BackupManager(
         if (!exists) {
             throw Exception("No backup found for this account")
         }
+
         val success = downloadAndRestoreFromCloud(finalUserId, roomUserId ?: currentUid)
         if (!success) {
-            throw Exception("No backup found for this account")
+            throw Exception("Restore process failed.")
         }
     }
 

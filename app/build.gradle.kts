@@ -170,4 +170,11 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+  
+  // Epub readers
+  implementation("io.documentnode:epub4j-core:4.1") {
+    exclude(group = "org.slf4j")
+    exclude(group = "xmlpull")
+  }
+  implementation("org.jsoup:jsoup:1.17.2")
 }

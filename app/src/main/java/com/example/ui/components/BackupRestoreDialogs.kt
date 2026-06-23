@@ -33,7 +33,7 @@ import com.example.ui.viewmodel.AuthState
 @Composable
 fun BackupRestoreDialogs(
     profileViewModel: ProfileViewModel,
-    userEmail: String
+    userId: String
 ) {
     val backupStatus by profileViewModel.backupStatus.collectAsState()
 
@@ -118,7 +118,11 @@ fun BackupRestoreDialogs(
                         }
                         Button(
                             onClick = {
-                                profileViewModel.performRestore(userEmail)
+                                if (errorMessage.contains("রিস্টোর") || errorMessage.contains("রিস্টোর ")) {
+                                    profileViewModel.performRestore(userId = "", localRoomUserId = userId)
+                                } else {
+                                    profileViewModel.performBackup(userId = "", localRoomUserId = userId)
+                                }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.weight(1f)

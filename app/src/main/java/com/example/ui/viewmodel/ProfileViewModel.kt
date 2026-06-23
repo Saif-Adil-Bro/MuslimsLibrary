@@ -245,11 +245,11 @@ class ProfileViewModel(
         }
     }
 
-    fun performBackup(userId: String) {
+    fun performBackup(userId: String, localRoomUserId: String) {
         _backupStatus.value = BackupUiState.Loading
         viewModelScope.launch {
             try {
-                backupManager.uploadBackup(userId)
+                backupManager.uploadBackup(roomUserId = localRoomUserId)
                 _backupStatus.value = BackupUiState.Success
             } catch (e: SecurityException) {
                 _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
@@ -268,15 +268,15 @@ class ProfileViewModel(
         }
     }
 
-    fun performRestore(userId: String) {
+    fun performRestore(userId: String, localRoomUserId: String) {
         _backupStatus.value = BackupUiState.Loading
         viewModelScope.launch {
             try {
                 _backupStatus.value = BackupUiState.Loading
-                backupManager.downloadBackup(cloudBackupUserId = userId, roomUserId = userId)
+                backupManager.downloadBackup(cloudBackupUserId = userId, roomUserId = localRoomUserId)
                 _backupStatus.value = BackupUiState.Success
                 // Reload statistics after successful restore to update the screen counts instantly
-                loadStatistics(userId)
+                loadStatistics(localRoomUserId)
             } catch (e: SecurityException) {
                 _backupStatus.value = BackupUiState.Error("ব্যবহারকারী সনাক্তকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার লগইন করুন।")
             } catch (e: Exception) {

@@ -258,7 +258,7 @@ fun DashboardScreen(
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text("লগইন করুন", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("লগইন করুন", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -300,7 +300,7 @@ fun DashboardScreen(
                                 onClick = onNavigateToDownloads,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Text("ডাউনলোডকৃত অফলাইন বই দেখুন", color = Color.White)
+                                Text("ডাউনলোডকৃত অফলাইন বই দেখুন", color = MaterialTheme.colorScheme.onPrimary)
                             }
                         }
                     }

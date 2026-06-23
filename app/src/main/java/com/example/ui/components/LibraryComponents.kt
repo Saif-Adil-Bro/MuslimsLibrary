@@ -56,7 +56,7 @@ fun LibraryStatsCard(
             Column {
                 Text(
                     text = "আমার লাইব্রেরী",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -82,7 +82,7 @@ private fun StatItem(
     modifier: Modifier = Modifier
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.15f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)),
         shape = RoundedCornerShape(12.dp),
         modifier = modifier.padding(horizontal = 4.dp)
     ) {
@@ -95,14 +95,14 @@ private fun StatItem(
         ) {
             Text(
                 text = count.toString(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
-                color = Color.White.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -136,13 +136,13 @@ fun LibraryTabFilter(
                 onClick = { onTabSelected(tab) },
                 shape = RoundedCornerShape(50.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.testTag("tab_pill_${tab.name.lowercase()}")
             ) {
                 Text(
                     text = label,
-                    color = if (isSelected) Color.White else Color(0xFF4A5568),
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -179,7 +179,7 @@ fun LibraryBookCard(
             )
             .testTag("library_book_grid_${book.bookId}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isPressed) 2.dp else 4.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -187,7 +187,7 @@ fun LibraryBookCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .background(Color(0xFFEDF2F7))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -264,7 +264,7 @@ fun LibraryBookCard(
                             onClick = { showMenu = true },
                             modifier = Modifier
                                 .size(24.dp)
-                                .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
                                 .testTag("book_menu_button_${book.bookId}")
                         ) {
                             Icon(
@@ -389,7 +389,7 @@ fun LibraryBookListItem(
             .clickable(onClick = onClick)
             .testTag("library_book_list_${book.bookId}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -402,7 +402,7 @@ fun LibraryBookListItem(
                 modifier = Modifier
                     .size(width = 70.dp, height = 100.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFEDF2F7))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
