@@ -30,7 +30,7 @@ fun SidebarDrawer(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(300.dp)
+            .width(320.dp)
             .background(Color.White)
     ) {
         ProfileHeader(profile = profile)
@@ -40,7 +40,7 @@ fun SidebarDrawer(
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 12.dp)
+                .padding(vertical = 10.dp)
         ) {
             sections.forEachIndexed { index, section ->
                 MenuSectionComponent(
@@ -56,8 +56,8 @@ fun SidebarDrawer(
                     HorizontalDivider(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 24.dp),
-                        color = Color(0xFFF1F1F1)
+                            .padding(vertical = 10.dp, horizontal = 20.dp),
+                        color = Color(0xFFE0E0E0)
                     )
                 }
             }

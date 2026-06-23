@@ -114,8 +114,8 @@ fun DashboardScreen(
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = Color.White,
-                modifier = Modifier.width(280.dp)
+                drawerContainerColor = Color.Transparent,
+                modifier = Modifier.width(320.dp)
             ) {
                     val sidebarViewModel: com.example.ui.navigation.sidebar.SidebarViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
                     val profile = com.example.ui.navigation.sidebar.UserProfile(
@@ -125,21 +125,21 @@ fun DashboardScreen(
                     )
                     
                     val mainSectionItems = mutableListOf(
-                        com.example.ui.navigation.sidebar.MenuItem("home", "ড্যাশবোর্ড", Icons.Default.Home),
-                        com.example.ui.navigation.sidebar.MenuItem("my_books", "আমার বই", Icons.Default.Book),
-                        com.example.ui.navigation.sidebar.MenuItem("category", "ক্যাটাগরি", Icons.Default.Category),
-                        com.example.ui.navigation.sidebar.MenuItem("downloads", "ডাউনলোড", Icons.Default.Download)
+                        com.example.ui.navigation.sidebar.MenuItem("home", "ড্যাশবোর্ড", Icons.Filled.Home),
+                        com.example.ui.navigation.sidebar.MenuItem("my_books", "আমার বই", Icons.Filled.Book),
+                        com.example.ui.navigation.sidebar.MenuItem("category", "ক্যাটাগরি", Icons.Filled.Category),
+                        com.example.ui.navigation.sidebar.MenuItem("downloads", "ডাউনলোড", Icons.Filled.Download)
                     )
                     
                     if (userRole.equals("admin", ignoreCase = true)) {
                         mainSectionItems.add(
-                            com.example.ui.navigation.sidebar.MenuItem("admin_panel", "অ্যাডমিন প্যানেল", Icons.Default.Security)
+                            com.example.ui.navigation.sidebar.MenuItem("admin_panel", "অ্যাডমিন প্যানেল", Icons.Filled.Security)
                         )
                     }
 
                     val otherSectionItems = mutableListOf(
-                        com.example.ui.navigation.sidebar.MenuItem("settings", "সেটিংস", Icons.Default.Settings),
-                        com.example.ui.navigation.sidebar.MenuItem("help", "সাহায্য/সম্পর্কে", Icons.Default.Info)
+                        com.example.ui.navigation.sidebar.MenuItem("settings", "সেটিংস", Icons.Filled.Settings),
+                        com.example.ui.navigation.sidebar.MenuItem("help", "সাহায্য/সম্পর্কে", Icons.Filled.Info)
                     )
                     
                     if (!isGuestMode) {

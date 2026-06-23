@@ -20,11 +20,12 @@ fun MenuSectionComponent(
     Column(modifier = modifier.fillMaxWidth()) {
         section.title?.let { title ->
             Text(
-                text = title,
+                text = title.uppercase(),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF667EEA),
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF6B5B95),
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 15.dp, bottom = 10.dp)
             )
         }
         
