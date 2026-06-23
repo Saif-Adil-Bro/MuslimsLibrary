@@ -171,16 +171,3 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
-
-tasks.register("fixColors") {
-    notCompatibleWithConfigurationCache("Modifies files dynamically")
-    doLast {
-        val postDetail = file("src/main/java/com/example/ui/screens/PostDetailScreen.kt")
-        var pdContent = postDetail.readText()
-        pdContent = pdContent.replace("DetailPrimaryGradientStart", "MaterialTheme.colorScheme.primary")
-        pdContent = pdContent.replace("DetailPrimaryGradientEnd", "MaterialTheme.colorScheme.secondary")
-        pdContent = pdContent.replace("DetailTextGrayMain", "MaterialTheme.colorScheme.onSurface")
-        pdContent = pdContent.replace("DetailTextGrayMuted", "MaterialTheme.colorScheme.onSurfaceVariant")
-        postDetail.writeText(pdContent)
-    }
-}

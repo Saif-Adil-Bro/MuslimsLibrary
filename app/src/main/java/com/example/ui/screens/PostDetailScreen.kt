@@ -44,6 +44,7 @@ import com.example.data.ForumComment
 import com.example.data.ForumPost
 import com.example.ui.viewmodel.ForumViewModel
 import com.example.ui.viewmodel.PostDetailUiState
+// This comment ensures the file is synchronized correctly to Github
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -140,7 +141,7 @@ fun PostDetailScreen(
             title = { Text("রিপোর্ট করুন / Flag Post", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DetailDarkPurple) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("ফিতনা ও অশালীনতা মুক্ত রাখতে সাহায্য করুন। পোস্টারকে সতর্ক করা বা এডমিনের মাধ্যমে পোস্টটি পর্যালোচনা করা হবে।", fontSize = 13.sp, color = DetailTextGrayMuted)
+                    Text("ফিতনা ও অশালীনতা মুক্ত রাখতে সাহায্য করুন। পোস্টারকে সতর্ক করা বা এডমিনের মাধ্যমে পোস্টটি পর্যালোচনা করা হবে।", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
                     reasons.forEach { reason ->
                         Button(
@@ -162,7 +163,7 @@ fun PostDetailScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showReportDialog = false }) {
-                    Text("বাতিল করুন", color = DetailTextGrayMuted)
+                    Text("বাতিল করুন", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -220,7 +221,7 @@ fun PostDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditPostDialog = false }) {
-                    Text("বাতিল", color = DetailTextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -262,7 +263,7 @@ fun PostDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditCommentDialog = false }) {
-                    Text("বাতিল", color = DetailTextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -287,7 +288,7 @@ fun PostDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteCommentDialog = false }) {
-                    Text("বাতিল", color = DetailTextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -314,7 +315,7 @@ fun PostDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeletePostDialog = false }) {
-                    Text("বাতিল", color = DetailTextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -382,7 +383,7 @@ fun PostDetailScreen(
                             color = Color.Red
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = state.message, fontSize = 14.sp, color = DetailTextGrayMuted, textAlign = TextAlign.Center)
+                        Text(text = state.message, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { forumViewModel.loadPostDetails(postId) }, colors = ButtonDefaults.buttonColors(containerColor = DetailPrimaryPurple)) {
                             Text("Retry")
@@ -445,7 +446,7 @@ fun PostDetailScreen(
                                         text = "Comments (${comments.size})",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
-                                        color = DetailTextGrayMain
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     HorizontalDivider(
                                         modifier = Modifier
@@ -473,8 +474,8 @@ fun PostDetailScreen(
                                             tint = DetailPrimaryPurple.copy(alpha = 0.25f)
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Text(text = "No comments yet.", fontSize = 13.sp, color = DetailTextGrayMuted, fontWeight = FontWeight.Medium)
-                                        Text(text = "Be the first to share your thoughts!", fontSize = 11.sp, color = DetailTextGrayMuted)
+                                        Text(text = "No comments yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                        Text(text = "Be the first to share your thoughts!", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -567,7 +568,7 @@ fun PostDetailScreen(
                                                     colors = if (isCommentPrivate) {
                                                         listOf(Color(0xFFD1D5DB), Color(0xFFD1D5DB))
                                                     } else {
-                                                        listOf(DetailPrimaryGradientStart, DetailPrimaryGradientEnd)
+                                                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                                                     }
                                                 )
                                             )
@@ -587,14 +588,14 @@ fun PostDetailScreen(
                                         text = if (isCommentPrivate) "Private Comment" else "Public Comment",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = DetailTextGrayMuted
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
                                 Text(
                                     text = "${commentText.length}/500",
                                     fontSize = 11.sp,
-                                    color = if (commentText.length > 500) Color.Red else DetailTextGrayMuted
+                                    color = if (commentText.length > 500) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
@@ -607,7 +608,7 @@ fun PostDetailScreen(
                                 OutlinedTextField(
                                     value = commentText,
                                     onValueChange = { if (it.length <= 500) commentText = it },
-                                    placeholder = { Text("Write your reply or feedback here...", fontSize = 13.sp, color = DetailTextGrayMuted) },
+                                    placeholder = { Text("Write your reply or feedback here...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(24.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -629,7 +630,7 @@ fun PostDetailScreen(
                                             if (commentText.isBlank() || isGuest) {
                                                 Brush.linearGradient(colors = listOf(Color(0xFFE5E7EB), Color(0xFFE5E7EB)))
                                             } else {
-                                                Brush.linearGradient(colors = listOf(DetailPrimaryGradientStart, DetailPrimaryGradientEnd))
+                                                Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))
                                             }
                                         )
                                         .clickable(enabled = commentText.isNotBlank() && !isGuest) {
@@ -647,7 +648,7 @@ fun PostDetailScreen(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = "Send",
-                                        tint = if (commentText.isBlank() || isGuest) DetailTextGrayMuted else Color.White,
+                                        tint = if (commentText.isBlank() || isGuest) MaterialTheme.colorScheme.onSurfaceVariant else Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -707,7 +708,7 @@ fun OriginalPostViewCard(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(DetailPrimaryGradientStart, DetailPrimaryGradientEnd)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -727,7 +728,7 @@ fun OriginalPostViewCard(
                         Text(
                             text = authorName,
                             fontWeight = FontWeight.Bold,
-                            color = DetailTextGrayMain,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
                         if (post.userRole?.lowercase() == "admin") {
@@ -751,7 +752,7 @@ fun OriginalPostViewCard(
                     Text(
                         text = formatRelativeTime(post.createdAt),
                         fontSize = 12.sp,
-                        color = DetailTextGrayMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -761,7 +762,7 @@ fun OriginalPostViewCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(DetailPrimaryGradientStart, DetailPrimaryGradientEnd)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                             )
                         )
                         .padding(horizontal = 12.dp, vertical = 4.dp)
@@ -813,14 +814,14 @@ fun OriginalPostViewCard(
                 text = post.title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = DetailTextGrayMain,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 24.sp
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = post.content,
                 fontSize = 14.sp,
-                color = DetailTextGrayMain,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 22.sp
             )
 
@@ -845,14 +846,14 @@ fun OriginalPostViewCard(
                     Icon(
                         imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Reaction",
-                        tint = if (isLiked) Color.Red else DetailTextGrayMuted,
+                        tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${post.likesCount ?: 0}",
                         fontSize = 14.sp,
-                        color = if (isLiked) Color.Red else DetailTextGrayMuted,
+                        color = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -867,14 +868,14 @@ fun OriginalPostViewCard(
                     Icon(
                         imageVector = Icons.Default.Comment,
                         contentDescription = "Comment count",
-                        tint = DetailTextGrayMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${post.repliesCount ?: 0}",
                         fontSize = 13.sp,
-                        color = DetailTextGrayMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -889,14 +890,14 @@ fun OriginalPostViewCard(
                     Icon(
                         imageVector = Icons.Default.Visibility,
                         contentDescription = "Views icon",
-                        tint = DetailTextGrayMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "$generatedViews",
                         fontSize = 13.sp,
-                        color = DetailTextGrayMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -962,7 +963,7 @@ fun CommentViewItem(
                         Text(
                             text = authorName,
                             fontWeight = FontWeight.Bold,
-                            color = DetailTextGrayMain,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 14.sp
                         )
                         if (comment.userRole?.lowercase() == "admin") {
@@ -986,7 +987,7 @@ fun CommentViewItem(
                     Text(
                         text = formatRelativeTime(comment.createdAt),
                         fontSize = 11.sp,
-                        color = DetailTextGrayMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -1016,7 +1017,7 @@ fun CommentViewItem(
             Text(
                 text = comment.content,
                 fontSize = 13.sp,
-                color = DetailTextGrayMain,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 18.sp
             )
 
@@ -1039,14 +1040,14 @@ fun CommentViewItem(
                     Icon(
                         imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Like comment",
-                        tint = if (isLiked) Color.Red else DetailTextGrayMuted,
+                        tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${likesCount}",
                         fontSize = 11.sp,
-                        color = if (isLiked) Color.Red else DetailTextGrayMuted,
+                        color = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold
                     )
                 }
