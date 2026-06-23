@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import com.example.data.SupabaseBook
 import com.example.ui.components.*
 import com.example.ui.viewmodel.AdminViewModel
@@ -114,49 +117,80 @@ fun DashboardScreen(
                 drawerContainerColor = Color.White,
                 modifier = Modifier.width(280.dp)
             ) {
-                SideDrawer(
-                    userDisplayName = realDisplayName,
-                    userEmail = realEmail,
-                    userRole = userRole,
-                    onCloseClick = {
-                        scope.launch { drawerState.close() }
-                    },
-                    onMenuItemClick = { route ->
-                        scope.launch { drawerState.close() }
-                        when (route) {
-                            "home" -> {
-                                drawerScreenTitle = ""
-                                selectedTab = 0
+                    val sidebarViewModel: com.example.ui.navigation.sidebar.SidebarViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                    val profile = com.example.ui.navigation.sidebar.UserProfile(
+                        name = realDisplayName,
+                        email = realEmail,
+                        initials = realDisplayName.firstOrNull()?.uppercase() ?: "U"
+                    )
+                    
+                    val mainSectionItems = mutableListOf(
+                        com.example.ui.navigation.sidebar.MenuItem("home", "ড্যাশবোর্ড", Icons.Default.Home),
+                        com.example.ui.navigation.sidebar.MenuItem("my_books", "আমার বই", Icons.Default.Book),
+                        com.example.ui.navigation.sidebar.MenuItem("category", "ক্যাটাগরি", Icons.Default.Category),
+                        com.example.ui.navigation.sidebar.MenuItem("downloads", "ডাউনলোড", Icons.Default.Download)
+                    )
+                    
+                    if (userRole.equals("admin", ignoreCase = true)) {
+                        mainSectionItems.add(
+                            com.example.ui.navigation.sidebar.MenuItem("admin_panel", "অ্যাডমিন প্যানেল", Icons.Default.Security)
+                        )
+                    }
+
+                    val otherSectionItems = mutableListOf(
+                        com.example.ui.navigation.sidebar.MenuItem("settings", "সেটিংস", Icons.Default.Settings),
+                        com.example.ui.navigation.sidebar.MenuItem("help", "সাহায্য/সম্পর্কে", Icons.Default.Info)
+                    )
+                    
+                    if (!isGuestMode) {
+                        otherSectionItems.add(
+                            com.example.ui.navigation.sidebar.MenuItem("logout", "লগআউট", Icons.AutoMirrored.Filled.ExitToApp, isDestructive = true)
+                        )
+                    }
+
+                    val sections = listOf(
+                        com.example.ui.navigation.sidebar.MenuSection(title = null, items = mainSectionItems),
+                        com.example.ui.navigation.sidebar.MenuSection(title = "অন্যান্য", items = otherSectionItems)
+                    )
+
+                    com.example.ui.components.sidebar.SidebarDrawer(
+                        profile = profile,
+                        sections = sections,
+                        viewModel = sidebarViewModel,
+                        footerText = "আমার হিসাব",
+                        versionText = "ভার্সন ১.০.০",
+                        onMenuItemClick = { route ->
+                            scope.launch { drawerState.close() }
+                            if (route == "logout") {
+                                onLogoutClick()
+                                return@SidebarDrawer
                             }
-                            "category" -> {
-                                onNavigateToCategory()
-                            }
-                            "admin_panel" -> {
-                                onNavigateToAdminDashboard()
-                            }
-                            "my_books" -> {
-                                drawerScreenTitle = "🚧 আমার বই"
-                            }
-                            "downloads" -> {
-                                drawerScreenTitle = "🚧 ডাউনলোড"
-                            }
-                            "favorite_books" -> {
-                                drawerScreenTitle = "🚧 প্রিয় বই"
-                            }
-                            "settings" -> {
-                                onNavigateToSettings()
-                            }
-                            "help" -> {
-                                drawerScreenTitle = "🚧 সাহায্য"
+                            when (route) {
+                                "home" -> {
+                                    drawerScreenTitle = ""
+                                    selectedTab = 0
+                                }
+                                "category" -> {
+                                    onNavigateToCategory()
+                                }
+                                "admin_panel" -> {
+                                    onNavigateToAdminDashboard()
+                                }
+                                "my_books" -> {
+                                    drawerScreenTitle = "🚧 আমার বই"
+                                }
+                                "downloads" -> {
+                                    drawerScreenTitle = "🚧 ডাউনলোড"
+                                }
+                                "settings" -> {
+                                    onNavigateToSettings()
+                                }
+                                "help" -> {
+                                    drawerScreenTitle = "🚧 সাহায্য"
+                                }
                             }
                         }
-                    },
-                    onLogoutClick = {
-                        scope.launch { drawerState.close() }
-                        onLogoutClick()
-                    },
-                    isGuestMode = isGuestMode
-                )
+                    )
             }
         },
         modifier = modifier.fillMaxSize()
