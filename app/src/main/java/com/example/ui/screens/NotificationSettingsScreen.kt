@@ -40,7 +40,7 @@ fun NotificationSettingsScreen(
     val reminderMinute by viewModel.reminderMinute.collectAsState()
 
     val purpleGradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
     )
 
     Scaffold(
@@ -146,13 +146,13 @@ fun NotificationSettingsScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF667EEA).copy(alpha = 0.15f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.NotificationImportant,
                                     contentDescription = null,
-                                    tint = Color(0xFF667EEA),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -179,7 +179,7 @@ fun NotificationSettingsScreen(
                             onCheckedChange = { viewModel.setPushNotificationsEnabled(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF667EEA),
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
                                 uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                                 uncheckedTrackColor = MaterialTheme.colorScheme.surface
                             )

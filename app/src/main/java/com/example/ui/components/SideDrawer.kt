@@ -136,6 +136,12 @@ fun SideDrawer(
                 testTag = "drawer_item_my_books"
             )
             DrawerMenuItem(
+                icon = Icons.Default.Category,
+                label = "ক্যাটাগরি",
+                onClick = { onMenuItemClick("category") },
+                testTag = "drawer_item_category"
+            )
+            DrawerMenuItem(
                 icon = Icons.Default.Download,
                 label = "ডাউনলোড",
                 onClick = { onMenuItemClick("downloads") },

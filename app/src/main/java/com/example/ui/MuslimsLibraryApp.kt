@@ -25,8 +25,10 @@ import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.NotificationViewModel
 import com.example.ui.viewmodel.ProfileViewModel
 
+import com.example.ui.viewmodel.SettingsViewModel
+
 @Composable
-fun MuslimsLibraryApp(appContainer: AppContainer) {
+fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsViewModel) {
     val context = LocalContext.current
 
     // Initialize ViewModels inside the Composition root
@@ -125,7 +127,8 @@ fun MuslimsLibraryApp(appContainer: AppContainer) {
             forumViewModel = forumViewModel,
             authorViewModel = authorViewModel,
             profileViewModel = profileViewModel,
-            downloadedBooksViewModel = downloadedBooksViewModel
+            downloadedBooksViewModel = downloadedBooksViewModel,
+            settingsViewModel = settingsViewModel
         )
     }
 }

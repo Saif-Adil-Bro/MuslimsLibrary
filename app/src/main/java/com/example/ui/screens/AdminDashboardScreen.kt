@@ -63,7 +63,7 @@ fun AdminDashboardScreen(
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color(0xFF043B2B), Color(0xFF0A4E38))
+                            colors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary)
                         )
                     )
             ) {
@@ -141,7 +141,7 @@ fun AdminDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFFCFDF9))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             when (selectedTab) {
                 0 -> DashboardTabContent(
@@ -229,7 +229,7 @@ fun DashboardTabContent(
                     Text(
                         text = totalBooks.toString(),
                         fontSize = 22.sp,
-                        color = Color(0xFF043B2B),
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.testTag("admin_dashboard_total_books")
                     )
@@ -260,7 +260,7 @@ fun DashboardTabContent(
                     Text(
                         text = "ONLINE",
                         fontSize = 22.sp,
-                        color = Color(0xFF0A4E38),
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontWeight = FontWeight.Black
                     )
                 }
@@ -284,7 +284,7 @@ fun DashboardTabContent(
                 Icon(
                     imageVector = Icons.Default.Cabin,
                     contentDescription = "Bucket",
-                    tint = Color(0xFF0A4E38),
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(32.dp)
                 )
                 Column {
@@ -324,7 +324,7 @@ fun DashboardTabContent(
                     Icon(
                         imageVector = Icons.Default.People,
                         contentDescription = "My Profile Icon",
-                        tint = Color(0xFF0A4E38),
+                        tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(32.dp)
                     )
                     Column {
@@ -345,7 +345,7 @@ fun DashboardTabContent(
                             text = "ROLE: ADMIN",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF0A4E38)
+                            color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
@@ -395,7 +395,7 @@ fun DashboardTabContent(
                 Icon(
                     imageVector = Icons.Default.Category,
                     contentDescription = null,
-                    tint = Color(0xFF0A4E38),
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(48.dp)
                 )
 
@@ -418,7 +418,7 @@ fun DashboardTabContent(
 
                 Button(
                     onClick = onNavigateToAddBook,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -526,7 +526,7 @@ fun BooksTabContent(
                                     Text(
                                         text = "ক্যাটেগরি: ${book.category}",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF0A4E38),
+                                        color = MaterialTheme.colorScheme.tertiary,
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -637,7 +637,7 @@ fun AuthorsTabContent(
 
             Button(
                 onClick = { isAddingAuthor = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.height(52.dp)
             ) {
@@ -769,7 +769,7 @@ fun AuthorsTabContent(
                         isAddingAuthor = false
                         editingAuthor = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                 ) {
                     Text("সংরক্ষণ করুন")
                 }
@@ -855,7 +855,7 @@ fun CategoriesTabContent(
 
             Button(
                 onClick = { isAddingCategory = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.height(52.dp)
             ) {
@@ -968,7 +968,7 @@ fun CategoriesTabContent(
                         isAddingCategory = false
                         editingCategory = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                 ) {
                     Text("সংরক্ষণ করুন")
                 }

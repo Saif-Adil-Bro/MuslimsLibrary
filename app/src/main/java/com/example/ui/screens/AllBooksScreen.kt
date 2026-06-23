@@ -84,7 +84,7 @@ fun AllBooksScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF667EEA)
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -133,7 +133,7 @@ fun AllBooksScreen(
                         BookCardGrid(
                             book = book,
                             onClick = { onBookClick(book) },
-                            gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                            gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                         )
                     }
                 }

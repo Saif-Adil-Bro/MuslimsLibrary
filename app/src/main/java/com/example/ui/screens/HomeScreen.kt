@@ -39,6 +39,7 @@ fun HomeScreen(
     role: String,
     onBookClick: (SupabaseBook) -> Unit,
     onNavigateToAllBooks: (sortBy: String, categoryFilter: String?) -> Unit,
+    onNavigateToCategory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
@@ -52,26 +53,42 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // 1. Sticky Category Pills scrollable row (ALWAYS visible at the top below primary header!)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(vertical = 12.dp)
         ) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(categories) { cat ->
+                items(categories.take(5)) { cat ->
                     CategoryPill(
                         categoryName = cat,
                         isSelected = selectedCategory == cat,
                         onClick = { homeViewModel.onCategorySelected(cat) }
                     )
+                }
+                if (categories.size > 5) {
+                    item {
+                        TextButton(
+                            onClick = onNavigateToCategory,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "আরও ক্যাটাগরি দেখুন →",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -92,7 +109,7 @@ fun HomeScreen(
                 when (val state = uiState) {
                     is HomeUiState.Loading -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF667EEA))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
                     }
                     is HomeUiState.Empty -> {
@@ -122,9 +139,9 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Button(
                                     onClick = { homeViewModel.refreshBooks() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
-                                    Text("পুনরায় চেষ্টা করুন", color = Color.White)
+                                    Text("পুনরায় চেষ্টা করুন", color = MaterialTheme.colorScheme.onPrimary)
                                 }
                             }
                         }
@@ -222,20 +239,20 @@ fun RecentBooksHeader(
             Icon(
                 imageVector = Icons.Default.Bolt,
                 contentDescription = null,
-                tint = Color(0xFF667EEA),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
             Text(
                 text = "সাম্প্রতিক বইসমূহ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2D3748)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
         Text(
             text = "সব দেখুন",
-            color = Color(0xFF667EEA),
+            color = MaterialTheme.colorScheme.primary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable(onClick = onViewAllClick)
@@ -263,20 +280,20 @@ fun CategorySectionHeader(
             Icon(
                 imageVector = Icons.Default.Book,
                 contentDescription = null,
-                tint = Color(0xFF667EEA),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
             Text(
                 text = categoryName,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2D3748)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
         Text(
             text = "সব দেখুন",
-            color = Color(0xFF667EEA),
+            color = MaterialTheme.colorScheme.primary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable(onClick = onViewAllClick)

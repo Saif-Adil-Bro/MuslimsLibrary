@@ -72,7 +72,7 @@ fun ProfileScreen(
                 is ProfileUiState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color(0xFF667EEA)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
                 is ProfileUiState.Error -> {
@@ -92,7 +92,7 @@ fun ProfileScreen(
                         )
                         Button(
                             onClick = { viewModel.loadProfile() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("আবার চেষ্টা করুন", color = Color.White)
                         }
@@ -105,7 +105,7 @@ fun ProfileScreen(
                     val roleName = if (user.role.equals("admin", ignoreCase = true)) "অ্যাডমিন" else "ব্যবহারকারী"
 
                     val gradientBrush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                     )
 
                     val stats by viewModel.stats.collectAsState()
@@ -245,7 +245,7 @@ fun ProfileScreen(
                                             text = "আমার পড়াশোনার অগ্রগতি",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1F2937)
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Box(
                                             modifier = Modifier
@@ -336,7 +336,7 @@ fun ProfileScreen(
                                         Button(
                                             onClick = onLogoutClick,
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFF0A4E38)
+                                                containerColor = MaterialTheme.colorScheme.tertiary
                                             ),
                                             shape = RoundedCornerShape(10.dp),
                                             modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -372,7 +372,7 @@ fun ProfileScreen(
                                                 text = "ডাটা ব্যাকআপ ও রিস্টোর",
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF1F2937),
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 modifier = Modifier.padding(bottom = 16.dp)
                                             )
                                             Row(
@@ -383,7 +383,7 @@ fun ProfileScreen(
                                                     onClick = { viewModel.performBackup(userId) },
                                                     text = "ব্যাকআপ",
                                                     icon = Icons.Default.CloudUpload,
-                                                    gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                                    gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
                                                     modifier = Modifier.weight(1f)
                                                 )
                                                 ElegantSecondaryButton(
@@ -405,7 +405,7 @@ fun ProfileScreen(
                                 onClick = onNotificationSettingsClick,
                                 text = "নোটিফিকেশন এবং রিমাইন্ডার সেটিংস",
                                 icon = Icons.Default.Notifications,
-                                gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -428,7 +428,7 @@ fun ProfileScreen(
                                     onClick = onEditProfileClick,
                                     text = "প্রোফাইল পরিবর্তন করুন",
                                     icon = Icons.Default.Edit,
-                                    gradientColors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
+                                    gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
@@ -456,7 +456,7 @@ fun ProfileScreen(
                 confirmButton = {},
                 dismissButton = {
                     TextButton(onClick = { viewModel.resetBackupStatus() }) {
-                        Text("বাতিল করুন", color = Color(0xFF667EEA))
+                        Text("বাতিল করুন", color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 title = {
@@ -464,7 +464,7 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF667EEA))
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("অপেক্ষা করুন...", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
@@ -480,7 +480,7 @@ fun ProfileScreen(
                 confirmButton = {
                     Button(
                         onClick = { viewModel.resetBackupStatus() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("ঠিক আছে", color = Color.White)
                     }
@@ -523,7 +523,7 @@ fun ProfileScreen(
                                     viewModel.performBackup(userId)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA)),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("পুনরায় চেষ্টা করুন", color = Color.White)
@@ -585,7 +585,7 @@ fun NewStatItem(
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color(0xFF6B7280),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
         )
@@ -611,7 +611,7 @@ fun AnimatedStatNumber(targetValue: Int) {
         text = count.toString(),
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF1F2937)
+        color = MaterialTheme.colorScheme.onSurface
     )
 }
 

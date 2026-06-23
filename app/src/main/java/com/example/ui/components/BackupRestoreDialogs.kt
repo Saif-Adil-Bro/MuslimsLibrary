@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +44,7 @@ fun BackupRestoreDialogs(
                 confirmButton = {},
                 dismissButton = {
                     TextButton(onClick = { profileViewModel.resetBackupStatus() }) {
-                        Text("বাতিল করুন", color = Color(0xFF667EEA))
+                        Text("বাতিল করুন", color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 title = {
@@ -51,7 +52,7 @@ fun BackupRestoreDialogs(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CircularProgressIndicator(color = Color(0xFF667EEA))
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.padding(8.dp))
                         Text(
                             "অপেক্ষা করুন...",
@@ -71,7 +72,7 @@ fun BackupRestoreDialogs(
                 confirmButton = {
                     Button(
                         onClick = { profileViewModel.resetBackupStatus() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("ঠিক আছে", color = Color.White)
                     }
@@ -119,7 +120,7 @@ fun BackupRestoreDialogs(
                             onClick = {
                                 profileViewModel.performRestore(userEmail)
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA)),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("পুনরায় চেষ্টা করুন", color = Color.White)
@@ -164,12 +165,12 @@ fun AuthRestoringDialog(authState: AuthState) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF043B2B))
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary)
                     Spacer(modifier = Modifier.padding(8.dp))
                     Text(
                         "ডাটা রিস্টোর হচ্ছে...",
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF043B2B)
+                        color = MaterialTheme.colorScheme.tertiary
                     )
                 }
             },

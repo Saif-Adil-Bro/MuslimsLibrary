@@ -48,7 +48,7 @@ fun ProfileForumScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFFCFDF9))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Hero visual header
         Box(
@@ -56,7 +56,7 @@ fun ProfileForumScreen(
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF043B2B), Color(0xFF0A4E38))
+                        colors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiary)
                     )
                 )
                 .padding(24.dp)
@@ -112,7 +112,7 @@ fun ProfileForumScreen(
                         Text(
                             text = "Privilege Level: ${role.replaceFirstChar { it.uppercase() }}",
                             fontSize = 14.sp,
-                            color = Color(0xFF0A4E38),
+                            color = MaterialTheme.colorScheme.tertiary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -139,12 +139,12 @@ fun ProfileForumScreen(
                         OutlinedTextField(
                             value = newPostText,
                             onValueChange = { newPostText = it },
-                            placeholder = { Text("What are you studying today?", color = Color(0xFF6B7280)) },
+                            placeholder = { Text("What are you studying today?", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color(0xFF1E293B),
                                 unfocusedTextColor = Color(0xFF1E293B),
-                                focusedBorderColor = Color(0xFF0A4E38),
+                                focusedBorderColor = MaterialTheme.colorScheme.tertiary,
                                 unfocusedBorderColor = Color(0xFFD1D5DB)
                             ),
                             shape = RoundedCornerShape(8.dp)
@@ -160,7 +160,7 @@ fun ProfileForumScreen(
                                     newPostText = ""
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                             modifier = Modifier.align(Alignment.End)
                         ) {
                             Icon(Icons.Default.Send, contentDescription = "Send", modifier = Modifier.size(16.dp))

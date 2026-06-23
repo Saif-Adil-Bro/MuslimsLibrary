@@ -122,7 +122,7 @@ fun AuthorScreen(
                 shape = RoundedCornerShape(25.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color(0xFFF8F9FA),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
                     focusedBorderColor = AppGradientStart,
                     unfocusedBorderColor = Color(0xFFE0E0E0)
                 )

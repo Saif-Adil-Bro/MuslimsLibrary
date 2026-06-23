@@ -40,6 +40,20 @@ class MuslimsLibraryApplication : Application() {
         }
 
         container = AppContainer(this)
+        
+        setupNotificationSync()
+    }
+
+    private fun setupNotificationSync() {
+        val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.data.notification.NotificationSyncWorker>(
+            15, java.util.concurrent.TimeUnit.MINUTES
+        ).build()
+        
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "notification_sync_worker",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 }
 

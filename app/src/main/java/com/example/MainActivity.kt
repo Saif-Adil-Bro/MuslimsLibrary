@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.viewmodel.SettingsViewModel
 import com.example.ui.MuslimsLibraryApp
 import com.example.ui.theme.MyApplicationTheme
 
@@ -18,9 +22,14 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModel.Factory(this)
+            )
+            val theme by settingsViewModel.theme.collectAsState()
+
+            MyApplicationTheme(theme = theme) {
                 val appContainer = (application as MuslimsLibraryApplication).container
-                MuslimsLibraryApp(appContainer)
+                MuslimsLibraryApp(appContainer, settingsViewModel)
             }
         }
     }

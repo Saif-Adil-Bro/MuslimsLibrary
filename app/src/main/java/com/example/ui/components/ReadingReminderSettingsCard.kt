@@ -62,13 +62,13 @@ fun ReadingReminderSettingsCard(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF764BA2).copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.NotificationsActive,
                             contentDescription = null,
-                            tint = Color(0xFF764BA2),
+                            tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -95,7 +95,7 @@ fun ReadingReminderSettingsCard(
                     onCheckedChange = onEnabledChange,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = Color(0xFF764BA2),
+                        checkedTrackColor = MaterialTheme.colorScheme.secondary,
                         uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                         uncheckedTrackColor = MaterialTheme.colorScheme.surface
                     )
@@ -129,7 +129,7 @@ fun ReadingReminderSettingsCard(
                         Icon(
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = "রিমাইন্ডারের সময়",
-                            tint = Color(0xFF667EEA),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -154,7 +154,7 @@ fun ReadingReminderSettingsCard(
                         text = formattedTime,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF764BA2),
+                            color = MaterialTheme.colorScheme.secondary,
                             fontSize = 18.sp
                         )
                     )

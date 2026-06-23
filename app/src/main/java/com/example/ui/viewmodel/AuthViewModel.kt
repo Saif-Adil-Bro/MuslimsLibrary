@@ -2,6 +2,7 @@ package com.example.ui.viewmodel
 
 import android.content.Context
 import android.net.ConnectivityManager
+import androidx.core.content.edit
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -63,7 +64,7 @@ class AuthViewModel(
     fun toggleDebugMode(context: Context) {
         val prefs = context.getSharedPreferences("app_debug_prefs", Context.MODE_PRIVATE)
         val newValue = !prefs.getBoolean("debug_mode_enabled", false)
-        prefs.edit().putBoolean("debug_mode_enabled", newValue).apply()
+        prefs.edit {putBoolean("debug_mode_enabled", newValue)}
         _isDebugMode.value = newValue
         _toastMessage.value = if (newValue) "🛠️ Debug Mode Enabled!" else "🛠️ Debug Mode Disabled."
     }
@@ -202,9 +203,9 @@ class AuthViewModel(
         if (uid != null) {
             context?.let {
                 it.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("user_id", uid)
-                    .apply()
+                    .edit {
+                        putString("user_id", uid)
+                    }
             }
             try {
                 authRepository.ensureProfileSynced()

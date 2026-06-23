@@ -84,7 +84,7 @@ fun BookCard(
                     modifier = Modifier
                         .padding(8.dp)
                         .background(
-                            color = Color(0xFF043B2B),
+                            color = MaterialTheme.colorScheme.tertiary,
                             shape = RoundedCornerShape(6.dp)
                         )
                         .padding(horizontal = 6.dp, vertical = 3.dp)
@@ -200,7 +200,7 @@ fun BookCard(
                 Text(
                     text = book.author,
                     fontSize = 10.sp,
-                    color = Color(0xFF6B7280),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Medium

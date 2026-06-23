@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.ContentResolver
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -194,11 +195,11 @@ fun AddBookScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF043B2B)
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             )
         },
-        containerColor = Color(0xFFFCFDF9)
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = modifier
@@ -246,7 +247,7 @@ fun AddBookScreen(
                         text = "Manuscript Identity",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF043B2B),
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontFamily = FontFamily.Serif
                     )
 
@@ -255,15 +256,15 @@ fun AddBookScreen(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Book Title") },
-                        leadingIcon = { Icon(Icons.Default.Book, contentDescription = null, tint = Color(0xFF0A4E38)) },
+                        leadingIcon = { Icon(Icons.Default.Book, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("add_book_title_input"),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF1E293B),
                             unfocusedTextColor = Color(0xFF1E293B),
-                            focusedBorderColor = Color(0xFF0A4E38),
-                            focusedLabelColor = Color(0xFF0A4E38),
+                            focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                            focusedLabelColor = MaterialTheme.colorScheme.tertiary,
                             unfocusedLabelColor = Color(0xFF475569)
                         )
                     )
@@ -278,7 +279,7 @@ fun AddBookScreen(
                             },
                             label = { Text("লেখকের নাম *") },
                             placeholder = { Text("লেখকের নাম লিখুন...") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF667EEA)) },
+                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                             trailingIcon = {
                                 if (author.isNotEmpty()) {
                                     IconButton(onClick = {
@@ -295,8 +296,8 @@ fun AddBookScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color(0xFF1E293B),
                                 unfocusedTextColor = Color(0xFF1E293B),
-                                focusedBorderColor = Color(0xFF667EEA),
-                                focusedLabelColor = Color(0xFF667EEA),
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
                                 unfocusedLabelColor = Color(0xFF475569)
                             )
                         )
@@ -337,7 +338,7 @@ fun AddBookScreen(
                                         Text(
                                             text = "কোনো লেখক পাওয়া যায়নি",
                                             fontSize = 14.sp,
-                                            color = Color(0xFF718096),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                                         )
                                     }
@@ -364,14 +365,14 @@ fun AddBookScreen(
                                         Icon(
                                             Icons.Default.Add,
                                             contentDescription = null,
-                                            tint = Color(0xFF667EEA),
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Text(
                                             text = "নতুন লেখক যোগ করুন",
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF667EEA)
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
@@ -386,7 +387,7 @@ fun AddBookScreen(
                             onValueChange = { category = it },
                             label = { Text("Category (একাধিক ক্যাটাগরি কমা দিয়ে লিখুন)") },
                             placeholder = { Text("যেমন: কুরআন, হাদিস, ফিকহ") },
-                            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = Color(0xFF0A4E38)) },
+                            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
                             trailingIcon = {
                                 IconButton(onClick = { expandedDropdown = !expandedDropdown }) {
                                     Icon(
@@ -401,8 +402,8 @@ fun AddBookScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color(0xFF1E293B),
                                 unfocusedTextColor = Color(0xFF1E293B),
-                                focusedBorderColor = Color(0xFF0A4E38),
-                                focusedLabelColor = Color(0xFF0A4E38),
+                                focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                focusedLabelColor = MaterialTheme.colorScheme.tertiary,
                                 unfocusedLabelColor = Color(0xFF475569)
                             )
                         )
@@ -453,7 +454,7 @@ fun AddBookScreen(
                                     label = { Text(cat, fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = Color(0xFFEAF4F0),
-                                        selectedLabelColor = Color(0xFF0A4E38)
+                                        selectedLabelColor = MaterialTheme.colorScheme.tertiary
                                     )
                                 )
                             }
@@ -477,7 +478,7 @@ fun AddBookScreen(
                                 RadioButton(
                                     selected = fileType == "pdf",
                                     onClick = { fileType = "pdf" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0A4E38))
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.tertiary)
                                 )
                                 Text("PDF Document", fontSize = 14.sp, color = Color.DarkGray)
                             }
@@ -486,7 +487,7 @@ fun AddBookScreen(
                                 RadioButton(
                                     selected = fileType == "epub",
                                     onClick = { fileType = "epub" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF0A4E38))
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.tertiary)
                                 )
                                 Text("EPUB E-Book", fontSize = 14.sp, color = Color.DarkGray)
                             }
@@ -516,7 +517,7 @@ fun AddBookScreen(
                             text = "Cover Image Selection (ঐচ্ছিক)",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF043B2B),
+                            color = MaterialTheme.colorScheme.tertiary,
                             fontFamily = FontFamily.Serif
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -536,7 +537,7 @@ fun AddBookScreen(
                         Button(
                             onClick = { coverSourceType = SourceType.FILE },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (coverSourceType == SourceType.FILE) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                containerColor = if (coverSourceType == SourceType.FILE) MaterialTheme.colorScheme.tertiary else Color(0xFFF1F4F2),
                                 contentColor = if (coverSourceType == SourceType.FILE) Color.White else Color(0xFF475569)
                             ),
                             modifier = Modifier.weight(1f).height(40.dp),
@@ -550,7 +551,7 @@ fun AddBookScreen(
                         Button(
                             onClick = { coverSourceType = SourceType.URL },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (coverSourceType == SourceType.URL) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                containerColor = if (coverSourceType == SourceType.URL) MaterialTheme.colorScheme.tertiary else Color(0xFFF1F4F2),
                                 contentColor = if (coverSourceType == SourceType.URL) Color.White else Color(0xFF475569)
                             ),
                             modifier = Modifier.weight(1f).height(40.dp),
@@ -617,7 +618,7 @@ fun AddBookScreen(
                                         text = "ডিফল্ট কভার সেট করা আছে",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF043B2B)
+                                        color = MaterialTheme.colorScheme.tertiary
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -629,7 +630,7 @@ fun AddBookScreen(
                                 Icon(
                                     imageVector = Icons.Default.AddPhotoAlternate,
                                     contentDescription = null,
-                                    tint = Color(0xFF0A4E38),
+                                    tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -644,14 +645,14 @@ fun AddBookScreen(
                                 value = coverImageUrl,
                                 onValueChange = { coverImageUrl = it },
                                 label = { Text("Cover Image URL") },
-                                leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, tint = Color(0xFF0A4E38)) },
+                                leadingIcon = { Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) },
                                 placeholder = { Text("https://example.com/cover.jpg") },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = Color(0xFF1E293B),
                                     unfocusedTextColor = Color(0xFF1E293B),
-                                    focusedBorderColor = Color(0xFF0A4E38),
-                                    focusedLabelColor = Color(0xFF0A4E38)
+                                    focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.tertiary
                                 )
                             )
 
@@ -661,7 +662,7 @@ fun AddBookScreen(
                                     onClick = {
                                         coverImageUrl = adminViewModel.supabaseService.convertGoogleDriveLink(coverImageUrl)
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A4E38)),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
@@ -685,7 +686,7 @@ fun AddBookScreen(
                             if (coverImageUrl.isNotBlank() && isCoverUrlValid) {
                                 Text(
                                     text = "Valid cover URL detected",
-                                    color = Color(0xFF0A4E38),
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -734,7 +735,7 @@ fun AddBookScreen(
                                             text = "ডিফল্ট কভার সেট করা আছে",
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF043B2B)
+                                            color = MaterialTheme.colorScheme.tertiary
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
@@ -772,11 +773,11 @@ fun AddBookScreen(
                                 text = "Manuscript Document File",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF043B2B),
+                                color = MaterialTheme.colorScheme.tertiary,
                                 fontFamily = FontFamily.Serif
                             )
                             IconButton(onClick = { showSourceInfo = !showSourceInfo }, modifier = Modifier.size(24.dp)) {
-                                Icon(Icons.Default.Info, contentDescription = "Source info", tint = Color(0xFF0A4E38), modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Info, contentDescription = "Source info", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -789,9 +790,9 @@ fun AddBookScreen(
                         ) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("Source Types Helpful Guide", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF032B1D))
-                                Text("• Device Upload: Directly upload PDF or EPUB to secure database storage.", fontSize = 12.sp, color = Color(0xFF0A4E38))
-                                Text("• Google Drive: Paste anyone-can-view sharing link. The app will automatically convert it to direct CDN stream.", fontSize = 12.sp, color = Color(0xFF0A4E38))
-                                Text("• Direct URL (CDN): Save workspace storage by pointing directly to external links (e.g. archive.org).", fontSize = 12.sp, color = Color(0xFF0A4E38))
+                                Text("• Device Upload: Directly upload PDF or EPUB to secure database storage.", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
+                                Text("• Google Drive: Paste anyone-can-view sharing link. The app will automatically convert it to direct CDN stream.", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
+                                Text("• Direct URL (CDN): Save workspace storage by pointing directly to external links (e.g. archive.org).", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
                             }
                         }
                     }
@@ -815,7 +816,7 @@ fun AddBookScreen(
                             Button(
                                 onClick = { bookSourceType = type },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSelected) Color(0xFF043B2B) else Color(0xFFF1F4F2),
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.tertiary else Color(0xFFF1F4F2),
                                     contentColor = if (isSelected) Color.White else Color(0xFF475569)
                                 ),
                                 modifier = Modifier.weight(1f).height(38.dp),
@@ -850,7 +851,7 @@ fun AddBookScreen(
                                     Icon(
                                         imageVector = Icons.Default.PictureAsPdf,
                                         contentDescription = "PdfIcon",
-                                        tint = Color(0xFF0A4E38)
+                                        tint = MaterialTheme.colorScheme.tertiary
                                     )
                                     Column {
                                         Text(
@@ -893,7 +894,7 @@ fun AddBookScreen(
                                     Icon(
                                         imageVector = Icons.Default.UploadFile,
                                         contentDescription = null,
-                                        tint = Color(0xFF0A4E38),
+                                        tint = MaterialTheme.colorScheme.tertiary,
                                         modifier = Modifier.size(36.dp)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -939,8 +940,8 @@ fun AddBookScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = Color(0xFF1E293B),
                                         unfocusedTextColor = Color(0xFF1E293B),
-                                        focusedBorderColor = Color(0xFF0A4E38),
-                                        focusedLabelColor = Color(0xFF0A4E38)
+                                        focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                        focusedLabelColor = MaterialTheme.colorScheme.tertiary
                                     )
                                 )
 
@@ -948,7 +949,7 @@ fun AddBookScreen(
                                     onClick = {
                                         bookFileUrl = adminViewModel.supabaseService.convertGoogleDriveLink(bookFileUrl)
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                                     modifier = Modifier.height(56.dp),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
@@ -968,7 +969,7 @@ fun AddBookScreen(
                             } else if (bookFileUrl.isNotBlank()) {
                                 Text(
                                     text = "Google Drive link verified.",
-                                    color = Color(0xFF0A4E38),
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -990,15 +991,15 @@ fun AddBookScreen(
                                     onClick = {
                                         if (bookFileUrl.isNotBlank()) {
                                             try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(bookFileUrl))
+                                                val intent = Intent(Intent.ACTION_VIEW, bookFileUrl.toUri())
                                                 context.startActivity(intent)
                                             } catch (e: Exception) {
                                                 Toast.makeText(context, "Cannot open browser: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0A4E38)),
-                                    border = BorderStroke(1.dp, Color(0xFF0A4E38)),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1029,8 +1030,8 @@ fun AddBookScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = Color(0xFF1E293B),
                                     unfocusedTextColor = Color(0xFF1E293B),
-                                    focusedBorderColor = Color(0xFF0A4E38),
-                                    focusedLabelColor = Color(0xFF0A4E38)
+                                    focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                    focusedLabelColor = MaterialTheme.colorScheme.tertiary
                                 )
                             )
 
@@ -1051,7 +1052,7 @@ fun AddBookScreen(
                             } else if (bookFileUrl.isNotBlank()) {
                                 Text(
                                     text = "CDN link verified.",
-                                    color = Color(0xFF0A4E38),
+                                    color = MaterialTheme.colorScheme.tertiary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -1068,15 +1069,15 @@ fun AddBookScreen(
                                     onClick = {
                                         if (bookFileUrl.isNotBlank()) {
                                             try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(bookFileUrl))
+                                                val intent = Intent(Intent.ACTION_VIEW, bookFileUrl.toUri())
                                                 context.startActivity(intent)
                                             } catch (e: Exception) {
                                                 Toast.makeText(context, "Cannot open browser: ${e.message}", Toast.LENGTH_SHORT).show()
                                             }
                                         }
                                     },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0A4E38)),
-                                    border = BorderStroke(1.dp, Color(0xFF0A4E38)),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.tertiary),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
                                     Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1099,7 +1100,7 @@ fun AddBookScreen(
                     ) {
                         LinearProgressIndicator(
                             progress = { state.progress / 100f },
-                            color = Color(0xFF0A4E38),
+                            color = MaterialTheme.colorScheme.tertiary,
                             trackColor = Color(0xFFE6EAE7),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1107,7 +1108,7 @@ fun AddBookScreen(
                             text = "Uploading... ${state.progress}%",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0A4E38)
+                            color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
@@ -1161,7 +1162,7 @@ fun AddBookScreen(
                         },
                         enabled = isFormValid,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0A4E38),
+                            containerColor = MaterialTheme.colorScheme.tertiary,
                             disabledContainerColor = Color.LightGray
                         ),
                         shape = RoundedCornerShape(12.dp),

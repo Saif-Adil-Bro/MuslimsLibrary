@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -200,7 +201,7 @@ class NotificationViewModel(
 
     fun setPushNotificationsEnabled(enabled: Boolean) {
         _pushedNotificationsEnabled.value = enabled
-        sharedPrefs.edit().putBoolean("general_notifications", enabled).apply()
+        sharedPrefs.edit {putBoolean("general_notifications", enabled)}
 
         viewModelScope.launch {
             if (!guestModeManager.isGuestMode()) {
@@ -219,7 +220,7 @@ class NotificationViewModel(
 
     fun setReadingRemindersEnabled(enabled: Boolean) {
         _readingRemindersEnabled.value = enabled
-        sharedPrefs.edit().putBoolean("reading_reminders", enabled).apply()
+        sharedPrefs.edit {putBoolean("reading_reminders", enabled)}
 
         if (enabled) {
             scheduleWorkManagerReminder(_reminderHour.value, _reminderMinute.value)
@@ -245,10 +246,10 @@ class NotificationViewModel(
     fun setReminderTime(hour: Int, minute: Int) {
         _reminderHour.value = hour
         _reminderMinute.value = minute
-        sharedPrefs.edit()
-            .putInt("reminder_hour", hour)
-            .putInt("reminder_minute", minute)
-            .apply()
+        sharedPrefs.edit {
+            putInt("reminder_hour", hour)
+            putInt("reminder_minute", minute)
+        }
 
         if (_readingRemindersEnabled.value) {
             scheduleWorkManagerReminder(hour, minute)

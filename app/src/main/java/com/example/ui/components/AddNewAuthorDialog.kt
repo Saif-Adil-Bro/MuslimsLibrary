@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -36,7 +37,7 @@ fun AddNewAuthorDialog(
             Text(
                 "নতুন লেখক যোগ করুন",
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2D3748)
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -68,14 +69,14 @@ fun AddNewAuthorDialog(
                     }
                 },
                 enabled = name.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Text("সেভ করুন", color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("বাতিল", color = Color(0xFF718096))
+                Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         containerColor = Color.White,

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,7 +47,7 @@ fun AuthorSuggestionItem(
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                     )
                 ),
             contentAlignment = Alignment.Center
@@ -66,15 +67,15 @@ fun AuthorSuggestionItem(
                 query = query,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                normalColor = Color(0xFF2D3748),
-                highlightColor = Color(0xFF667EEA)
+                normalColor = MaterialTheme.colorScheme.onSurface,
+                highlightColor = MaterialTheme.colorScheme.primary
             )
             
             // Book count
             Text(
                 text = "${suggestion.bookCount}টি বই রয়েছে",
                 fontSize = 12.sp,
-                color = Color(0xFF718096)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         
@@ -83,7 +84,7 @@ fun AuthorSuggestionItem(
             Icon(
                 Icons.Default.Info,
                 contentDescription = "Has bio",
-                tint = Color(0xFF667EEA),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
         }

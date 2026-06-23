@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.content.edit
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
 import com.example.R
@@ -34,7 +35,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         
         // Save token locally in SharedPreferences
         val sharedPrefs = getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
-        sharedPrefs.edit().putString("fcm_token", token).apply()
+        sharedPrefs.edit {putString("fcm_token", token)}
 
         // Inject container and register token to Supabase if logged in
         try {

@@ -2,6 +2,7 @@ package com.example.data
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.content.edit
 import com.example.BuildConfig
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -151,7 +152,7 @@ class SupabaseService(
         try {
             val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             val jsonString = Json.encodeToString(categories)
-            sharedPrefs.edit().putString("cached_categories", jsonString).apply()
+            sharedPrefs.edit {putString("cached_categories", jsonString)}
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error saving categories locally: ${e.message}")
         }
@@ -180,7 +181,7 @@ class SupabaseService(
                 emptyList()
             }
             val updatedList = (deletedList + id).distinct()
-            sharedPrefs.edit().putString("locally_deleted_books", Json.encodeToString(updatedList)).apply()
+            sharedPrefs.edit {putString("locally_deleted_books", Json.encodeToString(updatedList))}
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error tracking deleted book: ${e.message}")
         }
@@ -197,7 +198,7 @@ class SupabaseService(
                 emptyList()
             }
             val newUpdatedList = (updatedList.filter { it.id != book.id } + book)
-            sharedPrefs.edit().putString("locally_updated_books", Json.encodeToString(newUpdatedList)).apply()
+            sharedPrefs.edit {putString("locally_updated_books", Json.encodeToString(newUpdatedList))}
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error tracking updated book: ${e.message}")
         }
@@ -214,7 +215,7 @@ class SupabaseService(
                 emptyList()
             }
             val newAddedList = (addedList.filter { it.id != book.id } + book)
-            sharedPrefs.edit().putString("locally_added_books", Json.encodeToString(newAddedList)).apply()
+            sharedPrefs.edit {putString("locally_added_books", Json.encodeToString(newAddedList))}
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error tracking added book: ${e.message}")
         }
@@ -277,7 +278,7 @@ class SupabaseService(
         try {
             val sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             val jsonString = Json.encodeToString(books)
-            sharedPrefs.edit().putString("cached_books", jsonString).apply()
+            sharedPrefs.edit {putString("cached_books", jsonString)}
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error saving books locally: ${e.message}")
         }

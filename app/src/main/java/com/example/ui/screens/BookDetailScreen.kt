@@ -168,7 +168,7 @@ fun BookDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF043B2B)
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             )
         }
@@ -182,7 +182,7 @@ fun BookDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color(0xFF043B2B))
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "বইয়ের বিবরণ লোড হচ্ছে...",
@@ -205,7 +205,7 @@ fun BookDetailScreen(
                         .fillMaxWidth()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color(0xFF043B2B), Color(0xFFF9F9F4))
+                                colors = listOf(MaterialTheme.colorScheme.tertiary, Color(0xFFF9F9F4))
                             )
                         )
                         .padding(horizontal = 24.dp, vertical = 20.dp)
@@ -241,7 +241,7 @@ fun BookDetailScreen(
                                 Box(
                                     modifier = Modifier
                                         .padding(8.dp)
-                                        .background(Color(0xFF043B2B), RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(4.dp))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                         .align(Alignment.BottomEnd)
                                 ) {
@@ -383,7 +383,7 @@ fun BookDetailScreen(
                                 text = "ডাউনলোড অপশন (Offline Download)",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF043B2B)
+                                color = MaterialTheme.colorScheme.tertiary
                             )
                             
                             HorizontalDivider(color = Color(0xFFF3F4F6))
@@ -561,13 +561,13 @@ fun BookDetailScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .size(36.dp)
-                                                        .background(Color(0xFF043B2B).copy(alpha = 0.1f), CircleShape),
+                                                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f), CircleShape),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.CloudDownload,
                                                         contentDescription = null,
-                                                        tint = Color(0xFF043B2B),
+                                                        tint = MaterialTheme.colorScheme.tertiary,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }
@@ -587,7 +587,7 @@ fun BookDetailScreen(
                                             }
                                             Button(
                                                 onClick = { downloadedBooksViewModel.startDownload(bookModel) },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                                 shape = RoundedCornerShape(8.dp),
                                                 modifier = Modifier.height(36.dp)
@@ -621,7 +621,7 @@ fun BookDetailScreen(
                             text = "লাইব্রেরি অপশন",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF043B2B)
+                            color = MaterialTheme.colorScheme.tertiary
                         )
 
                         HorizontalDivider(color = Color(0xFFF3F4F6))
@@ -755,7 +755,7 @@ fun BookDetailScreen(
                                 text = "আমার কিতাবী নোটসমূহ (${notesList.size})",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF043B2B)
+                                color = MaterialTheme.colorScheme.tertiary
                             )
 
                             // Add Note Trigger Button
@@ -765,7 +765,7 @@ fun BookDetailScreen(
                                     showAddNoteDialog = true
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF043B2B),
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(8.dp),
@@ -894,7 +894,7 @@ fun BookDetailScreen(
                     text = "গুরুত্বপূর্ণ নোট যোগ করুন",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = Color(0xFF043B2B)
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             },
             text = {

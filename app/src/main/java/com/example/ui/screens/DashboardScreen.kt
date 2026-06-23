@@ -44,6 +44,8 @@ fun DashboardScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToDownloads: () -> Unit,
     onNavigateToAllBooks: (sortBy: String, categoryFilter: String?) -> Unit,
+    onNavigateToCategory: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onNavigateToAdminDashboard: () -> Unit = {},
     modifier: Modifier = Modifier,
     debugInfo: String = "",
@@ -126,6 +128,9 @@ fun DashboardScreen(
                                 drawerScreenTitle = ""
                                 selectedTab = 0
                             }
+                            "category" -> {
+                                onNavigateToCategory()
+                            }
                             "admin_panel" -> {
                                 onNavigateToAdminDashboard()
                             }
@@ -139,7 +144,7 @@ fun DashboardScreen(
                                 drawerScreenTitle = "🚧 প্রিয় বই"
                             }
                             "settings" -> {
-                                drawerScreenTitle = "🚧 সেটিংস"
+                                onNavigateToSettings()
                             }
                             "help" -> {
                                 drawerScreenTitle = "🚧 সাহায্য"
@@ -214,7 +219,7 @@ fun DashboardScreen(
                                 Button(
                                     onClick = onLogoutClick,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFF0A4E38)
+                                        containerColor = MaterialTheme.colorScheme.tertiary
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -259,7 +264,7 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
                                 onClick = onNavigateToDownloads,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Text("ডাউনলোডকৃত অফলাইন বই দেখুন", color = Color.White)
                             }
@@ -273,7 +278,8 @@ fun DashboardScreen(
                                 userEmail = userEmail,
                                 role = userRole,
                                 onBookClick = onBookClick,
-                                onNavigateToAllBooks = onNavigateToAllBooks
+                                onNavigateToAllBooks = onNavigateToAllBooks,
+                                onNavigateToCategory = onNavigateToCategory
                             )
                         }
                         1 -> {

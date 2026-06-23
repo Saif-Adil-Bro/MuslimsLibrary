@@ -105,7 +105,7 @@ fun EditProfileScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF043B2B)
+                    containerColor = MaterialTheme.colorScheme.tertiary
                 )
             )
         }
@@ -131,7 +131,7 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .size(130.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF043B2B).copy(alpha = 0.08f))
+                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
                         .clickable { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
@@ -157,7 +157,7 @@ fun EditProfileScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFF0A4E38)),
+                                .background(MaterialTheme.colorScheme.tertiary),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -206,7 +206,7 @@ fun EditProfileScreen(
                             text = "ডিফল্ট অবতার বেছে নিন (Choose Default Avatar)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF043B2B)
+                            color = MaterialTheme.colorScheme.tertiary
                         )
                         if (selectedDefaultAvatarUrl != null || pendingCustomImageUri != null) {
                             TextButton(
@@ -252,7 +252,7 @@ fun EditProfileScreen(
                                     }
                                     .then(
                                         if (isSelected) {
-                                            Modifier.border(3.dp, Color(0xFF043B2B), CircleShape)
+                                            Modifier.border(3.dp, MaterialTheme.colorScheme.tertiary, CircleShape)
                                         } else {
                                             Modifier.border(1.dp, Color.LightGray.copy(alpha = 0.5f), CircleShape)
                                         }
@@ -273,13 +273,13 @@ fun EditProfileScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(CircleShape)
-                                            .background(Color(0xFF043B2B).copy(alpha = 0.15f)),
+                                            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = "নির্বাচিত",
-                                            tint = Color(0xFF043B2B),
+                                            tint = MaterialTheme.colorScheme.tertiary,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -312,9 +312,9 @@ fun EditProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF043B2B),
-                                focusedLabelColor = Color(0xFF043B2B),
-                                cursorColor = Color(0xFF043B2B)
+                                focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                focusedLabelColor = MaterialTheme.colorScheme.tertiary,
+                                cursorColor = MaterialTheme.colorScheme.tertiary
                             )
                         )
 
@@ -326,9 +326,9 @@ fun EditProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 4,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF043B2B),
-                                focusedLabelColor = Color(0xFF043B2B),
-                                cursorColor = Color(0xFF043B2B)
+                                focusedBorderColor = MaterialTheme.colorScheme.tertiary,
+                                focusedLabelColor = MaterialTheme.colorScheme.tertiary,
+                                cursorColor = MaterialTheme.colorScheme.tertiary
                             )
                         )
                     }
@@ -353,7 +353,7 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                     shape = RoundedCornerShape(12.dp),
                     enabled = !uploadProgress && uiState !is ProfileUiState.Loading
                 ) {
@@ -384,7 +384,7 @@ fun EditProfileScreen(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            CircularProgressIndicator(color = Color(0xFF043B2B))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.tertiary)
                             Text(
                                 text = if (uploadProgress) "ছবি আপলোড হচ্ছে..." else "প্রোফাইল সংরক্ষণ হচ্ছে...",
                                 fontWeight = FontWeight.SemiBold,

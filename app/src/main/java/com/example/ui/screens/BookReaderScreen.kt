@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.core.net.toUri
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -211,12 +212,12 @@ fun BookReaderScreen(
     // Color theme setups
     val isDark = readTheme == ReadTheme.DARK
     val backgroundColor = when (readTheme) {
-        ReadTheme.LIGHT -> Color(0xFFFCFDF9)
+        ReadTheme.LIGHT -> MaterialTheme.colorScheme.background
         ReadTheme.SEPIA -> Color(0xFFFBF4E4)
         ReadTheme.DARK -> Color(0xFF161C1A)
     }
     val contentColor = when (readTheme) {
-        ReadTheme.LIGHT -> Color(0xFF043B2B)
+        ReadTheme.LIGHT -> MaterialTheme.colorScheme.tertiary
         ReadTheme.SEPIA -> Color(0xFF4C381E)
         ReadTheme.DARK -> Color(0xFFECECEC)
     }
@@ -270,7 +271,7 @@ fun BookReaderScreen(
                                 IconButton(onClick = {
                                     try {
                                         val directUrl = convertGoogleDriveLink(decodedFileUrl)
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directUrl))
+                                        val intent = Intent(Intent.ACTION_VIEW, directUrl.toUri())
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "ব্রাউজারে খোলা অসম্ভব", Toast.LENGTH_SHORT).show()
@@ -423,13 +424,13 @@ fun BookReaderScreen(
                                   Button(
                                       onClick = {
                                           try {
-                                              val intent = Intent(Intent.ACTION_VIEW, Uri.parse(convertGoogleDriveLink(decodedFileUrl)))
+                                              val intent = Intent(Intent.ACTION_VIEW, convertGoogleDriveLink(decodedFileUrl).toUri())
                                               context.startActivity(intent)
                                           } catch (e: Exception) {
                                               Toast.makeText(context, "ড্রাইভ খোলা যাচ্ছে না", Toast.LENGTH_SHORT).show()
                                           }
                                       },
-                                      colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF043B2B)),
+                                      colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                                       modifier = Modifier.weight(1f)
                                   ) {
                                       Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -503,7 +504,7 @@ fun BookReaderScreen(
                                   
                                   OutlinedButton(
                                       onClick = {
-                                          val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directDocUrl))
+                                          val intent = Intent(Intent.ACTION_VIEW, directDocUrl.toUri())
                                           context.startActivity(intent)
                                       }
                                   ) {
@@ -606,7 +607,7 @@ fun BookReaderScreen(
                                   // Quick Direct download or fallback link while loading
                                   OutlinedButton(
                                       onClick = {
-                                          val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directDocUrl))
+                                          val intent = Intent(Intent.ACTION_VIEW, directDocUrl.toUri())
                                           context.startActivity(intent)
                                       },
                                       colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF10B981))
@@ -628,7 +629,7 @@ fun BookReaderScreen(
                       .align(Alignment.BottomEnd)
                       .background(
                           Brush.horizontalGradient(
-                              colors = listOf(Color(0xFF10B981), Color(0xFF043B2B))
+                              colors = listOf(Color(0xFF10B981), MaterialTheme.colorScheme.tertiary)
                           ),
                           shape = CircleShape
                       )
@@ -739,7 +740,7 @@ suspend fun downloadAndGetPdfPageCount(context: Context, fileUrl: String, bookId
 fun downloadPdf(context: Context, url: String, title: String) {
     try {
         val directUrl = convertGoogleDriveLink(url)
-        val downloadUri = Uri.parse(directUrl)
+        val downloadUri = directUrl.toUri()
         val request = android.app.DownloadManager.Request(downloadUri).apply {
             setAllowedNetworkTypes(
                 android.app.DownloadManager.Request.NETWORK_WIFI or 
@@ -761,7 +762,7 @@ fun downloadPdf(context: Context, url: String, title: String) {
         // Safe Direct Browser Intent fallback
         try {
             val directUrl = convertGoogleDriveLink(url)
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(directUrl))
+            val intent = Intent(Intent.ACTION_VIEW, directUrl.toUri())
             context.startActivity(intent)
         } catch (ex: Exception) {
             Toast.makeText(context, "ডাউনলোড করা যাচ্ছে না: ${ex.localizedMessage}", Toast.LENGTH_SHORT).show()

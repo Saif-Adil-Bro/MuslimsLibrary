@@ -48,7 +48,7 @@ fun LibraryStatsCard(
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
                     )
                 )
                 .padding(20.dp)
@@ -136,7 +136,7 @@ fun LibraryTabFilter(
                 onClick = { onTabSelected(tab) },
                 shape = RoundedCornerShape(50.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) Color(0xFF667EEA) else Color(0xFFE2E8F0)
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)
                 ),
                 modifier = Modifier.testTag("tab_pill_${tab.name.lowercase()}")
             ) {
@@ -270,7 +270,7 @@ fun LibraryBookCard(
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Options",
-                                tint = Color(0xFF2D3748),
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -333,7 +333,7 @@ fun LibraryBookCard(
                     text = book.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = Color(0xFF2D3748),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp,
@@ -343,7 +343,7 @@ fun LibraryBookCard(
                 Text(
                     text = book.author,
                     fontSize = 11.sp,
-                    color = Color(0xFF718096),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -355,7 +355,7 @@ fun LibraryBookCard(
                 ) {
                     LinearProgressIndicator(
                         progress = { book.progress / 100f },
-                        color = Color(0xFF667EEA),
+                        color = MaterialTheme.colorScheme.primary,
                         trackColor = Color(0xFFE2E8F0),
                         modifier = Modifier
                             .weight(1f)
@@ -426,7 +426,7 @@ fun LibraryBookListItem(
                     text = book.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color(0xFF2D3748),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 18.sp
@@ -435,7 +435,7 @@ fun LibraryBookListItem(
                 Text(
                     text = book.author,
                     fontSize = 11.sp,
-                    color = Color(0xFF718096),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -500,7 +500,7 @@ fun LibraryBookListItem(
                 ) {
                     LinearProgressIndicator(
                         progress = { book.progress / 100f },
-                        color = Color(0xFF667EEA),
+                        color = MaterialTheme.colorScheme.primary,
                         trackColor = Color(0xFFE2E8F0),
                         modifier = Modifier
                             .weight(1f)
@@ -524,7 +524,7 @@ fun LibraryBookListItem(
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Options",
-                        tint = Color(0xFF718096)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -601,7 +601,7 @@ fun LibraryEmptyState(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = message,
-            color = Color(0xFF2D3748),
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
@@ -609,7 +609,7 @@ fun LibraryEmptyState(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "পড়া শুরু করতে হোম স্ক্রিনে যান এবং আপনার পছন্দের বই যুক্ত করুন!",
-            color = Color(0xFF718096),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -617,7 +617,7 @@ fun LibraryEmptyState(
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onButtonClick,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(text = buttonText, color = Color.White, fontWeight = FontWeight.Bold)

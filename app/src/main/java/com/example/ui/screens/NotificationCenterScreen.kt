@@ -53,7 +53,7 @@ fun NotificationCenterScreen(
     }
 
     val purpleGradient = Brush.verticalGradient(
-        colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)
     )
 
     Scaffold(
@@ -134,13 +134,13 @@ fun NotificationCenterScreen(
                         modifier = Modifier
                             .size(100.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF764BA2).copy(alpha = 0.1f)),
+                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.NotificationsNone,
                             contentDescription = null,
-                            tint = Color(0xFF764BA2),
+                            tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(56.dp)
                         )
                     }
@@ -168,7 +168,7 @@ fun NotificationCenterScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Color(0xFF764BA2))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
                         }
                     }
                     is NotificationUiState.Error -> {
@@ -197,7 +197,7 @@ fun NotificationCenterScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { viewModel.refreshNotifications() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF764BA2))
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                             ) {
                                 Text("আবার চেষ্টা করুন", color = Color.White)
                             }
@@ -216,13 +216,13 @@ fun NotificationCenterScreen(
                                     modifier = Modifier
                                         .size(80.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF667EEA).copy(alpha = 0.1f)),
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.NotificationsNone,
                                         contentDescription = null,
-                                        tint = Color(0xFF667EEA),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(42.dp)
                                     )
                                 }
@@ -301,7 +301,7 @@ fun NotificationItem(
                         if (notification.isRead) {
                             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         } else {
-                            Color(0xFF667EEA).copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -312,7 +312,7 @@ fun NotificationItem(
                     tint = if (notification.isRead) {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     } else {
-                        Color(0xFF667EEA)
+                        MaterialTheme.colorScheme.primary
                     },
                     modifier = Modifier.size(20.dp)
                 )

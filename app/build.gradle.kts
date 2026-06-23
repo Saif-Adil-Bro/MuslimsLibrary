@@ -12,7 +12,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.muslimslibrary.kuytw"
+    applicationId = "com.aistudio.muslimslibrary.abcde"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
@@ -170,4 +170,17 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+}
+
+tasks.register("fixColors") {
+    notCompatibleWithConfigurationCache("Modifies files dynamically")
+    doLast {
+        val postDetail = file("src/main/java/com/example/ui/screens/PostDetailScreen.kt")
+        var pdContent = postDetail.readText()
+        pdContent = pdContent.replace("DetailPrimaryGradientStart", "MaterialTheme.colorScheme.primary")
+        pdContent = pdContent.replace("DetailPrimaryGradientEnd", "MaterialTheme.colorScheme.secondary")
+        pdContent = pdContent.replace("DetailTextGrayMain", "MaterialTheme.colorScheme.onSurface")
+        pdContent = pdContent.replace("DetailTextGrayMuted", "MaterialTheme.colorScheme.onSurfaceVariant")
+        postDetail.writeText(pdContent)
+    }
 }

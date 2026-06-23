@@ -49,14 +49,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
 // Locally scoped variables to prevent conflicting declarations in the library package namespace
-private val DetailPrimaryGradientStart = Color(0xFF667EEA)
-private val DetailPrimaryGradientEnd = Color(0xFF764BA2)
 private val DetailPrimaryPurple = Color(0xFF6366F1)
 private val DetailDarkPurple = Color(0xFF4F46E5)
 private val DetailBackgroundPurplePastel = Color(0xFFF5F3FF)
 private val DetailCardBackgroundWhite = Color(0xFFFFFFFF)
-private val DetailTextGrayMain = Color(0xFF1F2937)
-private val DetailTextGrayMuted = Color(0xFF6B7280)
 private val DetailBorderLightVariant = Color(0xFFE5E7EB)
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -49,7 +49,7 @@ fun SearchBar(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChanged,
-                placeholder = { Text(placeholderHint, fontSize = 14.sp, color = Color(0xFF6B7280)) },
+                placeholder = { Text(placeholderHint, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = {
                     IconButton(
                         onClick = {
@@ -61,7 +61,7 @@ fun SearchBar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Collapse Search",
-                            tint = Color(0xFF0A4E38)
+                            tint = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 },
@@ -79,10 +79,10 @@ fun SearchBar(
                 singleLine = true,
                 shape = RoundedCornerShape(28.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color(0xFF1F2937),
-                    unfocusedTextColor = Color(0xFF1F2937),
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                     focusedBorderColor = Color(0xFF10B981),
-                    unfocusedBorderColor = Color(0xFF0A4E38).copy(alpha = 0.5f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White
                 ),
@@ -111,7 +111,7 @@ fun SearchBar(
                     text = "Muslims Library",
                     fontSize = 22.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
-                    color = Color(0xFF043B2B),
+                    color = MaterialTheme.colorScheme.tertiary,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
                 )
 
@@ -125,7 +125,7 @@ fun SearchBar(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search icon button",
-                        tint = Color(0xFF0A4E38)
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }

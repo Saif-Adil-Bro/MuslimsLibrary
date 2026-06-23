@@ -47,7 +47,7 @@ fun LibraryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Compact title and layout toggle row (removes double header and reduces margin)
         Row(
@@ -62,7 +62,7 @@ fun LibraryScreen(
                 text = "লাইব্রেরী",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2D3748)
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(
                 onClick = { libraryViewModel.toggleViewMode() },
@@ -73,7 +73,7 @@ fun LibraryScreen(
                 Icon(
                     imageVector = if (isGridView) Icons.Default.List else Icons.Default.GridOn,
                     contentDescription = "Toggle View Layout",
-                    tint = Color(0xFF667EEA),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -94,7 +94,7 @@ fun LibraryScreen(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
-                    tint = Color(0xFF718096)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             modifier = Modifier
@@ -103,7 +103,7 @@ fun LibraryScreen(
                 .testTag("library_search_input"),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF667EEA),
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = Color(0xFFE2E8F0),
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White

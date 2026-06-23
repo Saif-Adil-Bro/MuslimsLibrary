@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.edit
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -39,6 +40,8 @@ import com.example.ui.viewmodel.LibraryViewModel
 import com.example.ui.viewmodel.NotificationViewModel
 import com.example.ui.viewmodel.ProfileViewModel
 
+import com.example.ui.viewmodel.SettingsViewModel
+
 @Composable
 fun AppNavigation(
     navController: NavHostController,
@@ -53,7 +56,8 @@ fun AppNavigation(
     forumViewModel: ForumViewModel,
     authorViewModel: AuthorViewModel,
     profileViewModel: ProfileViewModel,
-    downloadedBooksViewModel: DownloadedBooksViewModel
+    downloadedBooksViewModel: DownloadedBooksViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     val context = LocalContext.current
 
@@ -131,7 +135,7 @@ fun AppNavigation(
                     authViewModel.setFromGuestMode(wasGuest)
                     if (!wasGuest) {
                         try {
-                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit {clear()}
                         } catch (e: Exception) {
                             android.util.Log.e("AppNavigation", "Error clearing preferences on logout", e)
                         }
@@ -165,6 +169,12 @@ fun AppNavigation(
                     val filterParam = categoryFilter ?: "All"
                     navController.navigate("all_books/$sortBy/$filterParam")
                 },
+                onNavigateToCategory = {
+                    navController.navigate("category")
+                },
+                onNavigateToSettings = {
+                    navController.navigate("settings")
+                },
                 onNavigateToAdminDashboard = {
                     navController.navigate("admin_dashboard")
                 },
@@ -180,6 +190,39 @@ fun AppNavigation(
                     navController.navigate("notification_settings")
                 },
                 unreadNotificationsCount = unreadNotificationsCount
+            )
+        }
+
+        composable("category") {
+            com.example.ui.screens.CategoryScreen(
+                viewModel = homeViewModel,
+                onBackClick = { navController.popBackStack() },
+                onBookClick = { book ->
+                    navController.navigate("book_detail/${book.id}")
+                },
+                onCategoryClick = { /* handled internally currently by CategoryScreen */ }
+            )
+        }
+
+        composable("settings") {
+            com.example.ui.screens.SettingsScreen(
+                settingsViewModel = settingsViewModel,
+                profileViewModel = profileViewModel,
+                authViewModel = authViewModel,
+                onBackClick = { navController.popBackStack() },
+                onNotificationSettingsClick = { navController.navigate("notification_settings") },
+                onBackupClick = {
+                    val authState = authViewModel.uiState.value
+                    if (authState is AuthState.Success) {
+                        profileViewModel.performBackup(authState.uid)
+                    }
+                },
+                onRestoreClick = {
+                    val authState = authViewModel.uiState.value
+                    if (authState is AuthState.Success) {
+                        profileViewModel.performRestore(authState.uid)
+                    }
+                }
             )
         }
 
@@ -333,7 +376,7 @@ fun AppNavigation(
                     userEmail = userEmail,
                     onLogoutClick = {
                         try {
-                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit {clear()}
                         } catch (e: Exception) {
                             android.util.Log.e("AppNavigation", "Error clearing preferences on logout", e)
                         }
@@ -399,7 +442,7 @@ fun AppNavigation(
                     authViewModel.setFromGuestMode(isGuest)
                     if (!isGuest) {
                         try {
-                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                            context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE).edit {clear()}
                         } catch (e: Exception) {
                             android.util.Log.e("AppNavigation", "Error clearing preferences on logout", e)
                         }
