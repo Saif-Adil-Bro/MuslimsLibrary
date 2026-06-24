@@ -49,6 +49,7 @@ fun DashboardScreen(
     onNavigateToAllBooks: (sortBy: String, categoryFilter: String?) -> Unit,
     onNavigateToCategory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     onNavigateToAdminDashboard: () -> Unit = {},
     modifier: Modifier = Modifier,
     debugInfo: String = "",
@@ -187,7 +188,7 @@ fun DashboardScreen(
                                     onNavigateToSettings()
                                 }
                                 "help" -> {
-                                    drawerScreenTitle = "🚧 সাহায্য"
+                                    onNavigateToAbout()
                                 }
                             }
                         }
@@ -208,7 +209,9 @@ fun DashboardScreen(
                             }
                         },
                         onFavoriteClick = {
-                            drawerScreenTitle = "🚧 প্রিয় বই"
+                            drawerScreenTitle = ""
+                            selectedTab = 1
+                            libraryViewModel.selectTab(LibraryViewModel.LibraryTab.FAVORITES)
                         },
                         onNotificationsClick = onNotificationsClick,
                         isGuestMode = isGuestMode,

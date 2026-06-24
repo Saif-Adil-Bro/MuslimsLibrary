@@ -184,6 +184,9 @@ fun AppNavigation(
                 onNavigateToSettings = {
                     navController.navigate("settings")
                 },
+                onNavigateToAbout = {
+                    navController.navigate("about")
+                },
                 onNavigateToAdminDashboard = {
                     navController.navigate("admin_dashboard")
                 },
@@ -542,6 +545,12 @@ fun AppNavigation(
                 onBackClick = {
                     navController.popBackStack()
                 }
+            )
+        }
+        
+        composable("about") {
+            com.example.ui.screens.AboutScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

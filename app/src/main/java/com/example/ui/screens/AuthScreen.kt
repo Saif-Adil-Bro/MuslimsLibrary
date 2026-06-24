@@ -46,7 +46,7 @@ fun AuthScreen(
     showGuestOption: Boolean = true,
     onCloseClick: (() -> Unit)? = null
 ) {
-    val brandColor = Color(0xFF4A148C) // Deeper Purple
+    val brandColor = Color(0xFF311B92) // Even Deeper Purple
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -98,7 +98,13 @@ fun AuthScreen(
 
     LaunchedEffect(uiState) {
         if (uiState is AuthState.Success) {
-            onAuthSuccess()
+            val email = (uiState as AuthState.Success).email
+            if (!showGuestOption && (email == "Guest User" || email.isBlank())) {
+                // We are in guest mode and opened AuthScreen to login. 
+                // Ignore the existing Success state from the guest session.
+            } else {
+                onAuthSuccess()
+            }
         } else if (uiState is AuthState.Error) {
             // Display auth / sync failures clearly as a visible popup snackbar on the screen
             snackbarHostState.showSnackbar(
@@ -118,8 +124,8 @@ fun AuthScreen(
     // Beautiful Purple Gradient for premium aesthetic theme
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF311B92), // Deep Purple Dark
-            Color(0xFF4A148C)  // Deep Purple
+            Color(0xFF120822), // Very Deep Dark Purple
+            Color(0xFF261460)  // Deep Purple Dark
         )
     )
 

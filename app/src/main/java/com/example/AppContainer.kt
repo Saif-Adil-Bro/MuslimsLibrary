@@ -55,8 +55,8 @@ class AppContainer(val context: Context) {
     // Configured using environment variables injected by BuildConfig
     val supabaseClient: SupabaseClient by lazy {
         createSupabaseClient(
-            supabaseUrl = BuildConfig.SUPABASE_URL,
-            supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+            supabaseUrl = BuildConfig.SUPABASE_URL.ifEmpty { "https://dummy.supabase.co" },
+            supabaseKey = BuildConfig.SUPABASE_ANON_KEY.ifEmpty { "dummy_key" }
         ) {
             install(Postgrest)
             install(Storage)

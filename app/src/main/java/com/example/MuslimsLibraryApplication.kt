@@ -14,7 +14,7 @@ class MuslimsLibraryApplication : Application() {
         // Ensure Firebase check is performed at start of application
         val apiKey = BuildConfig.FIREBASE_API_KEY
         if (apiKey.isEmpty() || apiKey == "your_firebase_api_key") {
-            throw IllegalStateException("Firebase API Key is not configured. Please supply a valid FIREBASE_API_KEY in the Secrets panel.")
+            Log.e("MuslimsLibraryApp", "Firebase API Key is not configured. Please supply a valid FIREBASE_API_KEY in the Secrets panel.")
         }
         
         if (apiKey.contains("placeholder") || apiKey == "dummy-api-key-for-local-compatibility") {

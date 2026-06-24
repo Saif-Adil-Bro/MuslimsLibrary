@@ -39,6 +39,12 @@
             </intent-filter>
         </service>
 
+        <!-- Disable Firebase Auto-Initialization to prevent crashes from missing google-services.json string resources -->
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
+
         <receiver android:name=".ui.widget.DailyQuoteWidget"
             android:exported="true">
             <intent-filter>
