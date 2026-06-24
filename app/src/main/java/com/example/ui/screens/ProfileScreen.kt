@@ -66,7 +66,7 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9FAFB)) // Matches var(--bg-light): #f9fafb
+            .background(MaterialTheme.colorScheme.background) // Matches var(--bg-light): #f9fafb
     ) {
             when (val state = uiState) {
                 is ProfileUiState.Loading -> {
@@ -151,7 +151,7 @@ fun ProfileScreen(
                                         } else {
                                             Text(
                                                 text = initialChar.uppercase(),
-                                                color = Color(0xFF6366F1),
+                                                color = MaterialTheme.colorScheme.primary,
                                                 fontSize = 48.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -165,14 +165,14 @@ fun ProfileScreen(
                                                 .align(Alignment.BottomEnd)
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.surface)
-                                                .border(1.dp, Color(0xFFE5E7EB), CircleShape)
+                                                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                                                 .clickable { onEditProfileClick() },
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Edit,
                                                 contentDescription = "প্রোফাইল ছবি সম্পাদন",
-                                                tint = Color(0xFF6366F1),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -264,7 +264,7 @@ fun ProfileScreen(
                                     }
 
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp)
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     // 4-column Grid layout using weights
@@ -276,7 +276,7 @@ fun ProfileScreen(
                                             value = stats.booksRead,
                                             label = "পড়া শেষ",
                                             icon = Icons.Default.Check,
-                                            gradientColors = listOf(Color(0xFF10B981), Color(0xFF34D399)),
+                                            gradientColors = listOf(MaterialTheme.colorScheme.primary, Color(0xFF34D399)),
                                             modifier = Modifier.weight(1f)
                                         )
                                         NewStatItem(
@@ -308,7 +308,7 @@ fun ProfileScreen(
                             if (isGuestMode) {
                                 Card(
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFFFFFDE7) // Warm premium cream
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant // Warm premium cream
                                     ),
                                     shape = RoundedCornerShape(16.dp),
                                     border = BorderStroke(1.dp, Color(0xFFFFEB3B).copy(alpha = 0.5f)),
@@ -325,13 +325,13 @@ fun ProfileScreen(
                                             text = "গেস্ট মোড সক্রিয় আছে ⚠️",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 16.sp,
-                                            color = Color(0xFF5D4037)
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "আপনার পড়ার রেকর্ড, প্রিয় তালিকা বা পিন বুকমার্ক শুধুমাত্র আপনার ডিভাইসেই সংরক্ষিত থাকবে। একটি স্থায়ী অ্যাকাউন্ট ছাড়া এটি ক্লাউড ব্যাকআপ করা সম্ভব নয়।",
                                             textAlign = TextAlign.Center,
                                             fontSize = 12.sp,
-                                            color = Color(0xFF795548)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Button(
                                             onClick = onLogoutClick,
@@ -355,14 +355,14 @@ fun ProfileScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                                     shape = RoundedCornerShape(16.dp),
-                                    border = BorderStroke(1.dp, Color(0xFFBBF7D0))
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                                 ) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(
                                                 Brush.linearGradient(
-                                                    colors = listOf(Color(0xFFF0FDF4), Color(0xFFDCFCE7))
+                                                    colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant)
                                                 )
                                             )
                                             .padding(20.dp)
@@ -390,8 +390,8 @@ fun ProfileScreen(
                                                     onClick = { viewModel.performRestore(userId = "", localRoomUserId = userId) },
                                                     text = "রিস্টোর",
                                                     icon = Icons.Default.CloudDownload,
-                                                    borderColor = Color(0xFF6366F1),
-                                                    textColor = Color(0xFF6366F1),
+                                                    borderColor = MaterialTheme.colorScheme.primary,
+                                                    textColor = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.weight(1f)
                                                 )
                                             }
@@ -490,9 +490,9 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("সফল হয়েছে!", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFF10B981))
+                        Text("সফল হয়েছে!", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 text = {

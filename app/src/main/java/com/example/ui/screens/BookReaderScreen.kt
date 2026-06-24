@@ -325,7 +325,7 @@ fun BookReaderScreen(
                             Icon(
                                 imageVector = if (isSyncingState) Icons.Default.CloudSync else Icons.Default.CloudQueue,
                                 contentDescription = "Sync state",
-                                tint = if (isSyncingState) Color(0xFF10B981) else contentColor.copy(alpha = 0.4f),
+                                tint = if (isSyncingState) MaterialTheme.colorScheme.primary else contentColor.copy(alpha = 0.4f),
                                 modifier = Modifier.size(14.dp)
                               )
                               Text(
@@ -339,7 +339,7 @@ fun BookReaderScreen(
                       // Subtle non-intrusive LinearProgressIndicator from user requirements
                       LinearProgressIndicator(
                           progress = { if (rState.totalPages > 0) (rState.currentPage.toFloat() / rState.totalPages.toFloat()).coerceIn(0f, 1f) else 0f },
-                          color = Color(0xFF10B981),
+                          color = MaterialTheme.colorScheme.primary,
                           trackColor = if (isDark) Color(0xFF1E2623) else Color(0xFFECECEC),
                           modifier = Modifier
                               .fillMaxWidth()
@@ -413,7 +413,7 @@ fun BookReaderScreen(
                               ) {
                                   Button(
                                       onClick = { downloadPdf(context, decodedFileUrl, decodedTitle) },
-                                      colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                      colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                       modifier = Modifier.weight(1f)
                                   ) {
                                       Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -497,7 +497,7 @@ fun BookReaderScreen(
                                           isWebLoading = true
                                           retryTrigger++
                                       },
-                                      colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                                      colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                   ) {
                                       Text("আবার চেষ্টা করুন")
                                   }
@@ -594,7 +594,7 @@ fun BookReaderScreen(
                                   horizontalAlignment = Alignment.CenterHorizontally,
                                   verticalArrangement = Arrangement.spacedBy(16.dp)
                               ) {
-                                  CircularProgressIndicator(color = Color(0xFF10B981))
+                                  CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                                   Text(
                                       text = "বইটি লোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...",
                                       fontSize = 14.sp,
@@ -610,7 +610,7 @@ fun BookReaderScreen(
                                           val intent = Intent(Intent.ACTION_VIEW, directDocUrl.toUri())
                                           context.startActivity(intent)
                                       },
-                                      colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF10B981))
+                                      colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                   ) {
                                       Text("লোড না হলে ড্রাইভে দেখুন (External Web View)")
                                   }
@@ -629,7 +629,7 @@ fun BookReaderScreen(
                       .align(Alignment.BottomEnd)
                       .background(
                           Brush.horizontalGradient(
-                              colors = listOf(Color(0xFF10B981), MaterialTheme.colorScheme.tertiary)
+                              colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                           ),
                           shape = CircleShape
                       )
@@ -892,6 +892,7 @@ fun FallingConfetti(modifier: Modifier = Modifier) {
         label = "elapsed"
     )
 
+    val primaryColor = MaterialTheme.colorScheme.primary
     Canvas(modifier = modifier) {
         val count = 30
         val random = java.util.Random(100L)
@@ -903,7 +904,7 @@ fun FallingConfetti(modifier: Modifier = Modifier) {
             val currentY = startY + yOffset
             val sizeRadius = 5f + random.nextFloat() * 10f
             val color = when (random.nextInt(4)) {
-                0 -> Color(0xFF10B981) // Emerald
+                0 -> primaryColor // Emerald
                 1 -> Color(0xFF3B82F6) // Blue
                 2 -> Color(0xFFFBBF24) // Gold
                 else -> Color(0xFFEF4444) // Pink/Red
@@ -942,13 +943,13 @@ fun CelebrationOverlay(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(90.dp)
-                    .background(Color(0xFF10B981).copy(alpha = 0.2f), CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(64.dp)
-                        .background(Color(0xFF10B981), CircleShape)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -971,7 +972,7 @@ fun CelebrationOverlay(
                 text = "অভিনন্দন! আপনি বইটি সম্পূর্ণ পড়েছেন!",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF10B981),
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
             )
 
@@ -998,7 +999,7 @@ fun CelebrationOverlay(
                         text = "📊 আপনার পঠন পরিসংখ্যান (Stats)",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF10B981)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     
                     HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
@@ -1064,7 +1065,7 @@ fun CelebrationOverlay(
 
                 Button(
                     onClick = onBackClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -1221,7 +1222,7 @@ fun NativePdfReader(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = Color(0xFF10B981))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -1312,7 +1313,7 @@ fun PdfPageItem(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = Color(0xFF10B981))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     }
 }

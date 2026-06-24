@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,12 +44,12 @@ fun CategoryFilter(
             
             // Animate selection visual properties smoothly
             val backgroundColor by animateColorAsState(
-                targetValue = if (isSelected) Color(0xFF10B981) else Color(0xFFEFEFE9),
+                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFFEFEFE9),
                 animationSpec = tween(durationMillis = 250),
                 label = "chip_bg_color"
             )
             val contentColor by animateColorAsState(
-                targetValue = if (isSelected) Color.White else Color(0xFF4B5563),
+                targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                 animationSpec = tween(durationMillis = 250),
                 label = "chip_content_color"
             )

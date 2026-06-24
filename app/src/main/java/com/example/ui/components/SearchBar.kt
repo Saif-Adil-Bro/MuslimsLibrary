@@ -71,7 +71,7 @@ fun SearchBar(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear search query",
-                                tint = Color(0xFF4B5563)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -81,7 +81,7 @@ fun SearchBar(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedBorderColor = Color(0xFF10B981),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
                     focusedContainerColor = Color.White,
                     unfocusedContainerColor = Color.White

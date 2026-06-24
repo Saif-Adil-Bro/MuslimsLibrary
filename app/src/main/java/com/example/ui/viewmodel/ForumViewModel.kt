@@ -46,6 +46,9 @@ class ForumViewModel(
     private val _selectedCategory = MutableStateFlow("All")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
+    private val _userNamesMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val userNamesMap: StateFlow<Map<String, String>> = _userNamesMap.asStateFlow()
+
     private val _likedPostIds = MutableStateFlow<Set<String>>(emptySet())
     val likedPostIds: StateFlow<Set<String>> = _likedPostIds.asStateFlow()
 
@@ -54,6 +57,9 @@ class ForumViewModel(
 
     private val _successMessage = MutableSharedFlow<String>()
     val successMessage: SharedFlow<String> = _successMessage.asSharedFlow()
+
+    private val _postTags = MutableStateFlow<List<String>>(emptyList())
+    val postTags: StateFlow<List<String>> = _postTags.asStateFlow()
 
     // Rate limiting state tracking
     private val _userPostsCount = MutableStateFlow(0)
@@ -136,6 +142,29 @@ class ForumViewModel(
         _uiState.value = ForumUiState.Loading
         viewModelScope.launch {
             try {
+                // Load User Profiles and compute Usernames
+                try {
+                    val users = supabaseService.getAllUserProfiles()
+                    val nameCount = mutableMapOf<String, Int>()
+                    val userNames = mutableMapOf<String, String>()
+                    for (user in users) {
+                        val rawName = user.displayName?.takeIf { it.isNotBlank() } ?: user.email.split("@").first()
+                        val firstName = rawName.split(" ").first().replaceFirstChar { it.uppercase() }
+                        
+                        val count = nameCount.getOrDefault(firstName, 0)
+                        if (count == 0) {
+                            userNames[user.id] = firstName
+                        } else {
+                            val suffix = (kotlin.math.abs(user.id.hashCode()) % 9000) + 1000
+                            userNames[user.id] = "$firstName$suffix"
+                        }
+                        nameCount[firstName] = count + 1
+                    }
+                    _userNamesMap.value = userNames
+                } catch (e: Exception) {
+                    android.util.Log.e("ForumViewModel", "Failed to fetch user profiles for names: ${e.message}")
+                }
+
                 val categoryFilter = if (_selectedCategory.value == "All") null else _selectedCategory.value
                 val posts = supabaseService.fetchForumPosts(categoryFilter)
                 android.util.Log.d("ForumViewModel", "Fetched ${posts.size} posts for category: ${_selectedCategory.value}")
@@ -170,6 +199,22 @@ class ForumViewModel(
         loadPosts()
     }
 
+    fun addTag(tag: String) {
+        val currentTags = _postTags.value
+        val newTag = tag.trim().lowercase()
+        if (newTag.isNotEmpty() && currentTags.size < 10 && !currentTags.contains(newTag)) {
+            _postTags.value = currentTags + newTag
+        }
+    }
+
+    fun removeTag(tag: String) {
+        _postTags.value = _postTags.value.filter { it != tag }
+    }
+
+    fun clearTags() {
+        _postTags.value = emptyList()
+    }
+
     private suspend fun isGuestBlocked(): Boolean {
         if (guestModeManager.isGuestMode()) {
             _errorMessage.emit("গেস্ট মোডে এই সুবিধাটি উপলব্ধ নয়। দয়া করে লগইন করুন।")
@@ -178,7 +223,7 @@ class ForumViewModel(
         return false
     }
 
-    fun createPost(userId: String, email: String, title: String, content: String, category: String, role: String, onSuccess: () -> Unit) {
+    fun createPost(userId: String, email: String, title: String, content: String, category: String, role: String, tags: List<String>, onSuccess: () -> Unit) {
         viewModelScope.launch {
             if (isGuestBlocked()) return@launch
             try {
@@ -194,7 +239,13 @@ class ForumViewModel(
                     return@launch
                 }
 
-                supabaseService.createForumPost(userId, title, content, category, email, role)
+                // Append tags to content if they exist so they are saved
+                val finalContent = if (tags.isNotEmpty()) {
+                    val tagsString = tags.joinToString(", ") { "#$it" }
+                    "$content\n\nTags: $tagsString"
+                } else content
+
+                supabaseService.createForumPost(userId, title, finalContent, category, email, role)
                 
                 try {
                     supabaseService.addNotificationLocallyAndRemotely(
@@ -225,6 +276,30 @@ class ForumViewModel(
         _detailState.value = PostDetailUiState.Loading
         viewModelScope.launch {
             try {
+                if (_userNamesMap.value.isEmpty()) {
+                    try {
+                        val users = supabaseService.getAllUserProfiles()
+                        val nameCount = mutableMapOf<String, Int>()
+                        val userNames = mutableMapOf<String, String>()
+                        for (user in users) {
+                            val rawName = user.displayName?.takeIf { it.isNotBlank() } ?: user.email.split("@").first()
+                            val firstName = rawName.split(" ").first().replaceFirstChar { it.uppercase() }
+                            
+                            val count = nameCount.getOrDefault(firstName, 0)
+                            if (count == 0) {
+                                userNames[user.id] = firstName
+                            } else {
+                                val suffix = (kotlin.math.abs(user.id.hashCode()) % 9000) + 1000
+                                userNames[user.id] = "$firstName$suffix"
+                            }
+                            nameCount[firstName] = count + 1
+                        }
+                        _userNamesMap.value = userNames
+                    } catch (e: Exception) {
+                        android.util.Log.e("ForumViewModel", "Failed to load user profiles", e)
+                    }
+                }
+
                 val details = supabaseService.fetchPostDetails(postId)
                 _detailState.value = PostDetailUiState.Success(details)
             } catch (e: Exception) {

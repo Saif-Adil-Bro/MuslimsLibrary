@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.speech.RecognizerIntent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -14,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FormatItalic
@@ -28,8 +33,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,15 +46,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 // Private properties to prevent conflicting declarations in the library package namespace
-private val LocalPrimaryGradientStart = Color(0xFF667EEA)
-private val LocalPrimaryGradientEnd = Color(0xFF764BA2)
-private val LocalPrimaryPurple = Color(0xFF6366F1)
-private val LocalDarkPurple = Color(0xFF4F46E5)
-private val LocalBackgroundPurplePastel = Color(0xFFF5F3FF)
-private val LocalCardBackgroundWhite = Color(0xFFFFFFFF)
-private val LocalTextGrayMain = Color(0xFF1F2937)
-private val LocalTextGrayMuted = Color(0xFF6B7280)
-private val LocalBorderLightVariant = Color(0xFFE5E7EB)
+// private val MaterialTheme.colorScheme.primary = Color(0xFF667EEA)
+// private val MaterialTheme.colorScheme.tertiary = Color(0xFF764BA2)
+// Removed invalid top level properties
 
 fun validatePost(title: String, content: String, category: String): String? {
     if (title.length < 3) return "Title must be at least 3 characters."
@@ -69,7 +70,7 @@ fun validatePost(title: String, content: String, category: String): String? {
     return null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreatePostScreen(
     forumViewModel: ForumViewModel,
@@ -81,14 +82,33 @@ fun CreatePostScreen(
 ) {
     var title by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Quran") }
-    var content by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf(TextFieldValue("")) }
     var tagsInput by remember { mutableStateOf("") }
+    val postTags by forumViewModel.postTags.collectAsState()
     var isPrivate by remember { mutableStateOf(false) }
     val isPublishing = remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.get(0)
+            if (spokenText != null) {
+                val text = content.text
+                val selectionStart = content.selection.start
+                val selectionEnd = content.selection.end
+                val newText = text.substring(0, selectionStart) + spokenText + text.substring(selectionEnd)
+                content = TextFieldValue(
+                    text = newText,
+                    selection = TextRange(selectionStart + spokenText.length)
+                )
+            }
+        }
+    }
 
     val categoryMappings = mapOf(
         "General" to "General",
@@ -128,7 +148,7 @@ fun CreatePostScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = LocalDarkPurple
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -138,7 +158,7 @@ fun CreatePostScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(LocalBackgroundPurplePastel)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -154,29 +174,29 @@ fun CreatePostScreen(
                         text = "Post Title *",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LocalTextGrayMain
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "${title.length}/200",
                         fontSize = 11.sp,
-                        color = if (title.length > 200) Color.Red else LocalTextGrayMuted
+                        color = if (title.length > 200) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = title,
                     onValueChange = { if (it.length <= 250) title = it },
-                    placeholder = { Text("Enter post title...", color = LocalTextGrayMuted, fontSize = 14.sp) },
+                    placeholder = { Text("Enter post title...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedContainerColor = LocalCardBackgroundWhite,
-                        unfocusedContainerColor = LocalCardBackgroundWhite,
-                        focusedBorderColor = LocalPrimaryPurple,
-                        unfocusedBorderColor = LocalBorderLightVariant,
-                        focusedLabelColor = LocalPrimaryPurple
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
                     ),
                     singleLine = true
                 )
@@ -188,7 +208,7 @@ fun CreatePostScreen(
                     text = "Category *",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LocalTextGrayMain
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -207,15 +227,15 @@ fun CreatePostScreen(
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(
                                     if (isSelected) {
-                                        Brush.linearGradient(colors = listOf(LocalPrimaryGradientStart, LocalPrimaryGradientEnd))
+                                        Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))
                                     } else {
-                                        Brush.linearGradient(colors = listOf(Color(0xFFF3F4F6), Color(0xFFF3F4F6)))
+                                        Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                     }
                                 )
                                 .clickable { selectedCategory = category }
                                 .border(
                                     1.dp,
-                                    if (isSelected) LocalPrimaryPurple else LocalBorderLightVariant,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                     RoundedCornerShape(20.dp)
                                 )
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -225,7 +245,7 @@ fun CreatePostScreen(
                                 text = displayLabel,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isSelected) Color.White else LocalTextGrayMuted
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -243,12 +263,12 @@ fun CreatePostScreen(
                         text = "What would you like to discuss? *",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = LocalTextGrayMain
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${content.length}/5000",
+                        text = "${content.text.length}/5000",
                         fontSize = 11.sp,
-                        color = if (content.length > 5000) Color.Red else LocalTextGrayMuted
+                        color = if (content.text.length > 5000) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -257,8 +277,8 @@ fun CreatePostScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .shadow(2.dp, shape = RoundedCornerShape(12.dp)),
-                    colors = CardDefaults.cardColors(containerColor = LocalCardBackgroundWhite),
-                    border = BorderStroke(1.dp, LocalBorderLightVariant),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -266,46 +286,66 @@ fun CreatePostScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFFF9FAFB))
+                                .background(MaterialTheme.colorScheme.background)
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                                .border(BorderStroke(0.5.dp, LocalBorderLightVariant)),
+                                .border(BorderStroke(0.5.dp, MaterialTheme.colorScheme.surfaceVariant)),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            val wrapText = { prefix: String, suffix: String ->
+                                val text = content.text
+                                val start = content.selection.start
+                                val end = content.selection.end
+                                if (start != end) {
+                                    val before = text.substring(0, start)
+                                    val selected = text.substring(start, end)
+                                    val after = text.substring(end)
+                                    content = TextFieldValue(before + prefix + selected + suffix + after, TextRange(end + prefix.length + suffix.length))
+                                } else {
+                                    val before = text.substring(0, start)
+                                    val after = text.substring(start)
+                                    content = TextFieldValue(before + prefix + suffix + after, TextRange(start + prefix.length))
+                                }
+                            }
+                            
                             // Toolbar buttons append helper markdown/syntax
                             IconButton(onClick = {
-                                content += " **Bold Text** "
-                                Toast.makeText(context, "Bold template added", Toast.LENGTH_SHORT).show()
+                                wrapText("**", "**")
                             }, modifier = Modifier.size(34.dp)) {
-                                Icon(Icons.Default.Add, contentDescription = "Add Media", tint = LocalPrimaryPurple, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Add, contentDescription = "Add Media", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = {
-                                content += " *Italic Text* "
-                                Toast.makeText(context, "Italics template added", Toast.LENGTH_SHORT).show()
+                                wrapText("*", "*")
                             }, modifier = Modifier.size(34.dp)) {
-                                Icon(Icons.Default.FormatItalic, contentDescription = "Format Italic", tint = LocalPrimaryPurple, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.FormatItalic, contentDescription = "Format Italic", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = {
-                                Toast.makeText(context, "Voice input simulated!", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                }
+                                try {
+                                    speechRecognizerLauncher.launch(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Voice input not supported", Toast.LENGTH_SHORT).show()
+                                }
                             }, modifier = Modifier.size(34.dp)) {
-                                Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = LocalPrimaryPurple, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = {
-                                content += " `Code Block` "
-                                Toast.makeText(context, "Code tag template added", Toast.LENGTH_SHORT).show()
+                                wrapText("```\n", "\n```")
                             }, modifier = Modifier.size(34.dp)) {
-                                Icon(Icons.Default.Code, contentDescription = "Code snippet", tint = LocalPrimaryPurple, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Code, contentDescription = "Code snippet", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
                         }
                         
                         // Editor TextField itself
                         OutlinedTextField(
                             value = content,
-                            onValueChange = { if (it.length <= 5500) content = it },
+                            onValueChange = { if (it.text.length <= 5500) content = it },
                             placeholder = {
                                 Text(
                                     text = "Share your thoughts, reference book insights, or ask your community questions here...",
-                                    color = LocalTextGrayMuted,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 14.sp
                                 )
                             },
@@ -314,8 +354,8 @@ fun CreatePostScreen(
                                 .height(160.dp),
                             shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
                                 focusedBorderColor = Color.Transparent,
@@ -333,25 +373,65 @@ fun CreatePostScreen(
                     text = "Tags (Separated by commas)",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = LocalTextGrayMain
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = tagsInput,
-                    onValueChange = { tagsInput = it },
-                    placeholder = { Text("e.g. quran, tafsir, salah", color = LocalTextGrayMuted, fontSize = 14.sp) },
+                    onValueChange = { newValue ->
+                        if (newValue.endsWith(",") || newValue.endsWith("\n")) {
+                            val tag = newValue.trim(',', '\n', ' ')
+                            if (tag.isNotEmpty()) {
+                                forumViewModel.addTag(tag)
+                            }
+                            tagsInput = ""
+                        } else {
+                            tagsInput = newValue
+                        }
+                    },
+                    placeholder = { Text("e.g. quran, tafsir, salah", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedContainerColor = LocalCardBackgroundWhite,
-                        unfocusedContainerColor = LocalCardBackgroundWhite,
-                        focusedBorderColor = LocalPrimaryPurple,
-                        unfocusedBorderColor = LocalBorderLightVariant
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     singleLine = true
                 )
+                if (postTags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        postTags.forEach { tag ->
+                            AssistChip(
+                                onClick = { },
+                                label = { Text(tag) },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove tag",
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable { forumViewModel.removeTag(tag) }
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                border = null,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // Attachment button matching the style requested ("Add images or documents")
@@ -367,13 +447,13 @@ fun CreatePostScreen(
                 Icon(
                     imageVector = Icons.Default.Attachment,
                     contentDescription = "Attachment icon",
-                    tint = LocalPrimaryPurple,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Add images or documents",
-                    color = LocalPrimaryPurple,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -391,7 +471,7 @@ fun CreatePostScreen(
                     text = "Public",
                     fontSize = 14.sp,
                     fontWeight = if (!isPrivate) FontWeight.Bold else FontWeight.Medium,
-                    color = if (!isPrivate) LocalTextGrayMain else LocalTextGrayMuted
+                    color = if (!isPrivate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 
@@ -405,7 +485,7 @@ fun CreatePostScreen(
                                 colors = if (isPrivate) {
                                     listOf(Color(0xFFD1D5DB), Color(0xFFD1D5DB))
                                 } else {
-                                    listOf(LocalPrimaryGradientStart, LocalPrimaryGradientEnd)
+                                    listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                                 }
                             )
                         )
@@ -427,7 +507,7 @@ fun CreatePostScreen(
                     text = "Private",
                     fontSize = 14.sp,
                     fontWeight = if (isPrivate) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isPrivate) LocalTextGrayMain else LocalTextGrayMuted
+                    color = if (isPrivate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -445,19 +525,19 @@ fun CreatePostScreen(
                         .weight(1f)
                         .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.5.dp, LocalBorderLightVariant),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LocalTextGrayMain)
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.surfaceVariant),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                 ) {
                     Text("Cancel", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // Publish submit button
-                val isFormValid = title.isNotBlank() && content.isNotBlank()
+                val isFormValid = title.isNotBlank() && content.text.isNotBlank()
                 Button(
                     onClick = {
                         if (isFormValid) {
                             val sanitizedTitle = ContentSanitizer.sanitize(title.trim())
-                            val sanitizedContent = ContentSanitizer.sanitize(content.trim())
+                            val sanitizedContent = ContentSanitizer.sanitize(content.text.trim())
                             
                             val validationError = validatePost(sanitizedTitle, sanitizedContent, selectedCategory)
                             if (validationError != null) {
@@ -468,6 +548,13 @@ fun CreatePostScreen(
                             }
 
                             isPublishing.value = true
+                            
+                            // add leftover tag if exists
+                            val finalTagInput = tagsInput.trim(',', '\n', ' ')
+                            if (finalTagInput.isNotEmpty()) {
+                                forumViewModel.addTag(finalTagInput)
+                            }
+
                             forumViewModel.createPost(
                                 userId = userId,
                                 email = userEmail,
@@ -475,9 +562,11 @@ fun CreatePostScreen(
                                 content = sanitizedContent,
                                 category = selectedCategory,
                                 role = userRole,
+                                tags = forumViewModel.postTags.value,
                                 onSuccess = {
                                     Toast.makeText(context, "Post published successfully!", Toast.LENGTH_LONG).show()
                                     isPublishing.value = false
+                                    forumViewModel.clearTags()
                                     onBackClick()
                                 }
                             )
@@ -492,7 +581,7 @@ fun CreatePostScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = LocalPrimaryPurple,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         disabledContainerColor = Color(0xFFC7D2FE)
                     ),
                     enabled = !isPublishing.value

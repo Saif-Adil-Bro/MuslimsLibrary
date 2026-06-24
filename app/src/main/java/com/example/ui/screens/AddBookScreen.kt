@@ -789,7 +789,7 @@ fun AddBookScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("Source Types Helpful Guide", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF032B1D))
+                                Text("Source Types Helpful Guide", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                                 Text("• Device Upload: Directly upload PDF or EPUB to secure database storage.", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
                                 Text("• Google Drive: Paste anyone-can-view sharing link. The app will automatically convert it to direct CDN stream.", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
                                 Text("• Direct URL (CDN): Save workspace storage by pointing directly to external links (e.g. archive.org).", fontSize = 12.sp, color = MaterialTheme.colorScheme.tertiary)
@@ -858,7 +858,7 @@ fun AddBookScreen(
                                             text = fileName,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
-                                            color = Color(0xFF032B1D)
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = fileType.uppercase(),

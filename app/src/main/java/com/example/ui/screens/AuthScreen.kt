@@ -121,13 +121,22 @@ fun AuthScreen(
         }
     }
 
-    // Beautiful Purple Gradient for premium aesthetic theme
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF120822), // Very Deep Dark Purple
-            Color(0xFF261460)  // Deep Purple Dark
+    // Beautiful Gradient for premium aesthetic theme - Theme Aware
+    val backgroundBrush = if (androidx.compose.foundation.isSystemInDarkTheme()) {
+        Brush.verticalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.background,
+                MaterialTheme.colorScheme.surfaceVariant
+            )
         )
-    )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF120822), // Very Deep Dark Purple
+                Color(0xFF261460)  // Deep Purple Dark
+            )
+        )
+    }
 
     Box(
         modifier = modifier
@@ -210,14 +219,14 @@ fun AuthScreen(
                 )
             }
 
-            // Central bone-white credential form card
+            // Central credential form card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFCFAF6) // Bone white
+                    containerColor = MaterialTheme.colorScheme.surface
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 14.dp)
             ) {
@@ -235,7 +244,7 @@ fun AuthScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFF1EDE4))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -305,16 +314,16 @@ fun AuthScreen(
                         supportingText = emailError?.let { { Text(it) } },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1C1917),
-                            unfocusedTextColor = Color(0xFF1C1917),
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedLabelColor = brandColor,
-                            unfocusedLabelColor = Color(0xFF57534E),
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             focusedBorderColor = brandColor,
-                            unfocusedBorderColor = Color(0xFFD6D3D1),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             cursorColor = brandColor,
                             errorBorderColor = Color.Red,
                             focusedLeadingIconColor = brandColor,
-                            unfocusedLeadingIconColor = Color(0xFF78716C)
+                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -348,16 +357,16 @@ fun AuthScreen(
                         supportingText = passwordError?.let { { Text(it) } },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1C1917),
-                            unfocusedTextColor = Color(0xFF1C1917),
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedLabelColor = brandColor,
-                            unfocusedLabelColor = Color(0xFF57534E),
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             focusedBorderColor = brandColor,
-                            unfocusedBorderColor = Color(0xFFD6D3D1),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                             cursorColor = brandColor,
                             errorBorderColor = Color.Red,
                             focusedLeadingIconColor = brandColor,
-                            unfocusedLeadingIconColor = Color(0xFF78716C)
+                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -505,7 +514,7 @@ fun AuthScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFAEBEB)
+                        containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) Color(0xFF450A0A) else Color(0xFF450A0A)
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(0.95f)
@@ -521,7 +530,7 @@ fun AuthScreen(
                         )
                         Text(
                             text = (uiState as AuthState.Error).message,
-                            color = Color(0xFF8A1F1F),
+                            color = if (androidx.compose.foundation.isSystemInDarkTheme()) Color(0xFFFCA5A5) else Color(0xFF8A1F1F),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)

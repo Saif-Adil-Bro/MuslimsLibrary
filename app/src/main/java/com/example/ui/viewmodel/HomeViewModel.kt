@@ -46,7 +46,15 @@ class HomeViewModel(
         loadBooks()
     }
 
-    fun loadBooks() {
+    private var lastLoadTime = 0L
+    private val COOLDOWN_MS = 60_000L // ৬০ সেকেন্ড
+
+    fun loadBooks(forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        if (!forceRefresh && (currentTime - lastLoadTime < COOLDOWN_MS) && allBooks.isNotEmpty()) {
+            android.util.Log.d("HomeViewModel", "Skipping load, data is fresh")
+            return
+        }
         fetchBooks()
     }
 
@@ -58,6 +66,7 @@ class HomeViewModel(
                 allBooks.clear()
                 allBooks.addAll(books)
                 filterAndPublish()
+                lastLoadTime = System.currentTimeMillis()
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.localizedMessage ?: "Failed to fetch books from Supabase")
             }

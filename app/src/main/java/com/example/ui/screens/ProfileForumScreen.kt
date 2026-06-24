@@ -100,7 +100,7 @@ fun ProfileForumScreen(
                             text = "Your Profile",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF032B1D),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontFamily = FontFamily.Serif
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -132,7 +132,7 @@ fun ProfileForumScreen(
                             text = "Share an Inspirational Thought",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF032B1D),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontFamily = FontFamily.Serif
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -187,7 +187,7 @@ fun ProfileForumScreen(
                             Text(
                                 text = post.author,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF032B1D),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 14.sp
                             )
                             Text(

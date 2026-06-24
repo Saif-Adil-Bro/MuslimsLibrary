@@ -356,6 +356,15 @@ class SupabaseService(
 
     suspend fun getUserProfile(userId: String): SupabaseUser? = getCurrentUserProfile(userId)
 
+    suspend fun getAllUserProfiles(): List<SupabaseUser> = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["users"].select().decodeList<SupabaseUser>()
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error fetching all user profiles", e)
+            emptyList()
+        }
+    }
+
     suspend fun updateUserProfile(userId: String, displayName: String, bio: String): Boolean = withContext(Dispatchers.IO) {
         try {
             supabaseClient.postgrest["users"].update(

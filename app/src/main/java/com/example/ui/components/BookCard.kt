@@ -56,7 +56,7 @@ fun BookCard(
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFFFCFCFA), Color(0xFFF2F2EC))
+                        colors = listOf(MaterialTheme.colorScheme.background, Color(0xFFF2F2EC))
                     )
                 )
         ) {
@@ -116,7 +116,7 @@ fun BookCard(
                         .padding(8.dp)
                         .background(
                             Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF10B981), Color(0xFF059669))
+                                colors = listOf(MaterialTheme.colorScheme.primary, Color(0xFF059669))
                             ),
                             shape = RoundedCornerShape(8.dp)
                         )
@@ -145,7 +145,7 @@ fun BookCard(
                             modifier = Modifier
                                 .size(30.dp)
                                 .background(
-                                    color = if (isPinned) Color(0xFF10B981) else Color.White.copy(alpha = 0.9f),
+                                    color = if (isPinned) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.9f),
                                     shape = CircleShape
                                 )
                                 .testTag("book_card_pin_${book.id}"),
@@ -192,7 +192,7 @@ fun BookCard(
                     text = book.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = Color(0xFF032B1D),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp

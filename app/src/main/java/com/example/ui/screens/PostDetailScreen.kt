@@ -50,11 +50,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
 // Locally scoped variables to prevent conflicting declarations in the library package namespace
-private val DetailPrimaryPurple = Color(0xFF6366F1)
-private val DetailDarkPurple = Color(0xFF4F46E5)
-private val DetailBackgroundPurplePastel = Color(0xFFF5F3FF)
-private val DetailCardBackgroundWhite = Color(0xFFFFFFFF)
-private val DetailBorderLightVariant = Color(0xFFE5E7EB)
+// private val MaterialTheme.colorScheme.primary = MaterialTheme.colorScheme.primary
+// private val MaterialTheme.colorScheme.primary = Color(0xFF4F46E5)
+// private val MaterialTheme.colorScheme.surfaceVariant = Color(0xFFF5F3FF)
+// private val MaterialTheme.colorScheme.surface = Color(0xFFFFFFFF)
+// private val MaterialTheme.colorScheme.surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +69,7 @@ fun PostDetailScreen(
 ) {
     val detailState by forumViewModel.detailState.collectAsState()
     val likedPostIds by forumViewModel.likedPostIds.collectAsState()
+    val userNamesMap by forumViewModel.userNamesMap.collectAsState()
     var commentText by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -138,7 +139,7 @@ fun PostDetailScreen(
         )
         AlertDialog(
             onDismissRequest = { showReportDialog = false },
-            title = { Text("রিপোর্ট করুন / Flag Post", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DetailDarkPurple) },
+            title = { Text("রিপোর্ট করুন / Flag Post", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("ফিতনা ও অশালীনতা মুক্ত রাখতে সাহায্য করুন। পোস্টারকে সতর্ক করা বা এডমিনের মাধ্যমে পোস্টটি পর্যালোচনা করা হবে।", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -151,7 +152,7 @@ fun PostDetailScreen(
                                     Toast.makeText(context, "রিপোর্ট সফলভাবে দাখিল করা হয়েছে!", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = DetailBackgroundPurplePastel, contentColor = DetailDarkPurple),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -172,7 +173,7 @@ fun PostDetailScreen(
     if (showEditPostDialog) {
         AlertDialog(
             onDismissRequest = { showEditPostDialog = false },
-            title = { Text("পোস্ট সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DetailDarkPurple) },
+            title = { Text("পোস্ট সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -184,9 +185,9 @@ fun PostDetailScreen(
                         label = { Text("শিরোনাম") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DetailPrimaryPurple,
-                            focusedLabelColor = DetailPrimaryPurple,
-                            cursorColor = DetailPrimaryPurple
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
                     OutlinedTextField(
@@ -196,9 +197,9 @@ fun PostDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DetailPrimaryPurple,
-                            focusedLabelColor = DetailPrimaryPurple,
-                            cursorColor = DetailPrimaryPurple
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -214,7 +215,7 @@ fun PostDetailScreen(
                             Toast.makeText(context, "শিরোনাম এবং মূল বক্তব্য খালি রাখা যাবে না।", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DetailPrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("সংরক্ষণ করুন", color = Color.White)
                 }
@@ -230,7 +231,7 @@ fun PostDetailScreen(
     if (showEditCommentDialog) {
         AlertDialog(
             onDismissRequest = { showEditCommentDialog = false },
-            title = { Text("মন্তব্য সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DetailDarkPurple) },
+            title = { Text("মন্তব্য সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary) },
             text = {
                 OutlinedTextField(
                     value = editCommentContent,
@@ -239,9 +240,9 @@ fun PostDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = DetailPrimaryPurple,
-                        focusedLabelColor = DetailPrimaryPurple,
-                        cursorColor = DetailPrimaryPurple
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
             },
@@ -256,7 +257,7 @@ fun PostDetailScreen(
                             Toast.makeText(context, "মন্তব্য খালি রাখা যাবে না।", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = DetailPrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("সংরক্ষণ", color = Color.White)
                 }
@@ -350,7 +351,7 @@ fun PostDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DetailDarkPurple
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -360,12 +361,12 @@ fun PostDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(DetailBackgroundPurplePastel)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             when (val state = detailState) {
                 is PostDetailUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = DetailPrimaryPurple)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 is PostDetailUiState.Error -> {
@@ -385,7 +386,7 @@ fun PostDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = state.message, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { forumViewModel.loadPostDetails(postId) }, colors = ButtonDefaults.buttonColors(containerColor = DetailPrimaryPurple)) {
+                        Button(onClick = { forumViewModel.loadPostDetails(postId) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                             Text("Retry")
                         }
                     }
@@ -404,11 +405,17 @@ fun PostDetailScreen(
                             // Section a: Original Post View Card
                             item {
                                 Box(modifier = Modifier.padding(16.dp)) {
+                                    val authorName = userNamesMap[post.userId] ?: if (!post.authorEmail.isNullOrBlank()) {
+                                        val prefix = post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
+                                        "$prefix${(post.userId?.hashCode()?.absoluteValue ?: 0) % 9000 + 1000}"
+                                    } else "User"
+
                                     OriginalPostViewCard(
                                         post = post,
                                         currentUserId = userId,
                                         currentUserRole = userRole,
                                         categoryMapping = categoryMappings[post.category] ?: post.category,
+                                        authorName = authorName,
                                         isLiked = likedPostIds.contains(post.id),
                                         onDeleteClick = {
                                             deletePostId = post.id
@@ -452,7 +459,7 @@ fun PostDetailScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .padding(horizontal = 12.dp),
-                                        color = DetailBorderLightVariant
+                                        color = MaterialTheme.colorScheme.surfaceVariant
                                     )
                                 }
                             }
@@ -471,7 +478,7 @@ fun PostDetailScreen(
                                             imageVector = Icons.Default.Comment,
                                             contentDescription = null,
                                             modifier = Modifier.size(48.dp),
-                                            tint = DetailPrimaryPurple.copy(alpha = 0.25f)
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(text = "No comments yet.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
@@ -486,10 +493,16 @@ fun PostDetailScreen(
                                     val isCommentLiked = commentLikedStates[comment.id] ?: false
                                     val localLikesCount = commentLikesMap[comment.id] ?: 0
 
+                                    val commentAuthorName = userNamesMap[comment.userId] ?: if (!comment.authorEmail.isNullOrBlank()) {
+                                        val prefix = comment.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
+                                        "$prefix${(comment.userId?.hashCode()?.absoluteValue ?: 0) % 9000 + 1000}"
+                                    } else "User"
+
                                     CommentViewItem(
                                         comment = comment,
                                         currentUserId = userId,
                                         currentUserRole = userRole,
+                                        authorName = commentAuthorName,
                                         isLiked = isCommentLiked,
                                         likesCount = localLikesCount,
                                         onLikeClick = {
@@ -510,13 +523,8 @@ fun PostDetailScreen(
                                         },
                                         onReplyClick = {
                                             // Auto-mention and pre-fill the bottom input bar
-                                            val name = if (!comment.authorEmail.isNullOrBlank()) {
-                                                comment.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
-                                            } else {
-                                                "User"
-                                            }
-                                            commentText = "@$name "
-                                            Toast.makeText(context, "Replying to @$name", Toast.LENGTH_SHORT).show()
+                                            commentText = "@$commentAuthorName "
+                                            Toast.makeText(context, "Replying to @$commentAuthorName", Toast.LENGTH_SHORT).show()
                                         },
                                         onDeleteClick = {
                                             deleteCommentId = comment.id
@@ -539,7 +547,7 @@ fun PostDetailScreen(
                             .fillMaxWidth()
                             .align(Alignment.BottomCenter)
                             .shadow(24.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                            .background(DetailCardBackgroundWhite)
+                            .background(MaterialTheme.colorScheme.surface)
                             .padding(bottom = 12.dp)
                     ) {
                         Column(
@@ -612,10 +620,10 @@ fun PostDetailScreen(
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(24.dp),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = Color(0xFFF9FAFB),
-                                        unfocusedContainerColor = Color(0xFFF9FAFB),
-                                        focusedBorderColor = DetailPrimaryPurple,
-                                        unfocusedBorderColor = DetailBorderLightVariant
+                                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                                     ),
                                     maxLines = 4,
                                     enabled = !isGuest
@@ -628,7 +636,7 @@ fun PostDetailScreen(
                                         .clip(CircleShape)
                                         .background(
                                             if (commentText.isBlank() || isGuest) {
-                                                Brush.linearGradient(colors = listOf(Color(0xFFE5E7EB), Color(0xFFE5E7EB)))
+                                                Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                             } else {
                                                 Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))
                                             }
@@ -667,18 +675,13 @@ fun OriginalPostViewCard(
     currentUserId: String,
     currentUserRole: String,
     categoryMapping: String,
+    authorName: String,
     isLiked: Boolean,
     onDeleteClick: () -> Unit,
     onReportClick: () -> Unit,
     onLikeClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
-    val authorName = if (!post.authorEmail.isNullOrBlank()) {
-        post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
-    } else {
-        "User"
-    }
-
     val isAuthor = currentUserId.lowercase() == post.userId?.lowercase() || currentUserId.lowercase() == post.authorEmail?.lowercase()
     val isAdmin = currentUserRole.lowercase() == "admin"
     val canDelete = isAuthor || isAdmin
@@ -692,8 +695,8 @@ fun OriginalPostViewCard(
             .fillMaxWidth()
             .shadow(4.dp, shape = RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DetailCardBackgroundWhite),
-        border = BorderStroke(1.dp, DetailBorderLightVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(22.dp)) {
             // Header: Avatar, Name, Timestamp, Category badge, Flags and Mod controls
@@ -736,7 +739,7 @@ fun OriginalPostViewCard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(DetailPrimaryPurple)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 5.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -792,7 +795,7 @@ fun OriginalPostViewCard(
                         Icon(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit post",
-                            tint = DetailPrimaryPurple.copy(alpha = 0.8f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -818,7 +821,7 @@ fun OriginalPostViewCard(
                 lineHeight = 24.sp
             )
             Spacer(modifier = Modifier.height(10.dp))
-            Text(
+            com.example.ui.components.MarkdownText(
                 text = post.content,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -826,7 +829,7 @@ fun OriginalPostViewCard(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider(color = DetailBorderLightVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(modifier = Modifier.height(14.dp))
 
             // Footer statistics: Reaction count, comment indicator, generated view counts
@@ -911,6 +914,7 @@ fun CommentViewItem(
     comment: ForumComment,
     currentUserId: String,
     currentUserRole: String,
+    authorName: String,
     onDeleteClick: () -> Unit,
     onEditClick: () -> Unit,
     isLiked: Boolean,
@@ -918,12 +922,6 @@ fun CommentViewItem(
     onLikeClick: () -> Unit,
     onReplyClick: () -> Unit
 ) {
-    val authorName = if (!comment.authorEmail.isNullOrBlank()) {
-        comment.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
-    } else {
-        "User"
-    }
-
     val isAuthor = currentUserId.lowercase() == comment.userId?.lowercase() || currentUserId.lowercase() == comment.authorEmail?.lowercase()
     val isAdmin = currentUserRole.lowercase() == "admin"
     val canEditOrDelete = isAuthor || isAdmin
@@ -931,8 +929,8 @@ fun CommentViewItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = DetailCardBackgroundWhite),
-        border = BorderStroke(1.dp, DetailBorderLightVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header metadata: Bubble Avatar, author name, Admin flag, time stamp, edit/delete icons
@@ -945,13 +943,13 @@ fun CommentViewItem(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFEEF2F6)),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = authorName.take(2).uppercase(),
                         fontWeight = FontWeight.Bold,
-                        color = DetailPrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp
                     )
                 }
@@ -971,7 +969,7 @@ fun CommentViewItem(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(DetailPrimaryPurple)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 4.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -996,7 +994,7 @@ fun CommentViewItem(
                         Icon(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit comment",
-                            tint = DetailPrimaryPurple.copy(alpha = 0.8f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -1014,7 +1012,7 @@ fun CommentViewItem(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Body text
-            Text(
+            com.example.ui.components.MarkdownText(
                 text = comment.content,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1065,14 +1063,14 @@ fun CommentViewItem(
                     Icon(
                         imageVector = Icons.Outlined.Reply,
                         contentDescription = "Reply to comment",
-                        tint = DetailPrimaryPurple,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Reply",
                         fontSize = 11.sp,
-                        color = DetailPrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
                 }

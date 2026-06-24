@@ -48,16 +48,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
-// Colors based on the requested community styling
-val PrimaryGradientStart = Color(0xFF667EEA)
-val PrimaryGradientEnd = Color(0xFF764BA2)
-val PrimaryPurple = Color(0xFF6366F1)
-val DarkPurple = Color(0xFF4F46E5)
-val BackgroundPurplePastel = Color(0xFFF5F3FF)
-val CardBackgroundWhite = Color(0xFFFFFFFF)
-val TextGrayMain = Color(0xFF1F2937)
-val TextGrayMuted = Color(0xFF6B7280)
-val BorderLightVariant = Color(0xFFE5E7EB)
+// Colors are replaced with Theme variants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +64,7 @@ fun ForumScreen(
     val uiState by forumViewModel.uiState.collectAsState()
     val selectedCategory by forumViewModel.selectedCategory.collectAsState()
     val likedPostIds by forumViewModel.likedPostIds.collectAsState()
+    val userNamesMap by forumViewModel.userNamesMap.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -127,10 +119,10 @@ fun ForumScreen(
         )
         AlertDialog(
             onDismissRequest = { showReportDialog = false },
-            title = { Text("রিপোর্ট করুন / Report Post", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = DarkPurple) },
+            title = { Text("রিপোর্ট করুন / Report Post", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("ফিতনা ও অশালীনতা মুক্ত রাখতে সাহায্য করুন। পোস্টারকে সতর্ক করা বা এডমিনের মাধ্যমে পোস্টটি পর্যালোচনা করা হবে।", fontSize = 13.sp, color = TextGrayMuted)
+                    Text("ফিতনা ও অশালীনতা মুক্ত রাখতে সাহায্য করুন। পোস্টারকে সতর্ক করা বা এডমিনের মাধ্যমে পোস্টটি পর্যালোচনা করা হবে।", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
                     reasons.forEach { reason ->
                         Button(
@@ -140,7 +132,7 @@ fun ForumScreen(
                                     Toast.makeText(context, "রিপোর্ট সফলভাবে দাখিল করা হয়েছে!", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = BackgroundPurplePastel, contentColor = DarkPurple),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -152,7 +144,7 @@ fun ForumScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showReportDialog = false }) {
-                    Text("বাতিল করুন", color = TextGrayMuted)
+                    Text("বাতিল করুন", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -163,7 +155,7 @@ fun ForumScreen(
     if (showEditPostDialog) {
         AlertDialog(
             onDismissRequest = { showEditPostDialog = false },
-            title = { Text("পোস্ট সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkPurple) },
+            title = { Text("পোস্ট সম্পাদনা করুন", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -175,9 +167,9 @@ fun ForumScreen(
                         label = { Text("শিরোনাম") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryPurple,
-                            focusedLabelColor = PrimaryPurple,
-                            cursorColor = PrimaryPurple
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
                     OutlinedTextField(
@@ -187,9 +179,9 @@ fun ForumScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryPurple,
-                            focusedLabelColor = PrimaryPurple,
-                            cursorColor = PrimaryPurple
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -205,14 +197,14 @@ fun ForumScreen(
                             Toast.makeText(context, "শিরোনাম এবং মূল বক্তব্য খালি রাখা যাবে না।", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("সংরক্ষণ করুন", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditPostDialog = false }) {
-                    Text("বাতিল", color = TextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -238,7 +230,7 @@ fun ForumScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeletePostDialog = false }) {
-                    Text("বাতিল", color = TextGrayMuted)
+                    Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -250,7 +242,7 @@ fun ForumScreen(
             if (!isGuest) {
                 FloatingActionButton(
                     onClick = onNavigateToCreatePost,
-                    containerColor = PrimaryPurple,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White,
                     shape = CircleShape,
                     modifier = Modifier
@@ -279,7 +271,7 @@ fun ForumScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(BackgroundPurplePastel)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 // Hero Title bar with beautiful primary gradient
                 Box(
@@ -287,7 +279,7 @@ fun ForumScreen(
                         .fillMaxWidth()
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(PrimaryGradientStart, PrimaryGradientEnd)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                             )
                         )
                         .padding(horizontal = 24.dp, vertical = 14.dp)
@@ -308,7 +300,7 @@ fun ForumScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(CardBackgroundWhite)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(vertical = 12.dp)
             ) {
                 Row(
@@ -328,15 +320,15 @@ fun ForumScreen(
                              .clip(RoundedCornerShape(20.dp))
                              .background(
                                  if (isSelected) {
-                                     Brush.linearGradient(colors = listOf(PrimaryGradientStart, PrimaryGradientEnd))
+                                     Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))
                                  } else {
-                                     Brush.linearGradient(colors = listOf(Color(0xFFF3F4F6), Color(0xFFF3F4F6)))
+                                     Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                  }
                              )
                              .clickable { forumViewModel.selectCategory(category) }
                              .border(
                                  1.dp,
-                                 if (isSelected) PrimaryPurple else BorderLightVariant,
+                                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                  RoundedCornerShape(20.dp)
                              )
                              .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -346,7 +338,7 @@ fun ForumScreen(
                              text = displayLabel,
                              fontSize = 14.sp,
                              fontWeight = FontWeight.Medium,
-                             color = if (isSelected) Color.White else TextGrayMuted
+                             color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                          )
                      }
                  }
@@ -383,20 +375,20 @@ fun ForumScreen(
                                 imageVector = Icons.Default.Forum,
                                 contentDescription = null,
                                 modifier = Modifier.size(72.dp),
-                                tint = PrimaryPurple.copy(alpha = 0.3f)
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "কোনো পোস্ট পাওয়া যায়নি!",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextGrayMain
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "প্রথম পোস্টটি লিখে আপনার আলোচনা শুরু করুন।",
                                 fontSize = 13.sp,
-                                color = TextGrayMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -424,7 +416,7 @@ fun ForumScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
                                 onClick = { forumViewModel.loadPosts() },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Text("পুনরায় চেষ্টা করুন")
                             }
@@ -435,7 +427,7 @@ fun ForumScreen(
                             Text(
                                 text = "মেম্বারদের মোট পোস্টসংখ্যা: ${state.posts.size} টি",
                                 fontSize = 12.sp,
-                                color = TextGrayMuted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                             )
@@ -448,11 +440,17 @@ fun ForumScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 items(state.posts) { post ->
+                                    val authorName = userNamesMap[post.userId] ?: if (!post.authorEmail.isNullOrBlank()) {
+                                        val prefix = post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
+                                        "$prefix${(post.userId?.hashCode()?.absoluteValue ?: 0) % 9000 + 1000}"
+                                    } else "User"
+
                                     ForumPostCard(
                                         post = post,
                                         currentUserId = userId,
                                         currentUserRole = userRole,
                                         categoryMapping = categoryMappings[post.category] ?: post.category,
+                                        authorName = authorName,
                                         isLiked = likedPostIds.contains(post.id),
                                         onClick = { onNavigateToPostDetail(post.id) },
                                         onDeleteClick = {
@@ -495,7 +493,7 @@ fun ForumPostSkeletonCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackgroundWhite),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -522,6 +520,7 @@ fun ForumPostCard(
     currentUserId: String,
     currentUserRole: String,
     categoryMapping: String,
+    authorName: String,
     isLiked: Boolean,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -529,12 +528,6 @@ fun ForumPostCard(
     onLikeClick: () -> Unit,
     onEditClick: () -> Unit
 ) {
-    val authorName = if (!post.authorEmail.isNullOrBlank()) {
-        post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
-    } else {
-        "User"
-    }
-
     val isAuthor = currentUserId.lowercase() == post.userId?.lowercase() || currentUserId.lowercase() == post.authorEmail?.lowercase()
     val isAdmin = currentUserRole.lowercase() == "admin"
     val canDelete = isAuthor || isAdmin
@@ -554,8 +547,8 @@ fun ForumPostCard(
                 clip = true
             ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackgroundWhite),
-        border = BorderStroke(1.dp, BorderLightVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header Row: Avatar, Author, Time, Badges, Mod actions
@@ -570,7 +563,7 @@ fun ForumPostCard(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(PrimaryGradientStart, PrimaryGradientEnd)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -590,7 +583,7 @@ fun ForumPostCard(
                         Text(
                             text = authorName,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextGrayMain,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
                         if (post.userRole?.lowercase() == "admin") {
@@ -598,7 +591,7 @@ fun ForumPostCard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(PrimaryPurple)
+                                    .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 5.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -614,7 +607,7 @@ fun ForumPostCard(
                     Text(
                         text = formatRelativeTime(post.createdAt),
                         fontSize = 12.sp,
-                        color = TextGrayMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -624,7 +617,7 @@ fun ForumPostCard(
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(PrimaryGradientStart, PrimaryGradientEnd)
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                             )
                         )
                         .padding(horizontal = 12.dp, vertical = 4.dp)
@@ -654,7 +647,7 @@ fun ForumPostCard(
                         Icon(
                             imageVector = Icons.Outlined.Edit,
                             contentDescription = "Edit post",
-                            tint = PrimaryPurple.copy(alpha = 0.8f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -676,21 +669,21 @@ fun ForumPostCard(
                 text = post.title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextGrayMain,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 22.sp
             )
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
+            com.example.ui.components.MarkdownText(
                 text = post.content,
                 fontSize = 14.sp,
-                color = TextGrayMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 20.sp
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = BorderLightVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
             // Footer / Stats Row: Like/React, comments, views
@@ -710,14 +703,14 @@ fun ForumPostCard(
                     Icon(
                         imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = "Reaction",
-                        tint = if (isLiked) Color.Red else TextGrayMuted,
+                        tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${post.likesCount ?: 0}",
                         fontSize = 13.sp,
-                        color = if (isLiked) Color.Red else TextGrayMuted,
+                        color = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -732,14 +725,14 @@ fun ForumPostCard(
                     Icon(
                         imageVector = Icons.Default.Comment,
                         contentDescription = "Comments",
-                        tint = TextGrayMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${post.repliesCount ?: 0}",
                         fontSize = 13.sp,
-                        color = TextGrayMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -754,14 +747,14 @@ fun ForumPostCard(
                     Icon(
                         imageVector = Icons.Default.Visibility,
                         contentDescription = "Views count",
-                        tint = TextGrayMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "$generatedViews",
                         fontSize = 13.sp,
-                        color = TextGrayMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -797,9 +790,9 @@ fun ForumStatsSection(stats: ForumStats?) {
                     .width(134.dp)
                     .height(92.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackgroundWhite),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = BorderStroke(1.dp, BorderLightVariant)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(
                     modifier = Modifier
@@ -815,13 +808,13 @@ fun ForumStatsSection(stats: ForumStats?) {
                         Text(
                             text = label,
                             fontSize = 11.sp,
-                            color = TextGrayMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold
                         )
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = PrimaryPurple,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -830,7 +823,7 @@ fun ForumStatsSection(stats: ForumStats?) {
                         text = String.format("%,d", value),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = TextGrayMain
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

@@ -167,14 +167,14 @@ fun EpubReaderScreen(
     }
 
     val backgroundColor = when (readTheme) {
-        EpubTheme.LIGHT -> Color(0xFFF9FAFB)
-        EpubTheme.DARK -> Color(0xFF111827)
+        EpubTheme.LIGHT -> MaterialTheme.colorScheme.background
+        EpubTheme.DARK -> MaterialTheme.colorScheme.onBackground
         EpubTheme.SEPIA -> Color(0xFFFBF0D9)
     }
     
     val textColor = when (readTheme) {
-        EpubTheme.LIGHT -> Color(0xFF1F2937)
-        EpubTheme.DARK -> Color(0xFFF9FAFB)
+        EpubTheme.LIGHT -> MaterialTheme.colorScheme.onSurface
+        EpubTheme.DARK -> MaterialTheme.colorScheme.background
         EpubTheme.SEPIA -> Color(0xFF432A15)
     }
 

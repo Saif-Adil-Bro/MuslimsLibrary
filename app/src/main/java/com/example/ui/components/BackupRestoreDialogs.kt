@@ -85,14 +85,14 @@ fun BackupRestoreDialogs(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF10B981)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.padding(4.dp))
                         Text(
                             "সফল হয়েছে!",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = Color(0xFF10B981)
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 },

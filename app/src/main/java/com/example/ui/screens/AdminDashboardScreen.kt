@@ -292,7 +292,7 @@ fun DashboardTabContent(
                         text = "Storage Bucket: 'books'",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF032B1D)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "RLS active: download = PUBLIC, upload = ADMIN only",
@@ -332,7 +332,7 @@ fun DashboardTabContent(
                             text = "My Profile",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF032B1D)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -403,7 +403,7 @@ fun DashboardTabContent(
                     text = "Contribute to the Islamic Library",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF032B1D),
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontFamily = FontFamily.Serif,
                     textAlign = TextAlign.Center
                 )
@@ -506,7 +506,7 @@ fun BooksTabContent(
                                     text = book.title,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF032B1D),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -678,7 +678,7 @@ fun AuthorsTabContent(
                                     text = author.name,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF032B1D)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
@@ -895,7 +895,7 @@ fun CategoriesTabContent(
                                 text = category.name,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF032B1D),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
                             )
 

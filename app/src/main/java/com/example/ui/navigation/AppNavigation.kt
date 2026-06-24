@@ -187,6 +187,9 @@ fun AppNavigation(
                 onNavigateToAbout = {
                     navController.navigate("about")
                 },
+                onNavigateToPrivacyPolicy = {
+                    navController.navigate("privacy_policy")
+                },
                 onNavigateToAdminDashboard = {
                     navController.navigate("admin_dashboard")
                 },
@@ -550,6 +553,12 @@ fun AppNavigation(
         
         composable("about") {
             com.example.ui.screens.AboutScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        
+        composable("privacy_policy") {
+            com.example.ui.screens.PrivacyPolicyScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

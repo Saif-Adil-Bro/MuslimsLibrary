@@ -145,7 +145,7 @@ fun BookDetailScreen(
                         Icon(
                             imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                             contentDescription = "Pin Book",
-                            tint = if (isPinned) Color(0xFF10B981) else Color.White
+                            tint = if (isPinned) MaterialTheme.colorScheme.primary else Color.White
                         )
                     }
 
@@ -178,7 +178,7 @@ fun BookDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(Color(0xFFFCFCFA)),
+                    .background(MaterialTheme.colorScheme.background),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -196,7 +196,7 @@ fun BookDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(Color(0xFFF9F9F4))
+                    .background(MaterialTheme.colorScheme.surface)
                     .verticalScroll(scrollState)
             ) {
                 // Header Visual Section
@@ -205,7 +205,7 @@ fun BookDetailScreen(
                         .fillMaxWidth()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(MaterialTheme.colorScheme.tertiary, Color(0xFFF9F9F4))
+                                colors = listOf(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.surface)
                             )
                         )
                         .padding(horizontal = 24.dp, vertical = 20.dp)
@@ -262,7 +262,7 @@ fun BookDetailScreen(
                         ) {
                             Text(
                                 text = book.category,
-                                color = Color(0xFF10B981),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -304,7 +304,7 @@ fun BookDetailScreen(
                                         val pct = progress.progressPercentage.toFloat() / 100f
                                         LinearProgressIndicator(
                                             progress = { pct.coerceIn(0f, 1f) },
-                                            color = Color(0xFF10B981),
+                                            color = MaterialTheme.colorScheme.primary,
                                             trackColor = Color.White.copy(alpha = 0.2f),
                                             modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape)
                                         )
@@ -338,7 +338,7 @@ fun BookDetailScreen(
                     Button(
                         onClick = { onReadNowClick(book) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF10B981),
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White
                         ),
                         modifier = Modifier
@@ -386,7 +386,7 @@ fun BookDetailScreen(
                                 color = MaterialTheme.colorScheme.tertiary
                             )
                             
-                            HorizontalDivider(color = Color(0xFFF3F4F6))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                             if (isDownloaded) {
                                 Row(
@@ -396,7 +396,7 @@ fun BookDetailScreen(
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = "Downloaded",
-                                        tint = Color(0xFF10B981),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -405,7 +405,7 @@ fun BookDetailScreen(
                                             text = "অফলাইনে পড়ার জন্য উপলব্ধ",
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF032B1D)
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "বইটি আপনার ডিভাইসে সেভ করা আছে",
@@ -444,13 +444,13 @@ fun BookDetailScreen(
                                                     text = "ডাউনলোড হচ্ছে... $progressVal%",
                                                     fontSize = 12.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF032B1D)
+                                                    color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 if (!activeState.speedText.isNullOrEmpty()) {
                                                     Text(
                                                         text = activeState.speedText,
                                                         fontSize = 11.sp,
-                                                        color = Color(0xFF10B981),
+                                                        color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.Bold
                                                     )
                                                 }
@@ -458,8 +458,8 @@ fun BookDetailScreen(
                                             
                                             LinearProgressIndicator(
                                                 progress = { progressVal / 100f },
-                                                color = Color(0xFF10B981),
-                                                trackColor = Color(0xFFE5E7EB),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(6.dp)
@@ -509,7 +509,7 @@ fun BookDetailScreen(
                                             LinearProgressIndicator(
                                                 progress = { progressVal / 100f },
                                                 color = Color.Gray,
-                                                trackColor = Color(0xFFE5E7EB),
+                                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .height(6.dp)
@@ -523,7 +523,7 @@ fun BookDetailScreen(
                                             ) {
                                                 Button(
                                                     onClick = { downloadedBooksViewModel.resumeDownload(bookModel) },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                                     modifier = Modifier.height(32.dp)
                                                 ) {
@@ -576,7 +576,7 @@ fun BookDetailScreen(
                                                         text = if (currentStatus == "failed") "ডাউনলোড ব্যর্থ হয়েছে, আবার চেষ্টা করুন" else "বইটি ডাউনলোড করে রাখুন",
                                                         fontSize = 12.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF032B1D)
+                                                        color = MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
                                                         text = "অফলাইনে নেট ছাড়াই পড়তে ডাউনলোড করুন",
@@ -624,7 +624,7 @@ fun BookDetailScreen(
                             color = MaterialTheme.colorScheme.tertiary
                         )
 
-                        HorizontalDivider(color = Color(0xFFF3F4F6))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                         // Favorite list toggle row
                         Row(
@@ -654,7 +654,7 @@ fun BookDetailScreen(
                                         text = "পছন্দের তালিকায় যুক্ত করুন",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF032B1D)
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "দ্রুত পছন্দের তালিকায় কিতাবটি রাখুন",
@@ -672,7 +672,7 @@ fun BookDetailScreen(
                                 },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFF10B981)
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary
                                 ),
                                 modifier = Modifier.testTag("favorite_switch")
                             )
@@ -691,13 +691,13 @@ fun BookDetailScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
-                                        .background(Color(0xFF10B981).copy(alpha = 0.1f), CircleShape),
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.PushPin,
                                         contentDescription = null,
-                                        tint = Color(0xFF10B981),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -706,7 +706,7 @@ fun BookDetailScreen(
                                         text = "হোমে পিন করে রাখুন",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF032B1D)
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "হোম পেজের সবার উপরে দেখতে পাবেন",
@@ -724,7 +724,7 @@ fun BookDetailScreen(
                                 },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFF10B981)
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary
                                 ),
                                 modifier = Modifier.testTag("pin_switch")
                             )
@@ -788,7 +788,7 @@ fun BookDetailScreen(
                             }
                         }
 
-                        HorizontalDivider(color = Color(0xFFF3F4F6))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                         if (notesList.isEmpty()) {
                             Box(
@@ -823,8 +823,8 @@ fun BookDetailScreen(
                                 notesList.forEach { note ->
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFBFBFA)),
-                                        border = BorderStroke(1.dp, Color(0xFFE9EAE3)),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Column(
@@ -870,7 +870,7 @@ fun BookDetailScreen(
                                             Text(
                                                 text = note.noteContent,
                                                 fontSize = 13.sp,
-                                                color = Color(0xFF374151),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 lineHeight = 18.sp,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -910,7 +910,7 @@ fun BookDetailScreen(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color(0xFF10B981)
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary
                     )
                 )
             },
@@ -932,7 +932,7 @@ fun BookDetailScreen(
                             Toast.makeText(context, "অনুগ্রহ করে কিছু লিখুন", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.testTag("confirm_add_note_button")
                 ) {
                     Text("সংরক্ষণ")

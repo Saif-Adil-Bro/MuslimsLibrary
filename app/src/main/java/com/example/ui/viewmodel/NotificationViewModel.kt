@@ -88,7 +88,17 @@ class NotificationViewModel(
         }
     }
 
-    fun refreshNotifications() {
+    private var lastLoadTime = 0L
+    private val COOLDOWN_MS = 60_000L // ৬০ সেকেন্ড
+
+    fun refreshNotifications(forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        val currentUiState = _uiState.value
+        if (!forceRefresh && (currentTime - lastLoadTime < COOLDOWN_MS) && currentUiState is NotificationUiState.Success && currentUiState.notifications.isNotEmpty()) {
+            android.util.Log.d("NotificationVM", "Skipping load, data is fresh")
+            return
+        }
+
         if (guestModeManager.isGuestMode()) {
             _uiState.value = NotificationUiState.Success(emptyList())
             _unreadCount.value = 0
@@ -129,6 +139,7 @@ class NotificationViewModel(
                     )
                     appDatabase.notificationDao().insertNotification(entity)
                 }
+                lastLoadTime = System.currentTimeMillis()
             } catch (e: Exception) {
                 android.util.Log.e("NotificationVM", "Cloud fetch / sync failed: ${e.message}")
             }

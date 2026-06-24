@@ -179,3 +179,41 @@ dependencies {
   }
   implementation("org.jsoup:jsoup:1.17.2")
 }
+
+tasks.register("fixColors5") {
+    doLast {
+        val uiDir = file("src/main/java/com/example/ui")
+        val replacements = mapOf(
+            "Color(0xFFF9FAFB)" to "MaterialTheme.colorScheme.background",
+            "Color(0xFF6366F1)" to "MaterialTheme.colorScheme.primary",
+            "Color(0xFFFFFDE7)" to "MaterialTheme.colorScheme.surfaceVariant",
+            "Color(0xFF5D4037)" to "MaterialTheme.colorScheme.onSurface",
+            "Color(0xFF795548)" to "MaterialTheme.colorScheme.onSurfaceVariant",
+            "Color(0xFFF0FDF4)" to "MaterialTheme.colorScheme.surfaceVariant",
+            "Color(0xFFDCFCE7)" to "MaterialTheme.colorScheme.surfaceVariant",
+            "Color(0xFFBBF7D0)" to "MaterialTheme.colorScheme.outline",
+            "Color(0xFFEEF2F6)" to "MaterialTheme.colorScheme.surfaceVariant",
+            "Color(0xFFF3F4F6)" to "MaterialTheme.colorScheme.surfaceVariant",
+            "Color(0xFFE5E7EB)" to "MaterialTheme.colorScheme.outline",
+            "Color(0xFF374151)" to "MaterialTheme.colorScheme.onSurfaceVariant",
+            "Color(0xFF111827)" to "MaterialTheme.colorScheme.onBackground",
+            "Color(0xFF4B5563)" to "MaterialTheme.colorScheme.onSurfaceVariant",
+            "Color(0xFF1F2937)" to "MaterialTheme.colorScheme.onSurface"
+        )
+        
+        uiDir.walkTopDown().filter { it.extension == "kt" }.forEach { file ->
+            var content = file.readText()
+            var changed = false
+            for ((old, new) in replacements) {
+                if (content.contains(old)) {
+                    content = content.replace(old, new)
+                    changed = true
+                }
+            }
+            if (changed) {
+                file.writeText(content)
+                println("Updated colors in \${file.name}")
+            }
+        }
+    }
+}

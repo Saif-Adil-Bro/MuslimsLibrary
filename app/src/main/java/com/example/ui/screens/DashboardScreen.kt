@@ -50,6 +50,7 @@ fun DashboardScreen(
     onNavigateToCategory: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAbout: () -> Unit,
+    onNavigateToPrivacyPolicy: () -> Unit = {},
     onNavigateToAdminDashboard: () -> Unit = {},
     modifier: Modifier = Modifier,
     debugInfo: String = "",
@@ -140,7 +141,8 @@ fun DashboardScreen(
 
                     val otherSectionItems = mutableListOf(
                         com.example.ui.navigation.sidebar.MenuItem("settings", "সেটিংস", Icons.Filled.Settings),
-                        com.example.ui.navigation.sidebar.MenuItem("help", "সাহায্য/সম্পর্কে", Icons.Filled.Info)
+                        com.example.ui.navigation.sidebar.MenuItem("help", "সাহায্য/সম্পর্কে", Icons.Filled.Info),
+                        com.example.ui.navigation.sidebar.MenuItem("privacy", "গোপনীয়তা নীতি", Icons.Filled.VerifiedUser)
                     )
                     
                     if (!isGuestMode) {
@@ -190,6 +192,9 @@ fun DashboardScreen(
                                 "help" -> {
                                     onNavigateToAbout()
                                 }
+                                "privacy" -> {
+                                    onNavigateToPrivacyPolicy()
+                                }
                             }
                         }
                     )
@@ -228,7 +233,7 @@ fun DashboardScreen(
                     if (isGuestMode && selectedTab == 0 && drawerScreenTitle.isEmpty()) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFFFFDE7) // Warm premium cream
+                                containerColor = if (androidx.compose.foundation.isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -243,15 +248,15 @@ fun DashboardScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "গেস্ট সেশন সচল আছে 📖",
+                                        text = "গেস্ট সেশন সচল আছে \uD83D\uDCD6",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = Color(0xFF5D4037)
+                                        color = if (androidx.compose.foundation.isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "লগইন করুন এবং আপনার পড়াশোনার রেকর্ড ক্লাউডে সুরক্ষিত করুন!",
                                         fontSize = 12.sp,
-                                        color = Color(0xFF795548)
+                                        color = if (androidx.compose.foundation.isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Button(

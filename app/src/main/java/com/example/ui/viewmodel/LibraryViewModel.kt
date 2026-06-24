@@ -79,11 +79,21 @@ class LibraryViewModel(
         }
     }
 
-    private fun loadOnlineBooksCatalog() {
+    private var lastLoadTime = 0L
+    private val COOLDOWN_MS = 60_000L // ৬০ সেকেন্ড
+
+    fun loadOnlineBooksCatalog(forceRefresh: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        if (!forceRefresh && (currentTime - lastLoadTime < COOLDOWN_MS) && _publicBooks.value.isNotEmpty()) {
+            android.util.Log.d("LibraryViewModel", "Skipping load, data is fresh")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val books = supabaseService.fetchPublicBooks()
                 _publicBooks.value = books
+                lastLoadTime = System.currentTimeMillis()
             } catch (e: Exception) {
                 // Keep empty, local or download fallbacks will cover
             }
