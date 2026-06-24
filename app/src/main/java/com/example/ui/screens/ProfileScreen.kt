@@ -383,7 +383,7 @@ fun ProfileScreen(
                                                     onClick = { viewModel.performBackup(userId = "", localRoomUserId = userId) },
                                                     text = "ব্যাকআপ",
                                                     icon = Icons.Default.CloudUpload,
-                                                    gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                                                    gradientColors = listOf(Color(0xFF5E35B1), Color(0xFF311B92)),
                                                     modifier = Modifier.weight(1f)
                                                 )
                                                 ElegantSecondaryButton(
@@ -405,7 +405,7 @@ fun ProfileScreen(
                                 onClick = onNotificationSettingsClick,
                                 text = "নোটিফিকেশন এবং রিমাইন্ডার সেটিংস",
                                 icon = Icons.Default.Notifications,
-                                gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                                gradientColors = listOf(Color(0xFF5E35B1), Color(0xFF311B92)),
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -428,7 +428,7 @@ fun ProfileScreen(
                                     onClick = onEditProfileClick,
                                     text = "প্রোফাইল পরিবর্তন করুন",
                                     icon = Icons.Default.Edit,
-                                    gradientColors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary),
+                                    gradientColors = listOf(Color(0xFF5E35B1), Color(0xFF311B92)),
                                     modifier = Modifier.fillMaxWidth()
                                 )
 

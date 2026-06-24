@@ -41,10 +41,19 @@ fun DownloadedBooksScreen(
 ) {
     val downloadedBooks by viewModel.downloadedBooks.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val showOfflineOnly by viewModel.showOfflineOnly.collectAsState()
+    val storageUsage by viewModel.storageUsage.collectAsState()
 
     var isGridView by remember { mutableStateOf(true) }
     var showSearchField by remember { mutableStateOf(false) }
     var bookToDelete by remember { mutableStateOf<DownloadedBook?>(null) }
+    var showClearAllConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    
+    val formattedStorageUsage = remember(storageUsage) {
+        if (storageUsage <= 0) "০.০ KB"
+        else Formatter.formatShortFileSize(context, storageUsage)
+    }
 
     Scaffold(
         topBar = {
@@ -112,16 +121,57 @@ fun DownloadedBooksScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (downloadedBooks.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+            // Storage Usage & Filters
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("স্টোরেজ ব্যবহৃত হচ্ছে:", fontWeight = FontWeight.Bold)
+                        Text(formattedStorageUsage, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(
+                                checked = showOfflineOnly,
+                                onCheckedChange = { viewModel.toggleOfflineFilter() }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("শুধুমাত্র অফলাইন বই")
+                        }
+                        TextButton(
+                            onClick = { showClearAllConfirm = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("সব মুছুন")
+                        }
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+                if (downloadedBooks.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -211,6 +261,7 @@ fun DownloadedBooksScreen(
                     }
                 }
             }
+            } // Close the Box
 
             bookToDelete?.let { book ->
                 AlertDialog(
@@ -245,6 +296,46 @@ fun DownloadedBooksScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { bookToDelete = null }) {
+                            Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
+
+            if (showClearAllConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showClearAllConfirm = false },
+                    title = {
+                        Text(
+                            text = "সব ডাউনলোড মুছে ফেলবেন?",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "আপনি কি নিশ্চিতভাবে সব ডাউনলোড করা বই আপনার ডিভাইস থেকে মুছে ফেলতে চান? এটি স্টোরেজ খালি করবে।",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                viewModel.clearAllOfflineBooks()
+                                showClearAllConfirm = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("সব মুছুন", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showClearAllConfirm = false }) {
                             Text("বাতিল", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     },

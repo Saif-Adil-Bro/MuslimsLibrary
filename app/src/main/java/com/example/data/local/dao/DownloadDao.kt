@@ -27,6 +27,9 @@ interface DownloadDao {
     @Query("DELETE FROM downloaded_books WHERE bookId = :bookId")
     suspend fun deleteDownloadedBook(bookId: String)
 
+    @Query("DELETE FROM downloaded_books")
+    suspend fun clearAllDownloads()
+
     @Query("SELECT COUNT(*) FROM downloaded_books WHERE downloadStatus = 'completed'")
     suspend fun getDownloadedBooksCount(): Int
 }

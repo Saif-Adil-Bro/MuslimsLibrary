@@ -126,7 +126,7 @@ fun DashboardScreen(
                     
                     val mainSectionItems = mutableListOf(
                         com.example.ui.navigation.sidebar.MenuItem("home", "ড্যাশবোর্ড", Icons.Filled.Home),
-                        com.example.ui.navigation.sidebar.MenuItem("my_books", "আমার বই", Icons.Filled.Book),
+                        com.example.ui.navigation.sidebar.MenuItem("my_books", "লাইব্রেরি", Icons.Filled.Book),
                         com.example.ui.navigation.sidebar.MenuItem("category", "ক্যাটাগরি", Icons.Filled.Category),
                         com.example.ui.navigation.sidebar.MenuItem("downloads", "ডাউনলোড", Icons.Filled.Download)
                     )
@@ -177,10 +177,11 @@ fun DashboardScreen(
                                     onNavigateToAdminDashboard()
                                 }
                                 "my_books" -> {
-                                    drawerScreenTitle = "🚧 আমার বই"
+                                    drawerScreenTitle = ""
+                                    selectedTab = 1
                                 }
                                 "downloads" -> {
-                                    drawerScreenTitle = "🚧 ডাউনলোড"
+                                    onNavigateToDownloads()
                                 }
                                 "settings" -> {
                                     onNavigateToSettings()

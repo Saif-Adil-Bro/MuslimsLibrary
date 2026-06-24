@@ -131,7 +131,7 @@ fun SideDrawer(
             )
             DrawerMenuItem(
                 icon = Icons.Default.Book,
-                label = "আমার বই",
+                label = "লাইব্রেরি",
                 onClick = { onMenuItemClick("my_books") },
                 testTag = "drawer_item_my_books"
             )

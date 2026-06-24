@@ -88,7 +88,8 @@ fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsVie
         factory = DownloadedBooksViewModel.Factory(
             appContainer.appDatabase,
             appContainer.downloadManager,
-            appContainer.supabaseService
+            appContainer.supabaseService,
+            context
         )
     )
 

@@ -71,13 +71,13 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("প্রোফাইল সংশোধন", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("প্রোফাইল সংশোধন", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiary) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "ফিরে যান",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onTertiary
                         )
                     }
                 },
@@ -100,7 +100,7 @@ fun EditProfileScreen(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "সংরক্ষণ",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onTertiary
                         )
                     }
                 },
@@ -114,7 +114,7 @@ fun EditProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF7F9FA))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Column(
                 modifier = Modifier
@@ -162,7 +162,7 @@ fun EditProfileScreen(
                         ) {
                             Text(
                                 text = initLet.uppercase(),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onTertiary,
                                 fontSize = 48.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -188,7 +188,7 @@ fun EditProfileScreen(
                 Text(
                     text = "গ্যালারি থেকে ছবি পরিবর্তন করতে এখানে ট্যাপ করুন",
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     fontWeight = FontWeight.Medium
                 )
 
@@ -219,14 +219,14 @@ fun EditProfileScreen(
                     }
 
                     val defaultAvatars = listOf(
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=1",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=2",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=3",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=4",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=5",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=6",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=7",
-                        "https://api.dicebear.com/7.x/adventurer/png?seed=8"
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Ali&top=shortHair&facialHair=beardLight",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Fatima&top=hijab",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Omar&top=turban&facialHair=beardMajestic",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Aisha&top=hijab&clothing=blazerAndSweater",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Yusuf&top=shortHair&facialHair=beardMedium",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Zainab&top=hijab&clothing=collarAndSweater",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Tariq&top=turban",
+                        "https://api.dicebear.com/7.x/avataaars/png?seed=Mariam&top=hijab"
                     )
 
                     LazyRow(
@@ -242,7 +242,7 @@ fun EditProfileScreen(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                                     .clickable {
                                         if (isSelected) {
                                             viewModel.selectDefaultAvatar(null)
@@ -254,7 +254,7 @@ fun EditProfileScreen(
                                         if (isSelected) {
                                             Modifier.border(3.dp, MaterialTheme.colorScheme.tertiary, CircleShape)
                                         } else {
-                                            Modifier.border(1.dp, Color.LightGray.copy(alpha = 0.5f), CircleShape)
+                                            Modifier.border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape)
                                         }
                                     )
                                     .padding(if (isSelected) 3.dp else 0.dp),
@@ -294,7 +294,7 @@ fun EditProfileScreen(
                 // Forms
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
@@ -361,7 +361,7 @@ fun EditProfileScreen(
                         text = "তথ্য সংরক্ষণ করুন",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onTertiary
                     )
                 }
             }
@@ -376,7 +376,7 @@ fun EditProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
@@ -388,7 +388,7 @@ fun EditProfileScreen(
                             Text(
                                 text = if (uploadProgress) "ছবি আপলোড হচ্ছে..." else "প্রোফাইল সংরক্ষণ হচ্ছে...",
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

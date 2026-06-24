@@ -357,7 +357,7 @@ fun BookDetailScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = if (bookProgress != null && bookProgress!!.currentPage > 1) "পড়া অব্যাহত রাখুন (পৃষ্ঠা ${bookProgress!!.currentPage})" else "বইটি পড়ুন (Read Now)",
+                                text = if (isDownloaded) "অফলাইনে পড়ুন" else if (bookProgress != null && bookProgress!!.currentPage > 1) "পড়া অব্যাহত রাখুন (পৃষ্ঠা ${bookProgress!!.currentPage})" else "বইটি পড়ুন (Read Now)",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold
                             )

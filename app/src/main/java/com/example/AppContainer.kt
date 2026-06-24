@@ -109,4 +109,10 @@ class AppContainer(val context: Context) {
     val downloadManager: com.example.data.download.DownloadManager by lazy {
         com.example.data.download.DownloadManager(context, appDatabase, supabaseService)
     }
+
+    val offlineReadingManager: com.example.data.offline.OfflineReadingManager by lazy {
+        val manager = com.example.data.offline.OfflineReadingManager(context)
+        manager.scheduleAutoSync()
+        manager
+    }
 }

@@ -46,7 +46,7 @@ fun AuthScreen(
     showGuestOption: Boolean = true,
     onCloseClick: (() -> Unit)? = null
 ) {
-    val brandColor = MaterialTheme.colorScheme.secondary
+    val brandColor = Color(0xFF4A148C) // Deeper Purple
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -118,8 +118,8 @@ fun AuthScreen(
     // Beautiful Purple Gradient for premium aesthetic theme
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary, // Purple Gradient Start
-            MaterialTheme.colorScheme.secondary  // Purple Gradient End
+            Color(0xFF311B92), // Deep Purple Dark
+            Color(0xFF4A148C)  // Deep Purple
         )
     )
 
