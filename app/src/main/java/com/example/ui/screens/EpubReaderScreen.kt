@@ -285,8 +285,14 @@ fun EpubReaderScreen(
                                             isFullScreen = !isFullScreen
                                         }
                                     }, "Android")
+                                }
+                            },
+                            update = { webView ->
+                                val currentHtmlHash = finalHtml.hashCode()
+                                if (webView.tag != currentHtmlHash) {
+                                    webView.tag = currentHtmlHash
                                     
-                                    webViewClient = object : WebViewClient() {
+                                    webView.webViewClient = object : WebViewClient() {
                                         override fun shouldInterceptRequest(
                                             view: WebView,
                                             request: WebResourceRequest
@@ -311,8 +317,7 @@ fun EpubReaderScreen(
                                         
                                         override fun onPageFinished(view: WebView, url: String?) {
                                             super.onPageFinished(view, url)
-                                            val targetScroll = view.getTag(android.R.id.text1) as? Float ?: 0f
-                                            view.evaluateJavascript("restoreScroll($targetScroll);", null)
+                                            view.evaluateJavascript("restoreScroll($scrollOffset);", null)
                                             view.evaluateJavascript("""
                                                 document.body.addEventListener('click', function(e) {
                                                     if(e.target.tagName !== 'A' && window.getSelection().toString().length === 0) {
@@ -322,13 +327,7 @@ fun EpubReaderScreen(
                                             """.trimIndent(), null)
                                         }
                                     }
-                                }
-                            },
-                            update = { webView ->
-                                val currentHtmlHash = finalHtml.hashCode()
-                                if (webView.tag != currentHtmlHash) {
-                                    webView.tag = currentHtmlHash
-                                    webView.setTag(android.R.id.text1, scrollOffset)
+                                    
                                     webView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
                                 }
                             },
