@@ -249,7 +249,8 @@ class AuthRepositoryImpl(
 
     override suspend fun signInWithGoogle(context: Context, activity: ComponentActivity): Result<Unit> {
         return try {
-            if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isEmpty()) {
+            val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+            if (webClientId.isEmpty()) {
                 return Result.failure(Exception("Google Sign-In is not configured. Please add 'GOOGLE_WEB_CLIENT_ID' in AI Studio Secrets."))
             }
 
@@ -258,7 +259,7 @@ class AuthRepositoryImpl(
             // Build google credentials request cleanly
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                .setServerClientId(webClientId)
                 .setAutoSelectEnabled(true)
                 .build()
 
@@ -266,10 +267,17 @@ class AuthRepositoryImpl(
                 .addCredentialOption(googleIdOption)
                 .build()
 
-            val result = credentialManager.getCredential(
-                context = activity,
-                request = request
-            )
+            val result = try {
+                credentialManager.getCredential(
+                    context = activity,
+                    request = request
+                )
+            } catch (e: Exception) {
+                // Catch credential manager exceptions specifically
+                val clientIdPrefix = webClientId.take(15) + "..."
+                val pkgName = context.packageName
+                throw Exception("Developer console error. \nApp ID: $pkgName\nClient ID: $clientIdPrefix\nDetails: ${e.message}", e)
+            }
 
             val credential = result.credential
             if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
