@@ -1,8 +1,12 @@
 package com.example.ui.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.text.Html
-import android.widget.Toast
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -12,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,26 +26,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import io.documentnode.epub4j.domain.Book
-import io.documentnode.epub4j.epub.EpubReader
-import java.io.File
-import java.io.FileInputStream
-import java.net.URL
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.viewmodel.EpubReaderViewModel
+import java.io.ByteArrayInputStream
 import java.net.URLDecoder
 
 enum class EpubTheme {
     LIGHT, DARK, SEPIA
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpubReaderScreen(
@@ -51,16 +51,18 @@ fun EpubReaderScreen(
     fileUrl: String,
     fileType: String,
     userId: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: EpubReaderViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    
+    val book by viewModel.book.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val currentChapterIndex by viewModel.currentChapterIndex.collectAsState()
+    val scrollOffset by viewModel.scrollOffset.collectAsState()
+
     val decodedTitle = remember(bookTitle) {
         try { URLDecoder.decode(bookTitle, "UTF-8") } catch (e: Exception) { bookTitle }
-    }
-    val decodedFileUrl = remember(fileUrl) {
-        try { URLDecoder.decode(fileUrl, "UTF-8") } catch (e: Exception) { fileUrl }
     }
 
     // Settings State
@@ -69,97 +71,18 @@ fun EpubReaderScreen(
         mutableStateOf(EpubTheme.values()[prefs.getInt("theme", EpubTheme.LIGHT.ordinal)]) 
     }
     var fontSize by remember { mutableFloatStateOf(prefs.getFloat("fontSize", 18f)) }
-    var currentChapterIndex by remember { mutableIntStateOf(prefs.getInt("chapter_$bookId", 0)) }
     
-    // UI State
-    var isLoading by remember { mutableStateOf(true) }
-    var book by remember { mutableStateOf<Book?>(null) }
-    var paragraphs by remember { mutableStateOf<List<String>>(emptyList()) }
     var isFullScreen by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showToc by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val listState = rememberLazyListState()
-
-    // Load Book
-    LaunchedEffect(decodedFileUrl) {
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                val inputStream = if (decodedFileUrl.startsWith("http")) {
-                    val file = File(context.cacheDir, "temp_epub_$bookId.epub")
-                    if (!file.exists()) {
-                        try {
-                            val client = okhttp3.OkHttpClient()
-                            val request = okhttp3.Request.Builder().url(decodedFileUrl).build()
-                            val response = client.newCall(request).execute()
-                            if (response.isSuccessful) {
-                                response.body?.byteStream()?.use { input ->
-                                    file.outputStream().use { output -> input.copyTo(output) }
-                                }
-                            } else {
-                                throw Exception("Network error: ${response.code}")
-                            }
-                        } catch (e: Exception) {
-                            if (file.exists()) {
-                                file.delete()
-                            }
-                            throw e
-                        }
-                    }
-                    FileInputStream(file)
-                } else {
-                    FileInputStream(File(decodedFileUrl))
-                }
-
-                val epubReader = EpubReader()
-                val loadedBook = epubReader.readEpub(inputStream)
-                
-                withContext(Dispatchers.Main) {
-                    book = loadedBook
-                    isLoading = false
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    errorMessage = "বই লোড করতে সমস্যা হয়েছে: ${e.message}"
-                    isLoading = false
-                }
-            }
-        }
+    LaunchedEffect(fileUrl) {
+        viewModel.loadBook(context, bookId, fileUrl)
     }
 
-    // Load Chapter Content
-    LaunchedEffect(book, currentChapterIndex) {
-        book?.let {
-            coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    val spineRefs = it.spine.spineReferences
-                    if (currentChapterIndex in spineRefs.indices) {
-                        val resource = spineRefs[currentChapterIndex].resource
-                        val data = resource.data
-                        val htmlContent = String(data, Charsets.UTF_8)
-                        
-                        // Parse HTML safely
-                        val parsedText = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_COMPACT).toString()
-                        val newParagraphs = parsedText.split("\n\n").map { it.trim() }.filter { it.isNotEmpty() }
-                        
-                        withContext(Dispatchers.Main) {
-                            paragraphs = newParagraphs
-                            listState.scrollToItem(0)
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    // Save Progress
-    DisposableEffect(currentChapterIndex, fontSize, readTheme) {
+    DisposableEffect(fontSize, readTheme) {
         onDispose {
             prefs.edit()
-                .putInt("chapter_$bookId", currentChapterIndex)
                 .putFloat("fontSize", fontSize)
                 .putInt("theme", readTheme.ordinal)
                 .apply()
@@ -177,12 +100,27 @@ fun EpubReaderScreen(
         EpubTheme.DARK -> MaterialTheme.colorScheme.background
         EpubTheme.SEPIA -> Color(0xFF432A15)
     }
+    
+    fun Color.toHex(): String {
+        val argb = this.toArgb()
+        return String.format("#%06X", 0xFFFFFF and argb)
+    }
+    
+    val bgHex = backgroundColor.toHex()
+    val textHex = textColor.toHex()
 
     Scaffold(
         topBar = {
             AnimatedVisibility(visible = !isFullScreen, enter = slideInVertically(), exit = slideOutVertically()) {
                 TopAppBar(
-                    title = { Text(decodedTitle, maxLines = 1, color = textColor) },
+                    title = { 
+                        Column {
+                            Text(decodedTitle, maxLines = 1, color = textColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            val totalChapters = book?.spine?.spineReferences?.size ?: 1
+                            val currentProg = if (totalChapters > 0) ((currentChapterIndex + scrollOffset) / totalChapters * 100).toInt() else 0
+                            Text("Progress: $currentProg%", fontSize = 12.sp, color = textColor.copy(alpha = 0.7f))
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = textColor)
@@ -203,22 +141,34 @@ fun EpubReaderScreen(
         bottomBar = {
             AnimatedVisibility(visible = !isFullScreen, enter = slideInVertically(initialOffsetY = { it }), exit = slideOutVertically(targetOffsetY = { it })) {
                 BottomAppBar(containerColor = backgroundColor, contentColor = textColor) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = { if (currentChapterIndex > 0) currentChapterIndex-- },
-                            enabled = currentChapterIndex > 0
-                        ) { Text("আগের অধ্যায়") }
-                        
-                        Text("${currentChapterIndex + 1} / ${book?.spine?.spineReferences?.size ?: 1}")
-                        
-                        Button(
-                            onClick = { if (currentChapterIndex < (book?.spine?.spineReferences?.size ?: 1) - 1) currentChapterIndex++ },
-                            enabled = currentChapterIndex < (book?.spine?.spineReferences?.size ?: 1) - 1
-                        ) { Text("পরের অধ্যায়") }
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        val totalChapters = book?.spine?.spineReferences?.size ?: 1
+                        val progressFloat = if (totalChapters > 0) (currentChapterIndex + scrollOffset) / totalChapters else 0f
+                        LinearProgressIndicator(
+                            progress = { progressFloat },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).padding(bottom = 8.dp),
+                            color = Color(0xFF667EEA),
+                            trackColor = textColor.copy(alpha = 0.2f),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { if (currentChapterIndex > 0) viewModel.updateProgress(context, bookId, currentChapterIndex - 1, 0f) },
+                                enabled = currentChapterIndex > 0,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                            ) { Text("আগের অধ্যায়") }
+                            
+                            Text("${currentChapterIndex + 1} / $totalChapters", fontSize = 14.sp)
+                            
+                            Button(
+                                onClick = { if (currentChapterIndex < totalChapters - 1) viewModel.updateProgress(context, bookId, currentChapterIndex + 1, 0f) },
+                                enabled = currentChapterIndex < totalChapters - 1,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF667EEA))
+                            ) { Text("পরের অধ্যায়") }
+                        }
                     }
                 }
             }
@@ -228,7 +178,6 @@ fun EpubReaderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(backgroundColor)
-                .clickable { isFullScreen = !isFullScreen }
                 .padding(paddingValues)
         ) {
             if (isLoading) {
@@ -240,36 +189,150 @@ fun EpubReaderScreen(
                 ) {
                     Icon(Icons.Default.Settings, contentDescription = "Error", tint = Color.Red, modifier = Modifier.size(48.dp))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("ত্রুটি (Debugging Info):", color = Color.Red, style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text("ত্রুটি:", color = Color.Red, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(errorMessage!!, color = textColor, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(24.dp))
-                    Button(onClick = { 
-                        isLoading = true
-                        errorMessage = null
-                        // Will trigger LaunchedEffect again because decodedFileUrl is stable, we need to artificially re-trigger
-                        // Actually, if we just want a simple retry, popBackStack is easier, or user can pull to refresh.
-                        // For now we'll rely on the user navigating back and entering again.
-                    }) {
-                        Text("পুনরায় চেষ্টা করুন (Go Back & Re-open)")
+                    Button(onClick = { viewModel.loadBook(context, bookId, fileUrl) }) {
+                        Text("পুনরায় চেষ্টা করুন")
                     }
                 }
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 10.dp)
-                ) {
-                    itemsIndexed(paragraphs) { _, paragraph ->
-                        Text(
-                            text = paragraph,
-                            fontSize = fontSize.sp,
-                            color = textColor,
-                            fontFamily = FontFamily.Serif,
-                            style = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            lineHeight = (fontSize * 1.6f).sp
+                book?.let { loadedBook ->
+                    val spineRefs = loadedBook.spine.spineReferences
+                    if (currentChapterIndex in spineRefs.indices) {
+                        val resource = spineRefs[currentChapterIndex].resource
+                        val rawHtml = try { String(resource.data, Charsets.UTF_8) } catch (e: Exception) { "" }
+                        
+                        val injectedCss = """
+                            <style>
+                              body {
+                                background-color: $bgHex !important;
+                                color: $textHex !important;
+                                font-size: ${fontSize}px !important;
+                                font-family: serif !important;
+                                line-height: 1.8 !important;
+                                padding: 10px 20px !important;
+                                word-wrap: break-word !important;
+                                text-align: justify !important;
+                              }
+                              img {
+                                max-width: 100% !important;
+                                height: auto !important;
+                                display: block !important;
+                                margin: 10px auto !important;
+                                border-radius: 8px;
+                              }
+                              ::selection {
+                                background: #667EEA;
+                                color: white;
+                              }
+                            </style>
+                            <script>
+                              function reportScroll() {
+                                  var h = document.documentElement;
+                                  var b = document.body;
+                                  var st = 'scrollTop';
+                                  var sh = 'scrollHeight';
+                                  var maxScroll = ((h[sh]||b[sh]) - h.clientHeight);
+                                  var scrollPos = maxScroll > 0 ? (h[st]||b[st]) / maxScroll : 0.0;
+                                  if(window.Android) { window.Android.onScroll(scrollPos); }
+                              }
+                              window.addEventListener('scroll', reportScroll);
+                              window.addEventListener('touchend', function() { setTimeout(reportScroll, 300); });
+                              
+                              function restoreScroll(percentage) {
+                                  setTimeout(function() {
+                                      var h = document.documentElement;
+                                      var b = document.body;
+                                      var sh = 'scrollHeight';
+                                      var targetScroll = percentage * ((h[sh]||b[sh]) - h.clientHeight);
+                                      window.scrollTo(0, targetScroll);
+                                  }, 200);
+                              }
+                            </script>
+                        """.trimIndent()
+                        
+                        val finalHtml = if (rawHtml.contains("</head>")) {
+                            rawHtml.replace("</head>", "$injectedCss</head>")
+                        } else if (rawHtml.contains("<body>")) {
+                            rawHtml.replace("<body>", "<body>$injectedCss")
+                        } else {
+                            "$injectedCss$rawHtml"
+                        }
+                        
+                        val baseUrl = "http://localhost/" + resource.href
+
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    settings.builtInZoomControls = true
+                                    settings.displayZoomControls = false
+                                    settings.useWideViewPort = true
+                                    settings.loadWithOverviewMode = true
+                                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                    
+                                    addJavascriptInterface(object {
+                                        @JavascriptInterface
+                                        fun onScroll(percentage: Float) {
+                                            viewModel.updateProgress(context, bookId, currentChapterIndex, percentage)
+                                        }
+                                        
+                                        @JavascriptInterface
+                                        fun toggleFullScreen() {
+                                            isFullScreen = !isFullScreen
+                                        }
+                                    }, "Android")
+                                    
+                                    webViewClient = object : WebViewClient() {
+                                        override fun shouldInterceptRequest(
+                                            view: WebView,
+                                            request: WebResourceRequest
+                                        ): WebResourceResponse? {
+                                            val urlStr = request.url.toString()
+                                            if (urlStr.startsWith("http://localhost/")) {
+                                                val path = request.url.path?.removePrefix("/") ?: return null
+                                                val res = loadedBook.resources.getByHref(path) 
+                                                    ?: loadedBook.resources.all.find { it.href.endsWith(path) }
+                                                
+                                                if (res != null) {
+                                                    val mime = res.mediaType?.name ?: "image/jpeg"
+                                                    return WebResourceResponse(
+                                                        mime,
+                                                        "UTF-8",
+                                                        ByteArrayInputStream(res.data)
+                                                    )
+                                                }
+                                            }
+                                            return super.shouldInterceptRequest(view, request)
+                                        }
+                                        
+                                        override fun onPageFinished(view: WebView, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            val targetScroll = view.getTag(android.R.id.text1) as? Float ?: 0f
+                                            view.evaluateJavascript("restoreScroll($targetScroll);", null)
+                                            view.evaluateJavascript("""
+                                                document.body.addEventListener('click', function(e) {
+                                                    if(e.target.tagName !== 'A' && window.getSelection().toString().length === 0) {
+                                                        window.Android.toggleFullScreen();
+                                                    }
+                                                });
+                                            """.trimIndent(), null)
+                                        }
+                                    }
+                                }
+                            },
+                            update = { webView ->
+                                val currentHtmlHash = finalHtml.hashCode()
+                                if (webView.tag != currentHtmlHash) {
+                                    webView.tag = currentHtmlHash
+                                    webView.setTag(android.R.id.text1, scrollOffset)
+                                    webView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
@@ -280,15 +343,16 @@ fun EpubReaderScreen(
     if (showSettings) {
         ModalBottomSheet(onDismissRequest = { showSettings = false }) {
             Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-                Text("ফন্ট সাইজ (${fontSize.toInt()})", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text("ফন্ট সাইজ (${fontSize.toInt()})", fontWeight = FontWeight.Bold)
                 Slider(
                     value = fontSize,
                     onValueChange = { fontSize = it },
-                    valueRange = 12f..36f
+                    valueRange = 12f..36f,
+                    colors = SliderDefaults.colors(thumbColor = Color(0xFF667EEA), activeTrackColor = Color(0xFF667EEA))
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("থিম পরিবর্তন", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text("থিম পরিবর্তন", fontWeight = FontWeight.Bold)
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Button(
                         onClick = { readTheme = EpubTheme.LIGHT },
@@ -316,20 +380,23 @@ fun EpubReaderScreen(
         ModalBottomSheet(onDismissRequest = { showToc = false }) {
             LazyColumn(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
                 item {
-                    Text("সূচিপত্র", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text("সূচিপত্র", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
                 itemsIndexed(book?.spine?.spineReferences ?: emptyList()) { index, _ ->
+                    val isCurrent = index == currentChapterIndex
                     Text(
                         text = "অধ্যায় ${index + 1}",
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                currentChapterIndex = index
+                                viewModel.updateProgress(context, bookId, index, 0f)
                                 showToc = false
                             }
                             .padding(vertical = 12.dp),
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isCurrent) Color(0xFF667EEA) else MaterialTheme.colorScheme.onSurface
                     )
                     HorizontalDivider()
                 }

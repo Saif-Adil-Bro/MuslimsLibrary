@@ -249,12 +249,16 @@ class AuthRepositoryImpl(
 
     override suspend fun signInWithGoogle(context: Context, activity: ComponentActivity): Result<Unit> {
         return try {
+            if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isEmpty()) {
+                return Result.failure(Exception("Google Sign-In is not configured. Please add 'GOOGLE_WEB_CLIENT_ID' in AI Studio Secrets."))
+            }
+
             val credentialManager = CredentialManager.create(context)
             
             // Build google credentials request cleanly
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID.ifEmpty { "554416278039-googlewebclientidplaceholder.apps.googleusercontent.com" })
+                .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                 .setAutoSelectEnabled(true)
                 .build()
 

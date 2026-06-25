@@ -458,7 +458,7 @@ fun AuthScreen(
                             }
                         },
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = brandColor
+                            contentColor = if (androidx.compose.foundation.isSystemInDarkTheme()) Color.White else brandColor
                         ),
                         border = BorderStroke(1.5.dp, brandColor.copy(alpha = 0.4f)),
                         modifier = Modifier
@@ -499,7 +499,7 @@ fun AuthScreen(
                         ) {
                             Text(
                                 text = "গেস্ট হিসেবে চালিয়ে যান (বুকশেলফ)",
-                                color = brandColor,
+                                color = if (androidx.compose.foundation.isSystemInDarkTheme()) Color.White else brandColor,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.Center
