@@ -276,24 +276,7 @@ class AuthRepositoryImpl(
                 // Catch credential manager exceptions specifically
                 val clientIdPrefix = webClientId.take(15) + "..."
                 val pkgName = context.packageName
-                
-                var sha1 = "Unknown"
-                try {
-                    val info = context.packageManager.getPackageInfo(
-                        pkgName,
-                        android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-                    )
-                    val certs = info.signingInfo?.apkContentsSigners
-                    if (!certs.isNullOrEmpty()) {
-                        val md = java.security.MessageDigest.getInstance("SHA-1")
-                        val digest = md.digest(certs[0].toByteArray())
-                        sha1 = digest.joinToString(":") { "%02X".format(it) }
-                    }
-                } catch (e2: Exception) {
-                    sha1 = "Error"
-                }
-
-                throw Exception("Developer console error.\nApp ID: $pkgName\nApp SHA-1: $sha1\nClient ID: $clientIdPrefix\nDetails: ${e.message}", e)
+                throw Exception("Developer console error. \nApp ID: $pkgName\nClient ID: $clientIdPrefix\nDetails: ${e.message}", e)
             }
 
             val credential = result.credential
