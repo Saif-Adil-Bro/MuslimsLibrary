@@ -59,6 +59,13 @@ data class SupabaseCategory(
 )
 
 @Serializable
+data class ForumCategory(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val name: String,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
 data class ForumPost(
     val id: String = "",
     @SerialName("user_id") val userId: String? = null,
@@ -1200,6 +1207,74 @@ class SupabaseService(
             }
         } catch (e: Exception) {
             android.util.Log.e("SupabaseService", "Error upserting author: ${e.message}", e)
+        }
+    }
+
+    suspend fun getForumCategories(): List<ForumCategory> = withContext(Dispatchers.IO) {
+        try {
+            val cats = supabaseClient.postgrest["forum_categories"].select().decodeList<ForumCategory>()
+            if (cats.isEmpty()) {
+                val defaults = listOf("General", "Quran", "Hadith", "Fiqh", "Sira", "Others")
+                val insertedList = mutableListOf<ForumCategory>()
+                defaults.forEach { name ->
+                    val id = java.util.UUID.randomUUID().toString()
+                    val jsonObject = buildJsonObject {
+                        put("id", id)
+                        put("name", name)
+                    }
+                    try {
+                        supabaseClient.postgrest["forum_categories"].insert(jsonObject)
+                        insertedList.add(ForumCategory(id = id, name = name))
+                    } catch (e: Exception) {
+                        android.util.Log.e("SupabaseService", "Error pre-populating forum category $name: ${e.message}")
+                        // Fallback: still add it locally so the UI works
+                        insertedList.add(ForumCategory(id = id, name = name))
+                    }
+                }
+                insertedList.sortedBy { it.name }
+            } else {
+                cats.sortedBy { it.name }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error fetching forum categories: ${e.message}")
+            // Fallback for errors
+            val defaults = listOf("General", "Quran", "Hadith", "Fiqh", "Sira", "Others")
+            defaults.map { ForumCategory(id = java.util.UUID.randomUUID().toString(), name = it) }.sortedBy { it.name }
+        }
+    }
+
+    suspend fun addForumCategory(name: String) = withContext(Dispatchers.IO) {
+        try {
+            val jsonObject = buildJsonObject {
+                put("id", java.util.UUID.randomUUID().toString())
+                put("name", name)
+            }
+            supabaseClient.postgrest["forum_categories"].insert(jsonObject)
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error adding forum category: ${e.message}")
+        }
+    }
+
+    suspend fun updateForumCategory(id: String, name: String) = withContext(Dispatchers.IO) {
+        try {
+            val jsonObject = buildJsonObject {
+                put("name", name)
+            }
+            supabaseClient.postgrest["forum_categories"].update(jsonObject) {
+                filter { eq("id", id) }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error updating forum category: ${e.message}")
+        }
+    }
+
+    suspend fun deleteForumCategory(id: String) = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.postgrest["forum_categories"].delete {
+                filter { eq("id", id) }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseService", "Error deleting forum category: ${e.message}")
         }
     }
 

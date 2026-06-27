@@ -145,10 +145,6 @@ fun BookReaderScreen(
     }
 
     val onScroll = rememberUpdatedState { scrollY: Int, range: Int, viewHeight: Int ->
-        if (isZooming) {
-            Log.d("PDF_Debug", "Skipping progress updates and page changes because zoom is in progress")
-            return@rememberUpdatedState
-        }
         val total = rState.totalPages
         val current = rState.currentPage
         val maxScroll = range - viewHeight
@@ -1157,12 +1153,12 @@ fun NativePdfReader(
         }
 
         LaunchedEffect(firstVisibleItemIndex) {
-            if (!isZooming && firstVisibleItemIndex >= 0) {
+            if (firstVisibleItemIndex >= 0) {
                 val newPage = firstVisibleItemIndex + 1
                 Log.d("PDF_Debug", "Scroll detected. Page updated to: $newPage / $pageCount")
                 onPageChanged(newPage, pageCount)
             } else {
-                Log.d("PDF_Debug", "Scroll detected but zoom is in progress, ignoring page change event.")
+                Log.d("PDF_Debug", "Invalid visible index, ignoring page change event.")
             }
         }
 

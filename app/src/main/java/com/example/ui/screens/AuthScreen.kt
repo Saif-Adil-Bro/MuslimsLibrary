@@ -66,12 +66,15 @@ fun AuthScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var isSignUp by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     // Validation States
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
     fun validateInputs(): Boolean {
         var isValid = true
@@ -90,6 +93,15 @@ fun AuthScreen(
             isValid = false
         } else {
             passwordError = null
+        }
+
+        if (isSignUp) {
+            if (confirmPassword != password) {
+                confirmPasswordError = "Passwords do not match"
+                isValid = false
+            } else {
+                confirmPasswordError = null
+            }
         }
         return isValid
     }
@@ -132,8 +144,8 @@ fun AuthScreen(
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF120822), // Very Deep Dark Purple
-                Color(0xFF261460)  // Deep Purple Dark
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.surfaceVariant
             )
         )
     }
@@ -206,7 +218,7 @@ fun AuthScreen(
                     text = "MuslimsLibrary",
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF5FBF7),
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontFamily = FontFamily.Serif,
                     textAlign = TextAlign.Center
                 )
@@ -214,7 +226,7 @@ fun AuthScreen(
                 Text(
                     text = "Your Companion for Devotional Literature",
                     fontSize = 13.sp,
-                    color = Color(0xFFC7F3E2).copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -373,6 +385,50 @@ fun AuthScreen(
                             .heightIn(min = 56.dp)
                             .testTag("password_input")
                     )
+
+                    if (isSignUp) {
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = {
+                                confirmPassword = it
+                                if (confirmPasswordError != null) confirmPasswordError = null
+                            },
+                            label = { Text("Confirm Password") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Confirm Password Icon",
+                                    tint = brandColor
+                                )
+                            },
+                            trailingIcon = {
+                                val image = if (confirmPasswordVisible) Icons.Default.LockOpen else Icons.Default.Lock
+                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                    Icon(imageVector = image, contentDescription = "Toggle confirm password visibility")
+                                }
+                            },
+                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            isError = confirmPasswordError != null,
+                            supportingText = confirmPasswordError?.let { { Text(it) } },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                focusedLabelColor = brandColor,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedBorderColor = brandColor,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                cursorColor = brandColor,
+                                errorBorderColor = Color.Red,
+                                focusedLeadingIconColor = brandColor,
+                                unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 56.dp)
+                                .testTag("confirm_password_input")
+                        )
+                    }
 
                     // Unified loading indicator & Action trigger
                     Box(

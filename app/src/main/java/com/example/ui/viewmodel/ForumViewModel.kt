@@ -65,10 +65,25 @@ class ForumViewModel(
     private val _userPostsCount = MutableStateFlow(0)
     private val _lastPostTime = MutableStateFlow<Long?>(null)
 
-    val categories = listOf("All", "General", "Quran", "Hadith", "Fiqh", "Sira", "Others")
+    private val _categories = MutableStateFlow<List<String>>(listOf("All"))
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
 
     init {
         loadPosts()
+        loadCategories()
+    }
+    
+    fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                val dbCategories = supabaseService.getForumCategories()
+                val list = mutableListOf("All")
+                list.addAll(dbCategories.map { it.name }.filter { it != "All" })
+                _categories.value = list
+            } catch (e: Exception) {
+                android.util.Log.e("ForumViewModel", "Error loading categories", e)
+            }
+        }
     }
 
     private fun parseIsoToMs(isoString: String?): Long {

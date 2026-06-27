@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -48,6 +51,7 @@ fun BookDetailScreen(
     localSyncRepository: LocalSyncRepository,
     downloadedBooksViewModel: com.example.ui.viewmodel.DownloadedBooksViewModel,
     onReadNowClick: (SupabaseBook) -> Unit,
+    onBookClick: (SupabaseBook) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -881,6 +885,19 @@ fun BookDetailScreen(
                         }
                     }
                 }
+
+                // Suggested Books Section
+                val suggestedBooks = remember(bookId, book) {
+                    if (book != null) {
+                        homeViewModel.getSuggestedBooks(book.id, book.category, book.author)
+                    } else emptyList()
+                }
+                if (suggestedBooks.isNotEmpty()) {
+                    SuggestedBooksSection(
+                        suggestedBooks = suggestedBooks,
+                        onBookClick = onBookClick
+                    )
+                }
             }
         }
     }
@@ -946,5 +963,100 @@ fun BookDetailScreen(
             shape = RoundedCornerShape(16.dp),
             containerColor = Color.White
         )
+    }
+}
+
+@Composable
+fun SuggestedBooksSection(
+    suggestedBooks: List<SupabaseBook>,
+    onBookClick: (SupabaseBook) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp, bottom = 16.dp)
+    ) {
+        Text(
+            text = "আপনার জন্য সুপারিশকৃত",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF667EEA),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(suggestedBooks) { book ->
+                SuggestedBookCard(book = book, onClick = { onBookClick(book) })
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestedBookCard(
+    book: SupabaseBook,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(140.dp)
+            .height(220.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                        )
+                    )
+            ) {
+                AsyncImage(
+                    model = coil.request.ImageRequest.Builder(LocalContext.current)
+                        .data(book.coverImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = book.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = book.title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp
+                )
+                Text(
+                    text = "লেখক: ${book.author}",
+                    fontSize = 11.sp,
+                    color = Color(0xFF718096),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }

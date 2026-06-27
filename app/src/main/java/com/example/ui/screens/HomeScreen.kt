@@ -167,7 +167,7 @@ fun HomeScreen(
                                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 5.dp),
                                         horizontalArrangement = Arrangement.spacedBy(15.dp)
                                     ) {
-                                        val recentBooks = books.take(8)
+                                        val recentBooks = books.sortedByDescending { it.createdAt ?: "" }.take(8)
                                         items(recentBooks) { book ->
                                             BookCardHorizontal(
                                                 book = book,

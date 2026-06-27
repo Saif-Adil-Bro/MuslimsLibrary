@@ -116,7 +116,7 @@ fun BookCardGrid(
                         .align(Alignment.TopEnd)
                 ) {
                     Text(
-                        text = "PDF",
+                        text = book.fileType.uppercase(),
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold

@@ -62,6 +62,7 @@ fun ForumScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by forumViewModel.uiState.collectAsState()
+    val forumCategories by forumViewModel.categories.collectAsState()
     val selectedCategory by forumViewModel.selectedCategory.collectAsState()
     val likedPostIds by forumViewModel.likedPostIds.collectAsState()
     val userNamesMap by forumViewModel.userNamesMap.collectAsState()
@@ -79,6 +80,10 @@ fun ForumScreen(
 
     var showDeletePostDialog by remember { mutableStateOf(false) }
     var deletePostId by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        forumViewModel.loadCategories()
+    }
 
     // Category mappings for display inside the UI (English database tag -> Bengali display tag)
     val categoryMappings = mapOf(
@@ -311,7 +316,7 @@ fun ForumScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    forumViewModel.categories.forEach { category ->
+                    forumCategories.forEach { category ->
                      val isSelected = selectedCategory == category
                      val displayLabel = categoryMappings[category] ?: category
                      
@@ -345,105 +350,102 @@ fun ForumScreen(
                 }
             }
 
-            // Forum Quick Stats Dashboard styled beautifully using Gradient Highlight Borders
+            // Feed Content with stats and success states all scrolling together
             val stats by forumViewModel.forumStats.collectAsState()
-            ForumStatsSection(stats = stats)
-
-            // Feed Content with success states
             Box(modifier = Modifier.weight(1f)) {
-                when (val state = uiState) {
-                    is ForumUiState.Loading -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        ForumStatsSection(stats = stats)
+                    }
+
+                    when (val state = uiState) {
+                        is ForumUiState.Loading -> {
                             items(3) {
                                 ForumPostSkeletonCard()
                             }
                         }
-                    }
-                    is ForumUiState.Empty -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Forum,
-                                contentDescription = null,
-                                modifier = Modifier.size(72.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "কোনো পোস্ট পাওয়া যায়নি!",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "প্রথম পোস্টটি লিখে আপনার আলোচনা শুরু করুন।",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    is ForumUiState.Error -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "ত্রুটি ঘটেছে!",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = state.message,
-                                fontSize = 14.sp,
-                                color = Color.DarkGray,
-                                maxLines = 3
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = { forumViewModel.loadPosts() },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Text("পুনরায় চেষ্টা করুন")
+                        is ForumUiState.Empty -> {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Forum,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(72.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "কোনো পোস্ট পাওয়া যায়নি!",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "প্রথম পোস্টটি লিখে আপনার আলোচনা শুরু করুন।",
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
-                    }
-                    is ForumUiState.Success -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                text = "মেম্বারদের মোট পোস্টসংখ্যা: ${state.posts.size} টি",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
-                            )
-                            
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .weight(1f),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(state.posts) { post ->
-                                    val authorName = userNamesMap[post.userId] ?: if (!post.authorEmail.isNullOrBlank()) {
-                                        val prefix = post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
-                                        "$prefix${(post.userId?.hashCode()?.absoluteValue ?: 0) % 9000 + 1000}"
-                                    } else "User"
+                        is ForumUiState.Error -> {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "ত্রুটি ঘটেছে!",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = state.message,
+                                        fontSize = 14.sp,
+                                        color = Color.DarkGray,
+                                        maxLines = 3
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { forumViewModel.loadPosts() },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Text("পুনরায় চেষ্টা করুন")
+                                    }
+                                }
+                            }
+                        }
+                        is ForumUiState.Success -> {
+                            item {
+                                Text(
+                                    text = "মেম্বারদের মোট পোস্টসংখ্যা: ${state.posts.size} টি",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 4.dp).padding(bottom = 8.dp)
+                                )
+                            }
+                            items(state.posts) { post ->
+                                val authorName = userNamesMap[post.userId] ?: if (!post.authorEmail.isNullOrBlank()) {
+                                    val prefix = post.authorEmail.split("@").first().replaceFirstChar { it.uppercase() }
+                                    "$prefix${(post.userId?.hashCode()?.absoluteValue ?: 0) % 9000 + 1000}"
+                                } else "User"
 
                                     ForumPostCard(
                                         post = post,
@@ -485,7 +487,6 @@ fun ForumScreen(
             }
         }
     }
-}
 }
 
 @Composable

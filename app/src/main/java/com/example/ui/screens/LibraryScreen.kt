@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -79,125 +80,120 @@ fun LibraryScreen(
             }
         }
 
-        // Stats Card at top
-        LibraryStatsCard(
-            stats = stats,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-        )
-
-        // Search Bar Row
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { libraryViewModel.updateSearchQuery(it) },
-            placeholder = { Text("লাইব্রেরী থেকে খুঁজুন...", fontSize = 14.sp) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+        // The entire rest of the screen is one scrollable grid
+        LazyVerticalGrid(
+            columns = if (isGridView) GridCells.Fixed(2) else GridCells.Fixed(1),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .testTag("library_search_input"),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = Color(0xFFE2E8F0),
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-            ),
-            singleLine = true
-        )
+                .weight(1f)
+                .testTag("library_scrollable_content"),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                // Stats Card at top
+                LibraryStatsCard(
+                    stats = stats,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
 
-        // Tab Filters with horizontal scrolling
-        LibraryTabFilter(
-            selectedTab = selectedTab,
-            onTabSelected = { libraryViewModel.selectTab(it) },
-            modifier = Modifier.padding(vertical = 2.dp)
-        )
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                // Search Bar Row
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { libraryViewModel.updateSearchQuery(it) },
+                    placeholder = { Text("লাইব্রেরী থেকে খুঁজুন...", fontSize = 14.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .testTag("library_search_input"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color(0xFFE2E8F0),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    singleLine = true
+                )
+            }
+
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                // Tab Filters with horizontal scrolling
+                LibraryTabFilter(
+                    selectedTab = selectedTab,
+                    onTabSelected = { libraryViewModel.selectTab(it) },
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
 
             // Main Book Display list/grid or empty state
             if (books.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val emptyMsg = when (selectedTab) {
-                        LibraryViewModel.LibraryTab.DOWNLOADS -> "কোন ডাউনলোড করা বই পাওয়া যায়নি"
-                        LibraryViewModel.LibraryTab.FAVORITES -> "আপনার পছন্দের তালিকায় কোন বই নেই"
-                        LibraryViewModel.LibraryTab.READING -> "আপনি বর্তমানে কোন বই পড়ছেন না"
-                        LibraryViewModel.LibraryTab.COMPLETED -> "আপনার সম্পূর্ণ পড়া বইয়ের তালিকা খালি"
-                        LibraryViewModel.LibraryTab.PINNED -> "পিন করার সামগ্রী নেই"
-                        else -> "আপনার লাইব্রেরী খালি"
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val emptyMsg = when (selectedTab) {
+                            LibraryViewModel.LibraryTab.DOWNLOADS -> "কোন ডাউনলোড করা বই পাওয়া যায়নি"
+                            LibraryViewModel.LibraryTab.FAVORITES -> "আপনার পছন্দের তালিকায় কোন বই নেই"
+                            LibraryViewModel.LibraryTab.READING -> "আপনি বর্তমানে কোন বই পড়ছেন না"
+                            LibraryViewModel.LibraryTab.COMPLETED -> "আপনার সম্পূর্ণ পড়া বইয়ের তালিকা খালি"
+                            LibraryViewModel.LibraryTab.PINNED -> "পিন করার সামগ্রী নেই"
+                            else -> "আপনার লাইব্রেরী খালি"
+                        }
+                        LibraryEmptyState(
+                            message = emptyMsg,
+                            onButtonClick = onGoToHomeClick,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    LibraryEmptyState(
-                        message = emptyMsg,
-                        onButtonClick = onGoToHomeClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             } else {
-                if (isGridView) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .testTag("library_books_grid"),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(
-                            items = books,
-                            key = { it.bookId }
-                        ) { book ->
-                            LibraryBookCard(
-                                book = book,
-                                onClick = { onBookClick(book.bookId) },
-                                onMenuClick = { action ->
-                                    when (action) {
-                                        "read" -> onBookClick(book.bookId)
-                                        "favorite" -> libraryViewModel.toggleFavorite(book.bookId)
-                                        "pin" -> libraryViewModel.togglePin(book.bookId)
-                                        "delete_download" -> libraryViewModel.deleteDownload(book.bookId)
-                                    }
+                items(
+                    items = books,
+                    key = { it.bookId }
+                ) { book ->
+                    if (isGridView) {
+                        LibraryBookCard(
+                            book = book,
+                            onClick = { onBookClick(book.bookId) },
+                            onMenuClick = { action ->
+                                when (action) {
+                                    "read" -> onBookClick(book.bookId)
+                                    "favorite" -> libraryViewModel.toggleFavorite(book.bookId)
+                                    "pin" -> libraryViewModel.togglePin(book.bookId)
+                                    "delete_download" -> libraryViewModel.deleteDownload(book.bookId)
                                 }
-                            )
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .testTag("library_books_list"),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(
-                            items = books,
-                            key = { it.bookId }
-                        ) { book ->
-                            LibraryBookListItem(
-                                book = book,
-                                onClick = { onBookClick(book.bookId) },
-                                onMenuClick = { action ->
-                                    when (action) {
-                                        "read" -> onBookClick(book.bookId)
-                                        "favorite" -> libraryViewModel.toggleFavorite(book.bookId)
-                                        "pin" -> libraryViewModel.togglePin(book.bookId)
-                                        "delete_download" -> libraryViewModel.deleteDownload(book.bookId)
-                                    }
+                            }
+                        )
+                    } else {
+                        LibraryBookListItem(
+                            book = book,
+                            onClick = { onBookClick(book.bookId) },
+                            onMenuClick = { action ->
+                                when (action) {
+                                    "read" -> onBookClick(book.bookId)
+                                    "favorite" -> libraryViewModel.toggleFavorite(book.bookId)
+                                    "pin" -> libraryViewModel.togglePin(book.bookId)
+                                    "delete_download" -> libraryViewModel.deleteDownload(book.bookId)
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
         }
+    }
 }

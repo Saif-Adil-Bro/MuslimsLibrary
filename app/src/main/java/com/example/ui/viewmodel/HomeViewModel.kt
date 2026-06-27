@@ -125,6 +125,21 @@ class HomeViewModel(
         }
     }
 
+    fun getSuggestedBooks(currentBookId: String, currentCategory: String, currentAuthor: String, limit: Int = 10): List<SupabaseBook> {
+        val allBooks = allPublicBooks
+        // বর্তমান বই বাদ দিয়ে ফিল্টার
+        return allBooks
+            .filter { it.id != currentBookId }
+            .sortedByDescending { book ->
+                // Priority scoring
+                var score = 0
+                if (book.category.equals(currentCategory, ignoreCase = true)) score += 100
+                if (book.author.equals(currentAuthor, ignoreCase = true)) score += 50
+                score
+            }
+            .take(limit)
+    }
+
     private fun filterAndPublish() {
         val filtered = filteredBooks(_searchQuery.value, _selectedCategory.value)
         if (filtered.isEmpty()) {

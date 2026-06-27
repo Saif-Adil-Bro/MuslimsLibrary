@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,8 +86,13 @@ fun CreatePostScreen(
     var content by remember { mutableStateOf(TextFieldValue("")) }
     var tagsInput by remember { mutableStateOf("") }
     val postTags by forumViewModel.postTags.collectAsState()
+    val forumCategories by forumViewModel.categories.collectAsState()
     var isPrivate by remember { mutableStateOf(false) }
     val isPublishing = remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        forumViewModel.loadCategories()
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -214,11 +220,11 @@ fun CreatePostScreen(
                 
                 // Visual Wrap Flow Row for Category Select Pills
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf("Quran", "Hadith", "Fiqh", "Sira").forEach { category ->
+                    forumCategories.filter { it != "All" }.forEach { category ->
                         val isSelected = selectedCategory == category
                         val displayLabel = categoryMappings[category] ?: category
                         

@@ -404,7 +404,8 @@ fun GridBookItem(
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                         .align(Alignment.TopStart)
                 ) {
-                    Text("PDF", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    val isEpub = book.localFilePath.lowercase().endsWith(".epub")
+                    Text(if (isEpub) "EPUB" else "PDF", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Box(

@@ -46,9 +46,10 @@ fun AdminDashboardScreen(
     val adminBooks by adminViewModel.adminBooks.collectAsState()
     val adminAuthors by adminViewModel.adminAuthors.collectAsState()
     val adminCategories by adminViewModel.adminCategories.collectAsState()
+    val adminForumCategories by adminViewModel.adminForumCategories.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
-    val tabTitles = listOf("ড্যাশবোর্ড", "বইসমূহ", "লেখকগণ", "ক্যাটেগরি")
+    val tabTitles = listOf("ড্যাশবোর্ড", "বইসমূহ", "লেখকগণ", "ক্যাটেগরি", "ফোরাম টপিক")
 
     LaunchedEffect(Unit) {
         adminViewModel.getTotalBooksCount()
@@ -176,6 +177,15 @@ fun AdminDashboardScreen(
                     },
                     onDeleteCategory = { id ->
                         adminViewModel.deleteCategory(id)
+                    }
+                )
+                4 -> AdminForumCategoriesTabContent(
+                    forumCategories = adminForumCategories,
+                    onSaveCategory = { id, name ->
+                        adminViewModel.saveForumCategory(id, name)
+                    },
+                    onDeleteCategory = { id ->
+                        adminViewModel.deleteForumCategory(id)
                     }
                 )
             }
@@ -895,7 +905,7 @@ fun CategoriesTabContent(
                                 text = category.name,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = Color.Black,
                                 modifier = Modifier.weight(1f)
                             )
 
@@ -992,6 +1002,200 @@ fun CategoriesTabContent(
             onDismissRequest = { confirmDeleteCategory = null },
             title = { Text("ক্যাটেগরি মুছে ফেলুন") },
             text = { Text("'${category.name}' ক্যাটেগরি কি চিরতরে মুছে ফেলতে চান?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCategory(category.id)
+                        confirmDeleteCategory = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("মুছে ফেলুন")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteCategory = null }) {
+                    Text("বাতিল")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun AdminForumCategoriesTabContent(
+    forumCategories: List<com.example.data.ForumCategory>,
+    onSaveCategory: (String?, String) -> Unit,
+    onDeleteCategory: (String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredCategories = forumCategories.filter {
+        it.name.contains(searchQuery, ignoreCase = true)
+    }
+
+    var isAddingCategory by remember { mutableStateOf(false) }
+    var editingCategory by remember { mutableStateOf<com.example.data.ForumCategory?>(null) }
+    var confirmDeleteCategory by remember { mutableStateOf<com.example.data.ForumCategory?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("ফোরাম টপিক খুঁজুন...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Button(
+                onClick = { isAddingCategory = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(52.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("যোগ করুন", fontSize = 12.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (filteredCategories.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("কোনো ফোরাম টপিক পাওয়া যায়নি", color = Color.Gray, fontSize = 14.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredCategories) { category ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFEFF2EE)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = category.name,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Row(
+                                modifier = Modifier.wrapContentWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { editingCategory = category },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Topic",
+                                        tint = Color(0xFF3B82F6),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { confirmDeleteCategory = category },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete Topic",
+                                        tint = Color(0xFFEF4444),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add / Edit Category Dialog
+    if (isAddingCategory || editingCategory != null) {
+        val category = editingCategory
+        var name by remember(category, isAddingCategory) { mutableStateOf(category?.name ?: "") }
+
+        AlertDialog(
+            onDismissRequest = {
+                isAddingCategory = false
+                editingCategory = null
+            },
+            title = { Text(if (category == null) "নতুন ফোরাম টপিক" else "ফোরাম টপিক পরিবর্তন", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("টপিকের নাম") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (name.isNotBlank()) {
+                            onSaveCategory(category?.id, name)
+                        }
+                        isAddingCategory = false
+                        editingCategory = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Text("সংরক্ষণ করুন")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        isAddingCategory = false
+                        editingCategory = null
+                    }
+                ) {
+                    Text("বাতিল")
+                }
+            }
+        )
+    }
+
+    // Delete matching category
+    confirmDeleteCategory?.let { category ->
+        AlertDialog(
+            onDismissRequest = { confirmDeleteCategory = null },
+            title = { Text("টপিক মুছে ফেলুন") },
+            text = { Text("'${category.name}' টপিক কি চিরতরে মুছে ফেলতে চান?") },
             confirmButton = {
                 Button(
                     onClick = {

@@ -325,6 +325,11 @@ fun AppNavigation(
                     val encodedUrl = java.net.URLEncoder.encode(clickedBook.fileUrl ?: "", "UTF-8")
                     navController.navigate("reader/${clickedBook.id}/$encodedTitle/$encodedUrl/${clickedBook.fileType}")
                 },
+                onBookClick = { suggestedBook ->
+                    navController.navigate("book_detail/${suggestedBook.id}") {
+                        popUpTo("dashboard")
+                    }
+                },
                 onBackClick = {
                     navController.popBackStack()
                 }

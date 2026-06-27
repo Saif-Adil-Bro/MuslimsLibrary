@@ -65,6 +65,11 @@ class AdminViewModel(
 
     private val localCategoriesOverride = mutableListOf<com.example.data.SupabaseCategory>()
 
+    private val _adminForumCategories = MutableStateFlow<List<com.example.data.ForumCategory>>(emptyList())
+    val adminForumCategories: StateFlow<List<com.example.data.ForumCategory>> = _adminForumCategories.asStateFlow()
+
+    private val localForumCategoriesOverride = mutableListOf<com.example.data.ForumCategory>()
+
     fun loadAdminData() {
         viewModelScope.launch {
             try {
@@ -102,6 +107,32 @@ class AdminViewModel(
                 _adminCategories.value = merged.sortedBy { it.name }
             } catch (e: Exception) {
                 android.util.Log.e("AdminViewModel", "Error loading admin categories: ${e.message}")
+            }
+            try {
+                val dbForumCategories = supabaseService.getForumCategories()
+                val merged = mutableListOf<com.example.data.ForumCategory>()
+                
+                dbForumCategories.forEach { dbCat ->
+                    val override = localForumCategoriesOverride.find { it.id == dbCat.id || it.name.trim().lowercase() == dbCat.name.trim().lowercase() }
+                    if (override != null) {
+                        if (!merged.any { it.name.trim().lowercase() == override.name.trim().lowercase() }) {
+                            merged.add(override)
+                        }
+                    } else {
+                        if (!merged.any { it.name.trim().lowercase() == dbCat.name.trim().lowercase() }) {
+                            merged.add(dbCat)
+                        }
+                    }
+                }
+                
+                localForumCategoriesOverride.forEach { locCat ->
+                    if (!merged.any { it.id == locCat.id || it.name.trim().lowercase() == locCat.name.trim().lowercase() }) {
+                        merged.add(locCat)
+                    }
+                }
+                _adminForumCategories.value = merged.sortedBy { it.name }
+            } catch (e: Exception) {
+                android.util.Log.e("AdminViewModel", "Error loading admin forum categories: ${e.message}")
             }
         }
     }
@@ -250,6 +281,38 @@ class AdminViewModel(
             localCategoriesOverride.removeAll { it.id == id }
             if (!id.startsWith("local_")) {
                 supabaseService.deleteCategory(id)
+            }
+            loadAdminData()
+        }
+    }
+
+    fun saveForumCategory(id: String?, name: String) {
+        viewModelScope.launch {
+            if (id == null) {
+                val newId = "local_${java.util.UUID.randomUUID()}"
+                val newCat = com.example.data.ForumCategory(id = newId, name = name)
+                localForumCategoriesOverride.add(newCat)
+                supabaseService.addForumCategory(name)
+            } else {
+                val index = localForumCategoriesOverride.indexOfFirst { it.id == id }
+                if (index != -1) {
+                    localForumCategoriesOverride[index] = localForumCategoriesOverride[index].copy(name = name)
+                } else {
+                    localForumCategoriesOverride.add(com.example.data.ForumCategory(id = id, name = name))
+                }
+                if (!id.startsWith("local_")) {
+                    supabaseService.updateForumCategory(id, name)
+                }
+            }
+            loadAdminData()
+        }
+    }
+
+    fun deleteForumCategory(id: String) {
+        viewModelScope.launch {
+            localForumCategoriesOverride.removeAll { it.id == id }
+            if (!id.startsWith("local_")) {
+                supabaseService.deleteForumCategory(id)
             }
             loadAdminData()
         }
