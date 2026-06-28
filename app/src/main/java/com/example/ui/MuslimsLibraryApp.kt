@@ -62,7 +62,8 @@ fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsVie
     val adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModel.Factory(
             appContainer.supabaseClient, 
-            appContainer.supabaseService
+            appContainer.supabaseService,
+            appContainer.context
         )
     )
     val forumViewModel: ForumViewModel = viewModel(
@@ -117,7 +118,7 @@ fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsVie
     ) { innerPadding ->
         AppNavigation(
             navController = navController,
-            startDestination = if (isLoggedIn) "dashboard" else "auth",
+            startDestination = "splash",
             modifier = Modifier.padding(innerPadding),
             appContainer = appContainer,
             authViewModel = authViewModel,

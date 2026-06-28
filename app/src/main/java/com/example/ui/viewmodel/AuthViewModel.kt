@@ -48,8 +48,20 @@ class AuthViewModel(
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
+    private val _isInitialCheckDone = MutableStateFlow(false)
+    val isInitialCheckDone: StateFlow<Boolean> = _isInitialCheckDone.asStateFlow()
+
+    private val _isAutoGuestLogin = MutableStateFlow(false)
+    val isAutoGuestLogin: StateFlow<Boolean> = _isAutoGuestLogin.asStateFlow()
+
     private val _isFromGuestMode = MutableStateFlow(false)
     val isFromGuestMode: StateFlow<Boolean> = _isFromGuestMode.asStateFlow()
+
+    fun goToLoginPage() {
+        _isLoggedIn.value = false
+        _uiState.value = AuthState.Idle
+        _isInitialCheckDone.value = true
+    }
 
     fun setFromGuestMode(fromGuest: Boolean) {
         _isFromGuestMode.value = fromGuest
@@ -115,6 +127,7 @@ class AuthViewModel(
             authRepository.isUserLoggedIn().collectLatest { loggedIn ->
                 val email = authRepository.getCurrentUserEmail()
                 if (loggedIn && email != null) {
+                    _isAutoGuestLogin.value = false
                     val uid = authRepository.getCurrentUserUid()
                     if (uid != null) {
                         try {
@@ -155,6 +168,36 @@ class AuthViewModel(
                         _uiState.value = AuthState.Success(email, uid ?: "")
                     }
                     _isLoggedIn.value = true
+                    _isInitialCheckDone.value = true
+                } else if (!_isInitialCheckDone.value) {
+                    _isAutoGuestLogin.value = true
+                    try {
+                        authRepository.signInAnonymously()
+                            .onSuccess {
+                                android.util.Log.d("AuthViewModel", "Auto guest login successful")
+                                val uid = authRepository.getCurrentUserUid()
+                                if (uid != null) {
+                                    _userRole.value = "user"
+                                    _uiState.value = AuthState.Success(
+                                        authRepository.getCurrentUserEmail() ?: "Guest User",
+                                        uid
+                                    )
+                                    _isLoggedIn.value = true
+                                }
+                                _isAutoGuestLogin.value = false
+                                _isInitialCheckDone.value = true
+                            }
+                            .onFailure { error ->
+                                android.util.Log.e("AuthViewModel", "Auto guest login failed", error)
+                                _isAutoGuestLogin.value = false
+                                _isInitialCheckDone.value = true
+                                _uiState.value = AuthState.Idle
+                                _isLoggedIn.value = false
+                            }
+                    } catch (e: Exception) {
+                        _isAutoGuestLogin.value = false
+                        _isInitialCheckDone.value = true
+                    }
                 } else {
                     _uiState.value = AuthState.Idle
                     _userRole.value = "user"

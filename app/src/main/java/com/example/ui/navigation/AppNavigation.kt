@@ -27,6 +27,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import com.example.AppContainer
 import com.example.ui.components.BackupRestoreDialogs
 import com.example.ui.screens.AddBookScreen
@@ -81,6 +86,48 @@ fun AppNavigation(
         startDestination = startDestination,
         modifier = modifier
     ) {
+        composable("splash") {
+            val isAutoGuestLogin by authViewModel.isAutoGuestLogin.collectAsState()
+            val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+            val isInitialCheckDone by authViewModel.isInitialCheckDone.collectAsState()
+
+            if (isAutoGuestLogin || !isInitialCheckDone) {
+                // Loading animation দেখান
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF667EEA),
+                            modifier = Modifier.size(64.dp),
+                            strokeWidth = 4.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "অ্যাপ লোড হচ্ছে...",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+            } else if (isLoggedIn) {
+                // Auto-login successful, go to dashboard
+                LaunchedEffect(Unit) {
+                    navController.navigate("dashboard") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            } else {
+                // Auto-login failed, go to auth
+                LaunchedEffect(Unit) {
+                    navController.navigate("auth") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            }
+        }
+
         composable(
             route = "auth?fromGuest={fromGuest}",
             arguments = listOf(

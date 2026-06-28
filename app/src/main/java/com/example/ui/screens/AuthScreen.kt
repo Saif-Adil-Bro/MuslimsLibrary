@@ -565,6 +565,22 @@ fun AuthScreen(
                 }
             }
 
+            if (!showGuestOption) {
+                Button(
+                    onClick = {
+                        // Focus on email field to start manual login
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF667EEA)
+                    )
+                ) {
+                    Text("Login / Signup করুন")
+                }
+            }
+
             // Snackbar style global auth feedback error
             if (uiState is AuthState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))

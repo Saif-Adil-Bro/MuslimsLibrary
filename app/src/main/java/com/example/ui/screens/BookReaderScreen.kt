@@ -743,7 +743,8 @@ fun downloadPdf(context: Context, url: String, title: String) {
                 android.app.DownloadManager.Request.NETWORK_MOBILE
             )
             setAllowedOverRoaming(false)
-            setTitle("Muslims Library - $title")
+            val appName = context.getString(com.example.R.string.app_name)
+            setTitle("$appName - $title")
             setDescription("বইটি ডাউনলোড হচ্ছে...")
             setDestinationInExternalPublicDir(
                 android.os.Environment.DIRECTORY_DOWNLOADS, 

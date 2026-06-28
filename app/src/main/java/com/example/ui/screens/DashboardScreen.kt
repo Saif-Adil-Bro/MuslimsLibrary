@@ -145,7 +145,11 @@ fun DashboardScreen(
                         com.example.ui.navigation.sidebar.MenuItem("privacy", "গোপনীয়তা নীতি", Icons.Filled.VerifiedUser)
                     )
                     
-                    if (!isGuestMode) {
+                    if (isGuestMode) {
+                        otherSectionItems.add(
+                            com.example.ui.navigation.sidebar.MenuItem("login", "লগইন / সাইনআপ", Icons.AutoMirrored.Filled.ExitToApp)
+                        )
+                    } else {
                         otherSectionItems.add(
                             com.example.ui.navigation.sidebar.MenuItem("logout", "লগআউট", Icons.AutoMirrored.Filled.ExitToApp, isDestructive = true)
                         )
@@ -160,11 +164,11 @@ fun DashboardScreen(
                         profile = profile,
                         sections = sections,
                         viewModel = sidebarViewModel,
-                        footerText = "আমার হিসাব",
+                        footerText = androidx.compose.ui.res.stringResource(id = com.example.R.string.app_name),
                         versionText = "ভার্সন ১.০.০",
                         onMenuItemClick = { route ->
                             scope.launch { drawerState.close() }
-                            if (route == "logout") {
+                            if (route == "logout" || route == "login") {
                                 onLogoutClick()
                                 return@SidebarDrawer
                             }

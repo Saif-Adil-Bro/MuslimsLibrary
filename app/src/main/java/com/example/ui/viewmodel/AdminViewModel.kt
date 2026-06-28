@@ -45,7 +45,8 @@ data class BookUploadData(
 
 class AdminViewModel(
     private val supabaseClient: SupabaseClient,
-    val supabaseService: SupabaseService
+    val supabaseService: SupabaseService,
+    private val context: android.content.Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UploadState>(UploadState.Idle)
@@ -488,10 +489,11 @@ class AdminViewModel(
                 supabaseService.insertBook(bookData)
                 
                 try {
+                    val appName = context.getString(com.example.R.string.app_name)
                     supabaseService.addNotificationLocallyAndRemotely(
                         userId = "global",
                         title = "নতুন ভান্ডার",
-                        body = "মুসলমানদের লাইব্রেরিতে একটি নতুন বই যুক্ত হয়েছে: '${data.title}'",
+                        body = "$appName-এ একটি নতুন বই যুক্ত হয়েছে: '${data.title}'",
                         type = "book"
                     )
                 } catch (e: Exception) {
@@ -509,12 +511,13 @@ class AdminViewModel(
 
     class Factory(
         private val supabaseClient: SupabaseClient,
-        private val supabaseService: SupabaseService
+        private val supabaseService: SupabaseService,
+        private val context: android.content.Context
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(AdminViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return AdminViewModel(supabaseClient, supabaseService) as T
+                return AdminViewModel(supabaseClient, supabaseService, context) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

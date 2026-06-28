@@ -19,11 +19,12 @@ class ReadingReminderWorker(
         if (isReadingReminderEnabled) {
             val notificationManager = LocalNotificationManager(applicationContext)
             
+            val appName = applicationContext.getString(com.example.R.string.app_name)
             // Randomly select an inspiring message in Bengali
             val messages = listOf(
                 "পবিত্র কুরআন এবং হাদিস রিডিং সময় হয়েছে। জ্ঞান অর্জনের সফর শুরু করুন!",
-                "আজকে কি বই পড়েছেন? চলুন মুসলমানদের লাইব্রেরিতে নতুন কিছু শিখি।",
-                "জ্ঞান অর্জন করা প্রত্যেক মুসলমানের উপর ফরজ। মুসলমানদের লাইব্রেরিতে আপনার পড়াশোনা বজায় রাখুন।"
+                "আজকে কি বই পড়েছেন? চলুন $appName-এ নতুন কিছু শিখি।",
+                "জ্ঞান অর্জন করা প্রত্যেক মুসলমানের উপর ফরজ। $appName-এ আপনার পড়াশোনা বজায় রাখুন।"
             )
             val selectedMessage = messages.random()
             val title = "ইসলামিক রিডিং রিমাইন্ডার"

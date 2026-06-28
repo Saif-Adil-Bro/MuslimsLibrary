@@ -83,6 +83,16 @@ android {
     compose = true
     buildConfig = true
   }
+
+  sourceSets {
+    getByName("debug") {
+      java.srcDir("build/generated/ksp/debug/kotlin")
+    }
+    getByName("release") {
+      java.srcDir("build/generated/ksp/release/kotlin")
+    }
+  }
+
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 

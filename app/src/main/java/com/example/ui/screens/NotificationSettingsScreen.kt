@@ -202,7 +202,7 @@ fun NotificationSettingsScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "মুসলমানদের লাইব্রেরি © সর্বস্বত্ব সংরক্ষিত",
+                text = "${androidx.compose.ui.res.stringResource(id = com.example.R.string.app_name)} © সর্বস্বত্ব সংরক্ষিত",
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)

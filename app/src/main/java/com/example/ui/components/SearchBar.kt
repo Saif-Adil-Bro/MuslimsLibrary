@@ -108,7 +108,7 @@ fun SearchBar(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Muslims Library",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.R.string.app_name),
                     fontSize = 22.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.tertiary,

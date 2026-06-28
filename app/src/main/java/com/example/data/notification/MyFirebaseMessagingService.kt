@@ -62,8 +62,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         
+        val appName = applicationContext.getString(com.example.R.string.app_name)
         val title = message.notification?.title ?: message.data["title"] ?: "নতুন আপডেট"
-        val body = message.notification?.body ?: message.data["body"] ?: "মুসলমানদের লাইব্রেরিতে নতুন জিনিস যোগ করা হয়েছে।"
+        val body = message.notification?.body ?: message.data["body"] ?: "$appName-এ নতুন জিনিস যোগ করা হয়েছে।"
         val data = message.data
         
         // If the notifications preferences screen states push general is off, block it
