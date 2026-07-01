@@ -179,7 +179,7 @@ fun AboutScreen(
                             color = textPrimary
                         )
                         Text(
-                            text = "1.0.0 (Latest)",
+                            text = "${com.example.BuildConfig.VERSION_NAME} (Latest)",
                             fontSize = 14.sp,
                             color = textSecondary,
                             modifier = Modifier.padding(top = 4.dp)
@@ -198,6 +198,7 @@ fun AboutScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     ContactItem(icon = "📧", label = "ইমেইল:", value = AppConstants.CONTACT_EMAIL, textSecondary = textSecondary)
+                    ContactItem(icon = "📞", label = "ফোন:", value = AppConstants.CONTACT_PHONE, textSecondary = textSecondary)
                     ContactItem(icon = "🌐", label = "ওয়েবসাইট:", value = AppConstants.WEBSITE_URL.removePrefix("https://"), textSecondary = textSecondary)
                     ContactItem(icon = "📱", label = "ফেসবুক:", value = AppConstants.FACEBOOK_HANDLE, textSecondary = textSecondary)
                 }

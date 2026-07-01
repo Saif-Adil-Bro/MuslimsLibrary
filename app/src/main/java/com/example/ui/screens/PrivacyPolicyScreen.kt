@@ -512,6 +512,25 @@ fun PrivacyPolicyScreen(
                     // Contact Cards
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         ContactCard(
+                            icon = "📞",
+                            title = "ফোন",
+                            linkText = AppConstants.CONTACT_PHONE,
+                            bgTertiary = bgTertiary,
+                            borderColor = borderColor,
+                            textPrimary = textPrimary,
+                            linkColor = linkColor,
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                    data = Uri.parse("tel:${AppConstants.CONTACT_PHONE}")
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    // Handle exception
+                                }
+                            }
+                        )
+                        ContactCard(
                             icon = "📧",
                             title = "ইমেইল",
                             linkText = AppConstants.CONTACT_EMAIL,

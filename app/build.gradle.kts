@@ -15,8 +15,8 @@ android {
     applicationId = "com.muslimslibrary.app"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2
+    versionName = "1.2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -84,16 +84,15 @@ android {
     buildConfig = true
   }
 
+  testOptions { unitTests { isIncludeAndroidResources = true } }
   sourceSets {
     getByName("debug") {
-      java.srcDir("build/generated/ksp/debug/kotlin")
+      kotlin.srcDir("build/generated/ksp/debug/kotlin")
     }
     getByName("release") {
-      java.srcDir("build/generated/ksp/release/kotlin")
+      kotlin.srcDir("build/generated/ksp/release/kotlin")
     }
   }
-
-  testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files

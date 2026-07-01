@@ -165,7 +165,7 @@ fun DashboardScreen(
                         sections = sections,
                         viewModel = sidebarViewModel,
                         footerText = androidx.compose.ui.res.stringResource(id = com.example.R.string.app_name),
-                        versionText = "ভার্সন ১.০.০",
+                        versionText = "ভার্সন ${com.example.BuildConfig.VERSION_NAME}",
                         onMenuItemClick = { route ->
                             scope.launch { drawerState.close() }
                             if (route == "logout" || route == "login") {
