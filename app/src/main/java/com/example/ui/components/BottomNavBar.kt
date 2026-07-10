@@ -11,7 +11,9 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,11 +33,14 @@ fun BottomNavBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .shadow(15.dp)
-            .background(Color.White)
+            .background(backgroundColor)
             .navigationBarsPadding() // Protect against hardware overlay cutoffs
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
@@ -88,7 +93,10 @@ fun RowScope.NavBarItem(
     testTag: String,
     modifier: Modifier = Modifier
 ) {
-    val tintColor = if (isSelected) ActiveNavColor else InactiveNavColor
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val activeColor = if (isDark) Color(0xFF9EAEFF) else ActiveNavColor
+    val inactiveColor = if (isDark) Color(0xFF64748B) else InactiveNavColor
+    val tintColor = if (isSelected) activeColor else inactiveColor
 
     Column(
         modifier = modifier

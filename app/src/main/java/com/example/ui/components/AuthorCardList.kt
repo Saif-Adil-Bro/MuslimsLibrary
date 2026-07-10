@@ -14,7 +14,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -63,7 +65,7 @@ fun AuthorCardList(
             )
             .testTag("author_card_list_${author.id}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
         Row(
@@ -94,6 +96,8 @@ fun AuthorCardList(
             }
 
             // Title and book count in center
+            val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -101,7 +105,7 @@ fun AuthorCardList(
                     text = author.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
@@ -111,7 +115,7 @@ fun AuthorCardList(
                     Text(
                         text = "📚 ${author.booksCount}টি বই",
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary
                     )
                 }
             }

@@ -12,7 +12,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,26 +46,31 @@ fun StickySearchBar(
     var isFocused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    
     // Glow and border calculations using brand values when focused
     val borderBrush = if (isFocused) {
         Brush.linearGradient(colors = listOf(AppGradientStart, AppGradientEnd))
     } else {
-        Brush.linearGradient(colors = listOf(Color(0xFFE0E0E0), Color(0xFFE0E0E0)))
+        val outlineColor = if (isDark) MaterialTheme.colorScheme.outline else Color(0xFFE0E0E0)
+        Brush.linearGradient(colors = listOf(outlineColor, outlineColor))
     }
     
     val shadowElevation = if (isFocused) 6.dp else 2.dp
+    val outerBgColor = if (isDark) MaterialTheme.colorScheme.background else Color.White
+    val innerBgColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(outerBgColor)
             .padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(shadowElevation, shape = RoundedCornerShape(25.dp))
-                .background(Color.White, shape = RoundedCornerShape(25.dp))
+                .background(innerBgColor, shape = RoundedCornerShape(25.dp))
                 .border(
                     width = if (isFocused) 2.dp else 1.5.dp,
                     brush = borderBrush,
@@ -81,7 +88,7 @@ fun StickySearchBar(
                     value = query,
                     onValueChange = onQueryChange,
                     textStyle = TextStyle(
-                        color = TextPrimary,
+                        color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Normal
                     ),
@@ -103,7 +110,7 @@ fun StickySearchBar(
                         if (query.isEmpty()) {
                             Text(
                                 text = placeholder,
-                                color = TextMuted,
+                                color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else TextMuted,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Normal
                             )

@@ -494,7 +494,7 @@ class AdminViewModel(
                         userId = "global",
                         title = "নতুন ভান্ডার",
                         body = "$appName-এ একটি নতুন বই যুক্ত হয়েছে: '${data.title}'",
-                        type = "book"
+                        type = "book:$uuid"
                     )
                 } catch (e: Exception) {
                     android.util.Log.e("AdminViewModel", "Failed to send global book notification", e)

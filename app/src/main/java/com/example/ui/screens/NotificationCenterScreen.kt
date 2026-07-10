@@ -40,6 +40,8 @@ fun NotificationCenterScreen(
     viewModel: NotificationViewModel,
     isGuest: Boolean,
     onBackClick: () -> Unit,
+    onNavigateToBook: (String) -> Unit,
+    onNavigateToPost: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -252,7 +254,20 @@ fun NotificationCenterScreen(
                                 items(state.notifications) { item ->
                                     NotificationItem(
                                         notification = item,
-                                        onClick = { viewModel.markAsRead(item.id) },
+                                        onClick = {
+                                            viewModel.markAsRead(item.id)
+                                            if (item.type.startsWith("forum:")) {
+                                                val postId = item.type.substringAfter("forum:")
+                                                if (postId.isNotBlank()) {
+                                                    onNavigateToPost(postId)
+                                                }
+                                            } else if (item.type.startsWith("book:")) {
+                                                val bookId = item.type.substringAfter("book:")
+                                                if (bookId.isNotBlank()) {
+                                                    onNavigateToBook(bookId)
+                                                }
+                                            }
+                                        },
                                         onDelete = { viewModel.deleteNotification(item.id) }
                                     )
                                 }

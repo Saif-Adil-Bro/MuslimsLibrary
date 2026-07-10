@@ -263,11 +263,14 @@ class ForumViewModel(
                 supabaseService.createForumPost(userId, title, finalContent, category, email, role)
                 
                 try {
+                    val userPosts = supabaseService.fetchUserPosts(userId)
+                    val newestPostId = userPosts.maxByOrNull { it.createdAt ?: "" }?.id
+                    
                     supabaseService.addNotificationLocallyAndRemotely(
                         userId = "global",
                         title = "নতুন ফোরাম পোস্ট",
                         body = "ফোরামে নতুন একটি আলোচনা শুরু হয়েছে: '$title'",
-                        type = "forum"
+                        type = newestPostId?.let { "forum:$it" } ?: "forum"
                     )
                 } catch (e: Exception) {
                     android.util.Log.e("ForumViewModel", "Failed to insert global forum post notification", e)
@@ -342,7 +345,7 @@ class ForumViewModel(
                             userId = postAuthorId,
                             title = "নতুন মন্তব্য",
                             body = "আপনার '$postTitle' পোস্টে কেউ একজন নতুন মন্তব্য করেছেন।",
-                            type = "forum"
+                            type = "forum:$postId"
                         )
                     } catch (e: Exception) {
                         android.util.Log.e("ForumViewModel", "Failed to send comment notification", e)
@@ -471,7 +474,7 @@ class ForumViewModel(
                                 userId = postAuthorId,
                                 title = "নতুন লাইক",
                                 body = "আপনার '$postTitle' পোস্টে কেউ একজন লাইক করেছেন।",
-                                type = "forum"
+                                type = "forum:$postId"
                             )
                         } catch (e: Exception) {
                             android.util.Log.e("ForumViewModel", "Failed to send like notification", e)

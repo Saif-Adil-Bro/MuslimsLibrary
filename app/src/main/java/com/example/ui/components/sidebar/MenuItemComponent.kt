@@ -5,7 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,13 +26,19 @@ fun MenuItemComponent(
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val activeGradient = listOf(Color(0xFFF0E6FF), Color(0xFFE8DFF5))
-    val activeTextColor = Color(0xFF6B5B95)
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+    val activeGradient = if (isDark) {
+        listOf(Color(0xFF3A2E52), Color(0xFF2A1F40))
+    } else {
+        listOf(Color(0xFFF0E6FF), Color(0xFFE8DFF5))
+    }
+    val activeTextColor = if (isDark) Color(0xFFC0B2DE) else Color(0xFF6B5B95)
     
-    val inactiveTextColor = Color(0xFF333333)
-    val inactiveIconColor = Color(0xFF666666)
+    val inactiveTextColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF333333)
+    val inactiveIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF666666)
     
-    val destructiveTextColor = Color(0xFFE53E3E)
+    val destructiveTextColor = if (isDark) Color(0xFFF87171) else Color(0xFFE53E3E)
     
     val currentTextColor = when {
         isSelected -> activeTextColor

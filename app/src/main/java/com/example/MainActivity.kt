@@ -20,6 +20,10 @@ class MainActivity : ComponentActivity() {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
         }
 
+        val navigateTo = intent?.getStringExtra("navigate_to")
+        val bookId = intent?.getStringExtra("book_id")
+        val postId = intent?.getStringExtra("post_id")
+
         enableEdgeToEdge()
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel(
@@ -29,7 +33,13 @@ class MainActivity : ComponentActivity() {
 
             MyApplicationTheme(theme = theme) {
                 val appContainer = (application as MuslimsLibraryApplication).container
-                MuslimsLibraryApp(appContainer, settingsViewModel)
+                MuslimsLibraryApp(
+                    appContainer = appContainer,
+                    settingsViewModel = settingsViewModel,
+                    initialNavigateTo = navigateTo,
+                    initialBookId = bookId,
+                    initialPostId = postId
+                )
             }
         }
     }

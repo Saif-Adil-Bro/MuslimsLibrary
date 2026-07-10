@@ -63,11 +63,23 @@ class LocalNotificationManager(private val context: Context) {
         id: Int,
         title: String,
         body: String,
-        channelId: String = CHANNEL_GENERAL_ID
+        channelId: String = CHANNEL_GENERAL_ID,
+        type: String = "general"
     ) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("navigate_to", "notification_center")
+            if (type.startsWith("forum:")) {
+                val postId = type.substringAfter("forum:")
+                putExtra("post_id", postId)
+                putExtra("notification_type", "forum")
+            } else if (type.startsWith("book:")) {
+                val bookId = type.substringAfter("book:")
+                putExtra("book_id", bookId)
+                putExtra("notification_type", "book")
+            } else {
+                putExtra("notification_type", type)
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,12 +36,13 @@ fun AuthorDetailBottomSheet(
     if (author == null) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null,
         modifier = modifier.testTag("author_detail_bottom_sheet_modal")
     ) {
@@ -137,15 +139,15 @@ fun AuthorDetailBottomSheet(
                             text = "পরিচিতি",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
+                            color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        Divider(color = Color(0xFFF0F2F5), thickness = 2.dp)
+                        HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outlineVariant else Color(0xFFF0F2F5), thickness = 2.dp)
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = author.bio ?: "কোনো পরিচিতি নেই",
                             fontSize = 14.sp,
-                            color = Color(0xFF4A5568),
+                            color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF4A5568),
                             lineHeight = 22.sp
                         )
                     }
@@ -158,10 +160,10 @@ fun AuthorDetailBottomSheet(
                         text = "বইসমূহ",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Divider(color = Color(0xFFF0F2F5), thickness = 2.dp)
+                    HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outlineVariant else Color(0xFFF0F2F5), thickness = 2.dp)
                 }
 
                 // Sub-list of books

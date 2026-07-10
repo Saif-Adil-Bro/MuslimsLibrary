@@ -11,7 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -62,7 +64,7 @@ fun AuthorCardGrid(
             )
             .testTag("author_card_grid_${author.id}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
         Column(
@@ -99,6 +101,8 @@ fun AuthorCardGrid(
             }
 
             // Author info in card body
+            val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,7 +113,7 @@ fun AuthorCardGrid(
                     text = author.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -119,7 +123,7 @@ fun AuthorCardGrid(
                     text = "📚 ${author.booksCount}টি বই",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TextSecondary,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary,
                     textAlign = TextAlign.Center
                 )
             }

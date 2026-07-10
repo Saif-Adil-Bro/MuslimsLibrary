@@ -101,9 +101,20 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("navigate_to", "notification_center")
-            data["book_id"]?.let { putExtra("book_id", it) }
-            data["post_id"]?.let { putExtra("post_id", it) }
-            data["type"]?.let { putExtra("notification_type", it) }
+            val notificationType = data["type"] ?: "system"
+            if (notificationType.startsWith("forum:")) {
+                val postId = notificationType.substringAfter("forum:")
+                putExtra("post_id", postId)
+                putExtra("notification_type", "forum")
+            } else if (notificationType.startsWith("book:")) {
+                val bookId = notificationType.substringAfter("book:")
+                putExtra("book_id", bookId)
+                putExtra("notification_type", "book")
+            } else {
+                data["book_id"]?.let { putExtra("book_id", it) }
+                data["post_id"]?.let { putExtra("post_id", it) }
+                putExtra("notification_type", notificationType)
+            }
         }
         
         val pendingIntent = PendingIntent.getActivity(

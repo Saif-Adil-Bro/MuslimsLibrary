@@ -45,7 +45,8 @@ class NotificationSyncWorker(
                 localNotificationManager.showSimpleNotification(
                     id = notif.id.hashCode(),
                     title = notif.title,
-                    body = notif.body
+                    body = notif.body,
+                    type = notif.type
                 )
                 if (sentAtTime > maxTime) {
                     maxTime = sentAtTime

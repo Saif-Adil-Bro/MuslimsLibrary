@@ -23,6 +23,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,10 +59,14 @@ fun AuthorScreen(
         else -> 0
     }
 
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val backgroundColor = if (isDark) MaterialTheme.colorScheme.background else AppBackground
+    val surfaceColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppBackground)
+            .background(backgroundColor)
     ) {
         // 1. STICKY TOP HEADER
         Box(
@@ -89,7 +94,7 @@ fun AuthorScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(surfaceColor)
                 .padding(horizontal = 20.dp, vertical = 15.dp)
         ) {
             val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
@@ -101,7 +106,7 @@ fun AuthorScreen(
                 placeholder = {
                     Text(
                         text = "লেখক খুঁজুন...",
-                        color = Color.Gray,
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else Color.Gray,
                         fontSize = 15.sp
                     )
                 },
@@ -109,7 +114,7 @@ fun AuthorScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "সার্চ",
-                        tint = if (isFocused) AppGradientStart else Color(0xFF999999),
+                        tint = if (isFocused) AppGradientStart else if (isDark) Color(0xFF94A3B8) else Color(0xFF999999),
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -121,10 +126,10 @@ fun AuthorScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(25.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                    focusedContainerColor = surfaceColor,
+                    unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF8F9FA),
                     focusedBorderColor = AppGradientStart,
-                    unfocusedBorderColor = Color(0xFFE0E0E0)
+                    unfocusedBorderColor = if (isDark) MaterialTheme.colorScheme.outline else Color(0xFFE0E0E0)
                 )
             )
         }
@@ -133,7 +138,7 @@ fun AuthorScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(surfaceColor)
                 .padding(horizontal = 20.dp, vertical = 10.dp)
         ) {
             Row(
@@ -172,7 +177,7 @@ fun AuthorScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(surfaceColor)
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -180,7 +185,7 @@ fun AuthorScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "মোট লেখক: ",
-                    color = TextSecondary,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary,
                     fontSize = 14.sp
                 )
                 Text(
@@ -200,7 +205,7 @@ fun AuthorScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .background(
-                            if (isGridView) AppGradientStart else Color(0xFFF0F2F5),
+                            if (isGridView) AppGradientStart else if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFF0F2F5),
                             shape = RoundedCornerShape(6.dp)
                         )
                         .testTag("author_view_grid_btn")
@@ -208,7 +213,7 @@ fun AuthorScreen(
                     Icon(
                         imageVector = Icons.Default.GridView,
                         contentDescription = "Grid View",
-                        tint = if (isGridView) Color.White else TextSecondary,
+                        tint = if (isGridView) Color.White else if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -217,7 +222,7 @@ fun AuthorScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .background(
-                            if (!isGridView) AppGradientStart else Color(0xFFF0F2F5),
+                            if (!isGridView) AppGradientStart else if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFF0F2F5),
                             shape = RoundedCornerShape(6.dp)
                         )
                         .testTag("author_view_list_btn")
@@ -225,7 +230,7 @@ fun AuthorScreen(
                     Icon(
                         imageVector = Icons.Default.List,
                         contentDescription = "List View",
-                        tint = if (!isGridView) Color.White else TextSecondary,
+                        tint = if (!isGridView) Color.White else if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                 }

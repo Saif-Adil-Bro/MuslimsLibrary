@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -98,6 +99,8 @@ fun BookListItem(
             }
 
             // Title and Details
+            val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -105,7 +108,7 @@ fun BookListItem(
                     text = book.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = if (isDark) MaterialTheme.colorScheme.onSurface else TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -117,17 +120,17 @@ fun BookListItem(
                     Text(
                         text = pageCount,
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary
                     )
                     Text(
                         text = "•",
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary
                     )
                     Text(
                         text = book.category,
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else TextSecondary
                     )
                 }
             }

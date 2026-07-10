@@ -8,6 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,8 +31,18 @@ import com.example.ui.viewmodel.ProfileViewModel
 import com.example.ui.viewmodel.SettingsViewModel
 
 @Composable
-fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsViewModel) {
+fun MuslimsLibraryApp(
+    appContainer: AppContainer,
+    settingsViewModel: SettingsViewModel,
+    initialNavigateTo: String? = null,
+    initialBookId: String? = null,
+    initialPostId: String? = null
+) {
     val context = LocalContext.current
+    
+    var navigateTo by remember { mutableStateOf(initialNavigateTo) }
+    var bookId by remember { mutableStateOf(initialBookId) }
+    var postId by remember { mutableStateOf(initialPostId) }
 
     // Initialize ViewModels inside the Composition root
     val notificationViewModel: NotificationViewModel = viewModel(
@@ -130,7 +143,15 @@ fun MuslimsLibraryApp(appContainer: AppContainer, settingsViewModel: SettingsVie
             authorViewModel = authorViewModel,
             profileViewModel = profileViewModel,
             downloadedBooksViewModel = downloadedBooksViewModel,
-            settingsViewModel = settingsViewModel
+            settingsViewModel = settingsViewModel,
+            navigateTo = navigateTo,
+            bookId = bookId,
+            postId = postId,
+            onNotificationHandled = {
+                navigateTo = null
+                bookId = null
+                postId = null
+            }
         )
     }
 }

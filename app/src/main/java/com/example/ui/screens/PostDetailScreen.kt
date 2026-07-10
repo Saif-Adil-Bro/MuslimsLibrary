@@ -345,7 +345,30 @@ fun PostDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        Toast.makeText(context, "Discussion thread link copied!", Toast.LENGTH_SHORT).show()
+                        val currentPost = (detailState as? PostDetailUiState.Success)?.postWithComments?.post
+                        val shareText = if (currentPost != null) {
+                            "📌 ${currentPost.title}\n\n${currentPost.content}\n\n📖 বিস্তারিত পড়তে ডাউনলোড করুন মুসলিমস লাইব্রেরি অ্যাপ।\n${com.example.util.AppConstants.WEBSITE_URL}"
+                        } else {
+                            "মুসলিমস লাইব্রেরি ফোরাম\n${com.example.util.AppConstants.WEBSITE_URL}"
+                        }
+                        
+                        try {
+                            // Copy to clipboard
+                            val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Muslims Library Forum Post", shareText)
+                            clipboardManager.setPrimaryClip(clip)
+                            
+                            // Start Android Share Intent
+                            val sendIntent = android.content.Intent().apply {
+                                action = android.content.Intent.ACTION_SEND
+                                putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+                                type = "text/plain"
+                            }
+                            val shareIntent = android.content.Intent.createChooser(sendIntent, "শেয়ার করুন")
+                            context.startActivity(shareIntent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "শেয়ার করতে সমস্যা হয়েছে।", Toast.LENGTH_SHORT).show()
+                        }
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
                     }

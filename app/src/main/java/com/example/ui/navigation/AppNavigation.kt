@@ -77,7 +77,11 @@ fun AppNavigation(
     authorViewModel: AuthorViewModel,
     profileViewModel: ProfileViewModel,
     downloadedBooksViewModel: DownloadedBooksViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    navigateTo: String? = null,
+    bookId: String? = null,
+    postId: String? = null,
+    onNotificationHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -172,6 +176,33 @@ fun AppNavigation(
                 if (shouldAutoRestore && userUid.isNotBlank() && userEmail != "User@muslimslibrary.org" && userEmail != "Guest User") {
                     profileViewModel.performRestore(userId = userUid, localRoomUserId = userEmail)
                     authViewModel.onAutoRestoreHandled()
+                }
+            }
+            
+            LaunchedEffect(navigateTo, bookId, postId) {
+                if (!navigateTo.isNullOrBlank()) {
+                    when (navigateTo) {
+                        "notification_center" -> {
+                            if (!postId.isNullOrBlank()) {
+                                navController.navigate("post_detail/$postId")
+                            } else if (!bookId.isNullOrBlank()) {
+                                navController.navigate("book_detail/$bookId")
+                            } else {
+                                navController.navigate("notification_center")
+                            }
+                        }
+                        "book_detail" -> {
+                            if (!bookId.isNullOrBlank()) {
+                                navController.navigate("book_detail/$bookId")
+                            }
+                        }
+                        "post_detail" -> {
+                            if (!postId.isNullOrBlank()) {
+                                navController.navigate("post_detail/$postId")
+                            }
+                        }
+                    }
+                    onNotificationHandled()
                 }
             }
             
@@ -588,6 +619,12 @@ fun AppNavigation(
                 isGuest = isGuest,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNavigateToBook = { targetBookId ->
+                    navController.navigate("book_detail/$targetBookId")
+                },
+                onNavigateToPost = { targetPostId ->
+                    navController.navigate("post_detail/$targetPostId")
                 }
             )
         }

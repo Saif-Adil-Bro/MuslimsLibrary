@@ -740,8 +740,7 @@ fun BookDetailScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                        .padding(bottom = 32.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 0.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -27,11 +29,14 @@ fun SidebarDrawer(
 ) {
     val activeItemId by viewModel.activeMenuItemId.collectAsState()
 
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val backgroundColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
+
     Column(
         modifier = modifier
             .fillMaxHeight()
             .width(320.dp)
-            .background(Color.White)
+            .background(backgroundColor)
     ) {
         ProfileHeader(profile = profile)
 
@@ -57,7 +62,7 @@ fun SidebarDrawer(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 10.dp, horizontal = 20.dp),
-                        color = Color(0xFFE0E0E0)
+                        color = if (isDark) MaterialTheme.colorScheme.outline else Color(0xFFE0E0E0)
                     )
                 }
             }
