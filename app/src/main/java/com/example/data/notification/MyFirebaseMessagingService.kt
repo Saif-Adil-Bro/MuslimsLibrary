@@ -101,7 +101,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("navigate_to", "notification_center")
-            val notificationType = data["type"] ?: "system"
+            var notificationType = data["type"] ?: "system"
+            if (notificationType == "forum" && data.containsKey("post_id")) {
+                notificationType = "forum:${data["post_id"]}"
+            } else if (notificationType == "book" && data.containsKey("book_id")) {
+                notificationType = "book:${data["book_id"]}"
+            }
+
             if (notificationType.startsWith("forum:")) {
                 val postId = notificationType.substringAfter("forum:")
                 putExtra("post_id", postId)
@@ -147,7 +153,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     ?: getSharedPreferences("app_prefs", Context.MODE_PRIVATE).getString("user_id", null)
                     ?: return@launch
                 
-                val notificationType = data["type"] ?: "system"
+                var notificationType = data["type"] ?: "system"
+                if (notificationType == "forum" && data.containsKey("post_id")) {
+                    notificationType = "forum:${data["post_id"]}"
+                } else if (notificationType == "book" && data.containsKey("book_id")) {
+                    notificationType = "book:${data["book_id"]}"
+                }
                 
                 // Encode Map<String, String> into JSON string
                 val jsonData = try {

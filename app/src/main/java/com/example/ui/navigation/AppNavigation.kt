@@ -24,8 +24,10 @@ import androidx.core.content.edit
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -84,6 +86,36 @@ fun AppNavigation(
     onNotificationHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
+
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
+    LaunchedEffect(navigateTo, bookId, postId, currentRoute) {
+        if (!navigateTo.isNullOrBlank() && currentRoute != "splash" && currentRoute != null) {
+            when (navigateTo) {
+                "notification_center" -> {
+                    if (!postId.isNullOrBlank()) {
+                        navController.navigate("post_detail/$postId")
+                    } else if (!bookId.isNullOrBlank()) {
+                        navController.navigate("book_detail/$bookId")
+                    } else {
+                        navController.navigate("notification_center")
+                    }
+                }
+                "book_detail" -> {
+                    if (!bookId.isNullOrBlank()) {
+                        navController.navigate("book_detail/$bookId")
+                    }
+                }
+                "post_detail" -> {
+                    if (!postId.isNullOrBlank()) {
+                        navController.navigate("post_detail/$postId")
+                    }
+                }
+            }
+            onNotificationHandled()
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -176,33 +208,6 @@ fun AppNavigation(
                 if (shouldAutoRestore && userUid.isNotBlank() && userEmail != "User@muslimslibrary.org" && userEmail != "Guest User") {
                     profileViewModel.performRestore(userId = userUid, localRoomUserId = userEmail)
                     authViewModel.onAutoRestoreHandled()
-                }
-            }
-            
-            LaunchedEffect(navigateTo, bookId, postId) {
-                if (!navigateTo.isNullOrBlank()) {
-                    when (navigateTo) {
-                        "notification_center" -> {
-                            if (!postId.isNullOrBlank()) {
-                                navController.navigate("post_detail/$postId")
-                            } else if (!bookId.isNullOrBlank()) {
-                                navController.navigate("book_detail/$bookId")
-                            } else {
-                                navController.navigate("notification_center")
-                            }
-                        }
-                        "book_detail" -> {
-                            if (!bookId.isNullOrBlank()) {
-                                navController.navigate("book_detail/$bookId")
-                            }
-                        }
-                        "post_detail" -> {
-                            if (!postId.isNullOrBlank()) {
-                                navController.navigate("post_detail/$postId")
-                            }
-                        }
-                    }
-                    onNotificationHandled()
                 }
             }
             

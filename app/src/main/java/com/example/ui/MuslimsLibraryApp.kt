@@ -36,13 +36,26 @@ fun MuslimsLibraryApp(
     settingsViewModel: SettingsViewModel,
     initialNavigateTo: String? = null,
     initialBookId: String? = null,
-    initialPostId: String? = null
+    initialPostId: String? = null,
+    onNotificationHandled: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
     var navigateTo by remember { mutableStateOf(initialNavigateTo) }
     var bookId by remember { mutableStateOf(initialBookId) }
     var postId by remember { mutableStateOf(initialPostId) }
+
+    LaunchedEffect(initialNavigateTo, initialBookId, initialPostId) {
+        if (initialNavigateTo != null) {
+            navigateTo = initialNavigateTo
+        }
+        if (initialBookId != null) {
+            bookId = initialBookId
+        }
+        if (initialPostId != null) {
+            postId = initialPostId
+        }
+    }
 
     // Initialize ViewModels inside the Composition root
     val notificationViewModel: NotificationViewModel = viewModel(
@@ -151,6 +164,7 @@ fun MuslimsLibraryApp(
                 navigateTo = null
                 bookId = null
                 postId = null
+                onNotificationHandled()
             }
         )
     }

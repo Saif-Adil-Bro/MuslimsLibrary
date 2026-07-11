@@ -750,36 +750,49 @@ fun OriginalPostViewCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = authorName,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 15.sp
-                        )
-                        if (post.userRole?.lowercase() == "admin") {
-                            Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = authorName,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 15.sp
+                    )
+                    val role = post.userRole?.lowercase()
+                    if (!role.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .background(
+                                        if (role == "admin") MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "Admin",
-                                    fontSize = 8.sp,
+                                    text = role.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+                                    fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = if (role == "admin") Color.White else MaterialTheme.colorScheme.secondary
                                 )
                             }
+                            Text(
+                                text = formatRelativeTime(post.createdAt),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
+                    } else {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = formatRelativeTime(post.createdAt),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = formatRelativeTime(post.createdAt),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
 
                 // Category badge matching the specified mappings
@@ -980,36 +993,49 @@ fun CommentViewItem(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = authorName,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp
-                        )
-                        if (comment.userRole?.lowercase() == "admin") {
-                            Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = authorName,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 14.sp
+                    )
+                    val role = comment.userRole?.lowercase()
+                    if (!role.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    .background(
+                                        if (role == "admin") MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                    )
+                                    .padding(horizontal = 5.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "Admin",
+                                    text = role.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = if (role == "admin") Color.White else MaterialTheme.colorScheme.secondary
                                 )
                             }
+                            Text(
+                                text = formatRelativeTime(comment.createdAt),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
+                    } else {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = formatRelativeTime(comment.createdAt),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Spacer(modifier = Modifier.height(1.dp))
-                    Text(
-                        text = formatRelativeTime(comment.createdAt),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
 
                 if (canEditOrDelete) {

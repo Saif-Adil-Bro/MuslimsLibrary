@@ -11,7 +11,13 @@ import com.example.ui.viewmodel.SettingsViewModel
 import com.example.ui.MuslimsLibraryApp
 import com.example.ui.theme.MyApplicationTheme
 
+import kotlinx.coroutines.flow.MutableStateFlow
+
 class MainActivity : ComponentActivity() {
+    private val navigateToFlow = MutableStateFlow<String?>(null)
+    private val bookIdFlow = MutableStateFlow<String?>(null)
+    private val postIdFlow = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -20,9 +26,7 @@ class MainActivity : ComponentActivity() {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
         }
 
-        val navigateTo = intent?.getStringExtra("navigate_to")
-        val bookId = intent?.getStringExtra("book_id")
-        val postId = intent?.getStringExtra("post_id")
+        handleIntent(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -31,6 +35,10 @@ class MainActivity : ComponentActivity() {
             )
             val theme by settingsViewModel.theme.collectAsState()
 
+            val navigateTo by navigateToFlow.collectAsState()
+            val bookId by bookIdFlow.collectAsState()
+            val postId by postIdFlow.collectAsState()
+
             MyApplicationTheme(theme = theme) {
                 val appContainer = (application as MuslimsLibraryApplication).container
                 MuslimsLibraryApp(
@@ -38,9 +46,28 @@ class MainActivity : ComponentActivity() {
                     settingsViewModel = settingsViewModel,
                     initialNavigateTo = navigateTo,
                     initialBookId = bookId,
-                    initialPostId = postId
+                    initialPostId = postId,
+                    onNotificationHandled = {
+                        navigateToFlow.value = null
+                        bookIdFlow.value = null
+                        postIdFlow.value = null
+                    }
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: android.content.Intent?) {
+        intent?.let {
+            navigateToFlow.value = it.getStringExtra("navigate_to")
+            bookIdFlow.value = it.getStringExtra("book_id")
+            postIdFlow.value = it.getStringExtra("post_id")
         }
     }
 }
